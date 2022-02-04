@@ -44,8 +44,19 @@ def mersenne_modular_mult(a, b, p, n):
 		s = s - p
 	return s
 
-def pseudo_mersenne_modular_mult(a, b, p, n):
-	c = 
+def pseudo_mersenne_modular_mult(a, b, p, n, c1):
+	c = a * b
+	r1 = c >> (3 * n // 2)
+	r0 = c & ((1 << (3 * n // 2)) - 1)
+	assert c == (r1 << (3 * n // 2)) + r0
+	r = r1 * c1 * (1 << (n // 2)) + r0
+	s1 = r >> n
+	s0 = r & ((1 << n) - 1)
+	assert r == (s1 << n) + s0
+	s = s1 * c1 + s0
+	if s >= p:
+		s = s - p
+	return s
 
 if __name__ == "__main__":
 	n = 512
@@ -122,3 +133,25 @@ if __name__ == "__main__":
 			print("res2:", res2)
 			print()
 	print("res:\t", sum1, "\t", sum2)
+
+	print("\nPseudo Mersenne mult:")
+	sum1 = 0
+	sum2 = 0
+	for _ in range(1000):
+		n = (randrange(512, 1024))
+		c = randrange(1, 1<<(n//2))
+		p = (1 << n) - c
+		a = randrange(p)
+		b = randrange(p)
+		c1 = process_time()
+		res1 = pseudo_mersenne_modular_mult(a, b, p, n, c)
+		sum1 += process_time() - c1
+		c1 = process_time()
+		res2 = (a * b) % p
+		sum2 += process_time() - c1
+		if res1 != res2:
+			print("res1:", res1)
+			print("res2:", res2)
+			print()
+	print("res:\t", sum1, "\t", sum2)
+	#36
