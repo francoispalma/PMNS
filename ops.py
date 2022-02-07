@@ -1,6 +1,29 @@
 from random import randrange
 from time import process_time
 
+
+# racine n-ieme
+# b = pgcd(p-1, n)
+# alpha^((p-1)/b) = 1 (mod p)
+# Tonelli-shanks algorithm nth root
+# 5-11th root (6 = 3x2, etc)
+# get gamma from lambda since gamma = nth root of lambda X^n = lambda
+# because E(X) = X^n - lambda
+# gamma root of E(X)
+# generate small lambda, gamma < 64 bits
+# pgcd(p-1, n) = 1
+# => nu + (p-1)v = 1 (Bezout)
+# lambda ^ (p) = lambda mod p (fermat)
+# lambda ^ (p-1) = 1 mod p
+# lambda ^ (p-1)v = 1 mod p
+# lambda ^ (nu) * lambda ^ (p-1)v = lambda ^ (nu) mod p
+# lambda ^ (nu + (p-1)v) = lambda^(nu) mod p
+# lambda = lambda^(nu) mod p
+# lambda = (lambda^u)^n mod p
+# lambda^u nth root of lambda
+# gamma = lambda^u mod p
+
+
 def trivial_modular_add(a, b, p):
 	s = a + b
 	if s >= p:
@@ -69,11 +92,18 @@ def left_to_right_square_and_multiply(a, h, p, n):
 def left_to_right_square_and_multiply_always(a, h, p, n):
 	R0 = 1
 	for i in range(n - 1, -1, -1):
-		R1 = a
 		R0 = (R0 * R0) % p
-		R1 = (R0 * R1) % p
-		R0 = R0 * ((h & (1 << i)) == 0) + R1 * ((h & (1 << i)) != 0)
+		R1 = (R0 * a) % p
+		R0 = R1 if (h & (1 << i)) else R0
 	return R0
+
+def montgomery_ladder(a, h, p, n):
+	R = [1, a]
+	for i in range(n - 1, -1, -1):
+		b = ((1 << i) & h) != 0
+		R[1 - b] = (R[0] * R[1]) % p
+		R[b] = (R[b] * R[b]) % p
+	return R[0]
 
 if __name__ == "__main__":
 	n = 512
