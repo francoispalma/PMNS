@@ -58,6 +58,23 @@ def pseudo_mersenne_modular_mult(a, b, p, n, c1):
 		s = s - p
 	return s
 
+def left_to_right_square_and_multiply(a, h, p, n):
+	s = 1
+	for i in range(n - 1, -1, -1):
+		s = (s * s) % p
+		if h & (1 << i):
+			s = (s * a) % p
+	return s
+
+def left_to_right_square_and_multiply_always(a, h, p, n):
+	R0 = 1
+	for i in range(n - 1, -1, -1):
+		R1 = a
+		R0 = (R0 * R0) % p
+		R1 = (R0 * R1) % p
+		R0 = R0 * ((h & (1 << i)) == 0) + R1 * ((h & (1 << i)) != 0)
+	return R0
+
 if __name__ == "__main__":
 	n = 512
 	sum1 = 0
@@ -149,9 +166,33 @@ if __name__ == "__main__":
 		c1 = process_time()
 		res2 = (a * b) % p
 		sum2 += process_time() - c1
-		if res1 != res2:
+#		if res1 != res2:
+#			print("res1:", res1)
+#			print("res2:", res2)
+#			print()
+	print("res:\t", sum1, "\t", sum2)
+
+	print("\nModular Exp")
+	sum1 = 0
+	sum2 = 0
+	sum3 = 0
+	for _ in range(100):
+		n = (randrange(512, 1024))
+		p = randrange(1 << n)
+		a = randrange(p)
+		b = randrange(p)
+		c1 = process_time()
+		res1 = left_to_right_square_and_multiply(a, b, p, n)
+		sum1 += process_time() - c1
+		c1 = process_time()
+		res2 = left_to_right_square_and_multiply_always(a, b, p, n)
+		sum2 += process_time() - c1
+		c1 = process_time()
+		res3 = pow(a, b, p)
+		sum3 += process_time() - c1
+		if res1 != res2 != res3:
 			print("res1:", res1)
 			print("res2:", res2)
+			print("res3:", res3)
 			print()
-	print("res:\t", sum1, "\t", sum2)
-	#36
+	print("res:\t", sum1, "\t", sum2, "\t", sum3)
