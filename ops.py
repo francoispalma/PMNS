@@ -1,11 +1,12 @@
 from random import randrange
 from time import process_time
+from sage.all import next_prime
 
 
-# racine n-ieme
+# nth root
 # b = pgcd(p-1, n)
 # alpha^((p-1)/b) = 1 (mod p)
-# Tonelli-shanks algorithm nth root
+# Tonelli-shanks algorithm?
 # 5-11th root (6 = 3x2, etc)
 # get gamma from lambda since gamma = nth root of lambda X^n = lambda
 # because E(X) = X^n - lambda
@@ -13,7 +14,7 @@ from time import process_time
 # generate small lambda, gamma < 64 bits
 # pgcd(p-1, n) = 1
 # => nu + (p-1)v = 1 (Bezout)
-# lambda ^ (p) = lambda mod p (fermat)
+# lambda ^ (p) = lambda mod p (Fermat)
 # lambda ^ (p-1) = 1 mod p
 # lambda ^ (p-1)v = 1 mod p
 # lambda ^ (nu) * lambda ^ (p-1)v = lambda ^ (nu) mod p
@@ -22,7 +23,15 @@ from time import process_time
 # lambda = (lambda^u)^n mod p
 # lambda^u nth root of lambda
 # gamma = lambda^u mod p
-
+# else pgcd(p-1, n) = b
+# nu + (p-1)v = b (Bezout)
+# lambda ^ (nu + (p-1)v) = lambda^(nu) mod p
+# lambda ^ b = lambda ^(nu) mod p
+# if u = (b-1)k
+# lambda^b = lambda^(n(b-1)k)
+# lambda = lambda^(n(b-1)k - (b-1))
+# lambda = lambda^((b-1)(nk - 1))
+# ???
 
 def trivial_modular_add(a, b, p):
 	s = a + b
@@ -104,6 +113,18 @@ def montgomery_ladder(a, h, p, n):
 		R[1 - b] = (R[0] * R[1]) % p
 		R[b] = (R[b] * R[b]) % p
 	return R[0]
+
+def extended_euclid(a, b):
+	# au + bv = d
+	u1, u2, u3 = 1, 0, a
+	v1, v2, v3 = 0, 1, b
+	while v3 != 0:
+		q = u3//v3
+		t1, t2, t3 = v1, v2, v3
+		v1, v2, v3 = [a[0] - q * a[1] for a in zip((u1, u2, u3), (v1, v2, v3))]
+		u1, u2, u3 = t1, t2, t3
+	u, v, d = u1, u2, u3
+	return u, v, d
 
 if __name__ == "__main__":
 	n = 512
@@ -206,8 +227,9 @@ if __name__ == "__main__":
 	sum1 = 0
 	sum2 = 0
 	sum3 = 0
+	sum4 = 0
 	for _ in range(100):
-		n = (randrange(512, 1024))
+		n = (randrange(64, 256))
 		p = randrange(1 << n)
 		a = randrange(p)
 		b = randrange(p)
@@ -218,11 +240,41 @@ if __name__ == "__main__":
 		res2 = left_to_right_square_and_multiply_always(a, b, p, n)
 		sum2 += process_time() - c1
 		c1 = process_time()
-		res3 = pow(a, b, p)
+		res3 = montgomery_ladder(a, b, p, n)
 		sum3 += process_time() - c1
-		if res1 != res2 != res3:
+		c1 = process_time()
+		res4 = pow(a, b, p)
+		sum4 += process_time() - c1
+		if res1 != res2 != res3 != res4:
 			print("res1:", res1)
 			print("res2:", res2)
 			print("res3:", res3)
+			print("res3:", res4)
 			print()
-	print("res:\t", sum1, "\t", sum2, "\t", sum3)
+	print("res:\t", sum1, "\t", sum2, "\t", sum3, "\t", sum4)
+
+	print("\nModular Inverse")
+	sum1 = 0
+	sum2 = 0
+	for _ in range(100):
+		n = randrange(64, 128)
+		p = randrange(1<<(n-1), 1<<n)
+		p = next_prime(p)
+		a = randrange(2, 1<<n)
+		b = randrange(2, 1<<n)
+		u, v, d = extended_euclid(a, b)
+		if a * u + b * v != d:
+			print(False)
+		else:
+			c1 = process_time()
+			res1 = pow(a, p - 2, p)
+			sum1 += process_time() - c1
+			c1 = process_time()
+			res2 = pow(a, -1, p)
+			sum2 += process_time() - c1
+			if res1 != res2:
+				print("res1:", res1)
+				print("res2:", res2)
+				print()
+	print("res:\t", sum1, "\t", sum2)
+	#44
