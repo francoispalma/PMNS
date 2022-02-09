@@ -198,6 +198,39 @@ def external_reduction(C, n, lam):
 	R[n - 1] = C[n - 1]
 	return R
 
+def switch_to_mns(val, p, n, gamma, rho, lam=0):
+	gamms = [int(pow(gamma, i, p)) for i in range(n)]
+	print(gamms)
+	mgamms = [(p - elem) % p for elem in gamms]
+	R = [0] * n
+	left = [i for i in range(n - 1, -1, -1)]
+	print(left)
+	while left:
+		orlen = len(left)
+		for elem in left:
+			if val // gamms[elem] < rho:
+				R[elem] = val // gamms[elem]
+				val = (val - R[elem] * gamms[elem]) % p
+				left.remove(elem)
+				break
+			elif val // mgamms[elem] < rho:
+				R[elem] = - (val // gamms[elem])
+				val = (val - R[elem] * gamms[elem]) % p
+				left.remove(elem)
+				break
+			else:
+				print("rho:", rho, "elem:", elem)
+				print("val =", val)
+				print("gamms =", gamms[elem])
+				print("val/gamms =", val // gamms[elem])
+				print(val - val // gamms[elem] * gamms[elem])
+				print(val // mgamms[elem])
+		if len(left) == orlen:
+			print("Error")
+			break
+	return R
+
+
 if __name__ == "__main__":
 	n = 512
 	sum1 = 0
@@ -356,4 +389,7 @@ if __name__ == "__main__":
 	print("res:\t", sum1, "\t", sum2, "\t", sum3)
 
 	print("\nMNS")
-	print(create_mns(5, 60, 272))
+	mns = create_mns(5, 60, 272)
+	print(mns)
+	a = 2972339321985371949787126155814828435061126046479277939228185234751125023325283504
+	print(switch_to_mns(a, *mns))
