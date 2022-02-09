@@ -1,7 +1,7 @@
 from random import randrange
 from time import process_time
-from sage.all import next_prime
-
+from sage.all import next_prime, factor, matrix
+from copy import deepcopy
 
 # nth root
 # b = pgcd(p-1, n)
@@ -14,8 +14,8 @@ from sage.all import next_prime
 # generate small lambda, gamma < 64 bits
 # pgcd(p-1, n) = 1
 # => nu + (p-1)v = 1 (Bezout)
-# lambda ^ (p) = lambda mod p (Fermat)
-# lambda ^ (p-1) = 1 mod p
+# pgcd(p, lambda) = 1
+# => lambda ^ (p-1) = 1 mod p (Euler)
 # lambda ^ (p-1)v = 1 mod p
 # lambda ^ (nu) * lambda ^ (p-1)v = lambda ^ (nu) mod p
 # lambda ^ (nu + (p-1)v) = lambda^(nu) mod p
@@ -23,7 +23,7 @@ from sage.all import next_prime
 # lambda = (lambda^u)^n mod p
 # lambda^u nth root of lambda
 # gamma = lambda^u mod p
-# else pgcd(p-1, n) = b
+# else pgcd(p, n) = b
 # nu + (p-1)v = b (Bezout)
 # lambda ^ (nu + (p-1)v) = lambda^(nu) mod p
 # lambda ^ b = lambda ^(nu) mod p
@@ -114,7 +114,7 @@ def montgomery_ladder(a, h, p, n):
 		R[b] = (R[b] * R[b]) % p
 	return R[0]
 
-def extended_euclid(a, b):
+def extended_euclidan(a, b):
 	# au + bv = d
 	u1, u2, u3 = 1, 0, a
 	v1, v2, v3 = 0, 1, b
@@ -125,6 +125,78 @@ def extended_euclid(a, b):
 		u1, u2, u3 = t1, t2, t3
 	u, v, d = u1, u2, u3
 	return u, v, d
+
+def swaplines(M, n, lig1, lig2):
+	for i in range(n):
+		M[lig1][i], M[lig2][i] = M[lig2][i], M[lig1][i]
+
+def gauss_pivot(Input):
+	"""Returns determinant of input sing gauss pivot.
+	"""
+	M = deepcopy(Input)
+	n = len(M)
+	for col in range(n - 1):
+		i = col
+		while M[i][col] == 0:
+			i += 1
+		if i != col:
+			swaplines(M, n, i, col)
+		for i in range(col + 1, n):
+			if M[i][col] != 0:
+				store = M[i][col]
+				for j in range(col, n):
+					M[i][j] = M[i][j] * M[col][col] - store * M[col][j]
+	product = 1
+	for i in range(n):
+		product *= M[i][i]
+	return product
+
+def get_prime_factors(val):
+	L = list(factor(val))
+	return [L[i][0] for i in range(len(L))]
+
+def create_mns(n, k, l, lam=2):
+	while True:
+		ksi = [0] * n
+#		for _ in range(randrange(1, 3)):
+#			ksi[randrange(n)] = randrange(-1, 2, 2)
+		ksi[4] = -1
+		M = [[ksi[(i - j) % (n)] * ((i - j < 0) * lam + (i - j >= 0)) for i in range(n)] for j in range(n)]
+		M = [[-M[i][j] if i != j else (1<<k) -M[i][i] for i in range(n)] for j in range(n)]
+		det = gauss_pivot(M)
+#		det = matrix(M).determinant()
+		L = get_prime_factors(det)
+		if L[-1] > (1<<(l-1)):
+			break
+	p = L[-1]
+	rho = (1<<(k + 1))
+	u, soak, pgcd = extended_euclidan(n, p-1)
+	if pgcd == 1:
+		gamma = pow(lam, u, p)
+	else:
+		# TODO: do something here
+		gamma = None
+	return (p, n, gamma, rho, lam)
+
+def mns_mod_mult(A, B, n, lam):
+	R = [0] * n
+	for i in range(n):
+		for j in range(1, n - i):
+			print("lambda", i+j, n-j)
+			R[i] += A[i + j] * B[n - j]
+		R[i] *= lam
+		for j in range(i + 1):
+			print(j, i-j)
+			R[i] += A[j] * B[i-j]
+	return R
+
+
+def external_reduction(C, n, lam):
+	R = [0] * n
+	for i in range(n - 1):
+		R[i] = C[i] + lam * C[n + i]
+	R[n - 1] = C[n - 1]
+	return R
 
 if __name__ == "__main__":
 	n = 512
@@ -249,20 +321,21 @@ if __name__ == "__main__":
 			print("res1:", res1)
 			print("res2:", res2)
 			print("res3:", res3)
-			print("res3:", res4)
+			print("res4:", res4)
 			print()
 	print("res:\t", sum1, "\t", sum2, "\t", sum3, "\t", sum4)
 
 	print("\nModular Inverse")
 	sum1 = 0
 	sum2 = 0
+	sum3 = 0
 	for _ in range(100):
 		n = randrange(64, 128)
 		p = randrange(1<<(n-1), 1<<n)
 		p = next_prime(p)
 		a = randrange(2, 1<<n)
 		b = randrange(2, 1<<n)
-		u, v, d = extended_euclid(a, b)
+		u, v, d = extended_euclidan(a, b)
 		if a * u + b * v != d:
 			print(False)
 		else:
@@ -270,11 +343,17 @@ if __name__ == "__main__":
 			res1 = pow(a, p - 2, p)
 			sum1 += process_time() - c1
 			c1 = process_time()
-			res2 = pow(a, -1, p)
+			res2, soak, soak = extended_euclidan(a, p)
 			sum2 += process_time() - c1
-			if res1 != res2:
+			c1 = process_time()
+			res3 = pow(a, -1, p)
+			sum3 += process_time() - c1
+			if res1 != (res2 % p) != res3:
 				print("res1:", res1)
 				print("res2:", res2)
+				print("res3:", res3)
 				print()
-	print("res:\t", sum1, "\t", sum2)
-	#44
+	print("res:\t", sum1, "\t", sum2, "\t", sum3)
+
+	print("\nMNS")
+	print(create_mns(5, 60, 272))
