@@ -155,16 +155,16 @@ def get_prime_factors(val):
 	L = list(factor(val))
 	return [L[i][0] for i in range(len(L))]
 
-def create_mns(n, k, l, lam=2):
+def random_mns(l, n, k, maxlampower):
+	assert maxlampower >= 0, "Unacceptable power of two"
 	while True:
+		lam = 1 << randrange
 		ksi = [0] * n
-#		for _ in range(randrange(1, 3)):
-#			ksi[randrange(n)] = randrange(-1, 2, 2)
-		ksi[4] = -1
+		for _ in range(randrange(1, 3)):
+			ksi[randrange(n)] = randrange(-1, 2, 2)
 		M = [[ksi[(i - j) % (n)] * ((i - j < 0) * lam + (i - j >= 0)) for i in range(n)] for j in range(n)]
 		M = [[-M[i][j] if i != j else (1<<k) -M[i][i] for i in range(n)] for j in range(n)]
-		det = gauss_pivot(M)
-#		det = matrix(M).determinant()
+		det = matrix(M).determinant()
 		L = get_prime_factors(det)
 		if L[-1] > (1<<(l-1)):
 			break
@@ -178,18 +178,41 @@ def create_mns(n, k, l, lam=2):
 		gamma = None
 	return (p, n, gamma, rho, lam)
 
-def mns_mod_mult(A, B, n, lam):
+def create_mns(l, n, k, lam, ksi):
+	M = [[ksi[(i - j) % (n)] * ((i - j < 0) * lam + (i - j >= 0)) for i in range(n)] for j in range(n)]
+	Mprime = [[-M[i][j] if i != j else (1<<k) -M[i][i] for i in range(n)] for j in range(n)]
+	det = gauss_pivot(Mprime)
+	L = get_prime_factors(det)
+	if L[-1] < (1<<(l-1)):
+		raise ValueError("Bad parameters, no prime factor big enough found.")
+	p = L[-1]
+	rho = (1<<(k + 1))
+	u, soak, pgcd = extended_euclidan(n, p-1)
+	if pgcd == 1:
+		gamma = pow(lam, u, p)
+	else:
+		# TODO: do something here
+		gamma = None
+	return (p, gamma, rho, M)
+
+def mns_mod_mult(A, B, p, n, gamma, rho, lam, M):
 	R = [0] * n
 	for i in range(n):
 		for j in range(1, n - i):
-			print("lambda", i+j, n-j)
 			R[i] += A[i + j] * B[n - j]
 		R[i] *= lam
 		for j in range(i + 1):
-			print(j, i-j)
 			R[i] += A[j] * B[i-j]
+	while True:
+		flag = True
+		for elem in R:
+			if elem >= rho and elem - p <= -rho:
+				flag = False
+				break
+		if flag:
+			break
+		R = internal_reduction(R, n, k, p, gamma, M)
 	return R
-
 
 def external_reduction(C, n, lam):
 	R = [0] * n
@@ -198,38 +221,64 @@ def external_reduction(C, n, lam):
 	R[n - 1] = C[n - 1]
 	return R
 
-def switch_to_mns(val, p, n, gamma, rho, lam=0):
+def internal_reduction(V, n, k, p, gamma, M):
+	U = [0] * n
+	W = [0] * n
+	for i in range(n):
+		U[i] = V[i] >> k
+		W[i] = V[i] & ((1<<k) - 1)
+		assert (U[i] << k) + W[i] == V[i]
+	for i in range(n):
+		for j in range(n):
+			W[i] = (W[i] + U[j] * M[j][i]) % p
+		W[i] %= p
+	assert horner_modulo(V, gamma, p) == horner_modulo(W, gamma, p)
+	return W
+
+def naive_convert_to_mns(val, p, n, gamma, rho, lam=0):
 	gamms = [int(pow(gamma, i, p)) for i in range(n)]
-	print(gamms)
 	mgamms = [(p - elem) % p for elem in gamms]
 	R = [0] * n
 	left = [i for i in range(n - 1, -1, -1)]
-	print(left)
 	while left:
 		orlen = len(left)
 		for elem in left:
-			if val // gamms[elem] < rho:
+			if val // gamms[elem] != 0 and -rho < val // gamms[elem] < rho:
 				R[elem] = val // gamms[elem]
 				val = (val - R[elem] * gamms[elem]) % p
 				left.remove(elem)
 				break
-			elif val // mgamms[elem] < rho:
-				R[elem] = - (val // gamms[elem])
+			elif val // mgamms[elem] != 0 and -rho < val // mgamms[elem] < rho:
+				R[elem] = - (val // mgamms[elem])
 				val = (val - R[elem] * gamms[elem]) % p
 				left.remove(elem)
 				break
-			else:
-				print("rho:", rho, "elem:", elem)
-				print("val =", val)
-				print("gamms =", gamms[elem])
-				print("val/gamms =", val // gamms[elem])
-				print(val - val // gamms[elem] * gamms[elem])
-				print(val // mgamms[elem])
 		if len(left) == orlen:
-			print("Error")
+			print("Error:", val)
 			break
 	return R
 
+ #def internal_convert_to_mns(val, n, k, p, rho, M):
+#	V = [0] * n
+#	V[0] = val
+#	while True:
+#		print(V)
+#		V = internal_reduction(V, n, k, p, M)
+#		flag = True
+#		for elem in V:
+#			if elem >= rho:
+#				flag = False
+#				break
+#		if flag == True:
+#			break
+#	return V
+
+def horner_modulo(Poly, X, modulo):
+	sum_ = 0
+	for i in range(len(Poly) - 1, -1, -1):
+		sum_ = sum_ * X
+		sum_ = sum_ + Poly[i]
+	return sum_
 
 if __name__ == "__main__":
 	n = 512
@@ -389,7 +438,26 @@ if __name__ == "__main__":
 	print("res:\t", sum1, "\t", sum2, "\t", sum3)
 
 	print("\nMNS")
-	mns = create_mns(5, 60, 272)
+	l, n, k, lam, ksi = 272, 5, 60, 2, [0, 0, 0, 0, -1]
+	p, gamma, rho, M = create_mns(l, n, k, lam, ksi)
+	mns = (p, n, gamma, rho)
 	print(mns)
-	a = 2972339321985371949787126155814828435061126046479277939228185234751125023325283504
-	print(switch_to_mns(a, *mns))
+	for _ in range(1):
+		a = randrange(p)
+		A = naive_convert_to_mns(a, *mns)
+		if horner_modulo(A, gamma, p) != a:
+			print(False)
+			print(horner_modulo(A, gamma, p) - a)
+		b = randrange(p)
+		B = naive_convert_to_mns(b, *mns)
+		C = mns_mod_mult(A, B, *mns, lam, M)
+		c = (a * b) % p
+		if horner_modulo(C, gamma, p) != c:
+			print("Error:")
+			print("c")
+			print(c)
+			print("c_check")
+			print(horner_modulo(C, gamma, p))
+			print("difference")
+			print(c - horner_modulo(C, gamma, p))
+			break
