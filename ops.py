@@ -258,7 +258,7 @@ def naive_convert_to_mns(val, p, n, gamma, rho, lam=0):
 			break
 	return R
 
- #def internal_convert_to_mns(val, n, k, p, rho, M):
+#def internal_convert_to_mns(val, n, k, p, rho, M):
 #	V = [0] * n
 #	V[0] = val
 #	while True:
@@ -279,6 +279,9 @@ def horner_modulo(Poly, X, modulo):
 		sum_ = sum_ * X
 		sum_ = sum_ + Poly[i]
 	return sum_
+
+def babai_coefficient_reduction(V, p, n, gamma, rho, B, Betoile):
+	pass
 
 if __name__ == "__main__":
 	n = 512
@@ -461,3 +464,10 @@ if __name__ == "__main__":
 			print("difference")
 			print(c - horner_modulo(C, gamma, p))
 			break
+	B = [[-pow(gamma, i, p) if j == 0 else 1 if i == j else 0 for j in range(n)] for i in range(n)]
+	B[0][0] = 1
+	for lig in B:
+		print(lig)
+	Betoile = [[sum([B[i][j] * B[k][j] for j in range(5)]) % p for k in range(5)] for i in range(5)]
+	for lig in Betoile:
+		print(lig)
