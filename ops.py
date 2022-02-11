@@ -1,6 +1,7 @@
 from random import randrange
 from time import process_time
 from sage.all import next_prime, factor, matrix
+from sage.modules.free_module_integer import IntegerLattice
 from copy import deepcopy
 
 # nth root
@@ -203,15 +204,15 @@ def mns_mod_mult(A, B, p, n, gamma, rho, lam, M):
 		R[i] *= lam
 		for j in range(i + 1):
 			R[i] += A[j] * B[i-j]
-	while True:
-		flag = True
-		for elem in R:
-			if elem >= rho and elem - p <= -rho:
-				flag = False
-				break
-		if flag:
-			break
-		R = internal_reduction(R, n, k, p, gamma, M)
+#	while True:
+#		flag = True
+#		for elem in R:
+#			if elem >= rho and elem - p <= -rho:
+#				flag = False
+#				break
+#		if flag:
+#			break
+#		R = internal_reduction(R, n, k, p, gamma, M)
 	return R
 
 def external_reduction(C, n, lam):
@@ -281,7 +282,16 @@ def horner_modulo(Poly, X, modulo):
 	return sum_
 
 def babai_coefficient_reduction(V, p, n, gamma, rho, B, Betoile):
-	pass
+	S = V.copy()
+	for i in range(n):
+		c = round(
+		int(sum(
+		[S[j] * Betoile[n - 1 - i][j] for j in range(n)]
+		)) / int(Betoile[n - 1 - i][n - 1 - i])
+		)
+		S = [(int(S[j]) - c * int(B[n - 1 - i][j])) for j in range(n)]
+	S = [S[i] if abs(S[i]) < p else S[i] % p for i in range(n)]
+	return S
 
 if __name__ == "__main__":
 	n = 512
@@ -465,9 +475,28 @@ if __name__ == "__main__":
 			print(c - horner_modulo(C, gamma, p))
 			break
 	B = [[-pow(gamma, i, p) if j == 0 else 1 if i == j else 0 for j in range(n)] for i in range(n)]
-	B[0][0] = 1
+	B[0][0] = p
 	for lig in B:
 		print(lig)
-	Betoile = [[sum([B[i][j] * B[k][j] for j in range(5)]) % p for k in range(5)] for i in range(5)]
-	for lig in Betoile:
+	Betoile = [[int(sum([B[i][j] * B[k][j] for j in range(n)]) % p) for k in range(n)] for i in range(n)]
+	Betoile[0][0] = p
+	Cprime = babai_coefficient_reduction(C, *mns, B, Betoile)
+	print("\n\nC\n", C)
+	print("Cprime\n", Cprime)
+	if horner_modulo(C, gamma, p) != horner_modulo(Cprime, gamma, p):
+		print("WRONG")
+		print(horner_modulo(C, gamma, p))
+		print(horner_modulo(Cprime, gamma, p))
+		print(int(horner_modulo(Cprime, gamma, p)) - int(horner_modulo(C, gamma, p)))
+		print(gamma)
+	print(B)
+	B = IntegerLattice(matrix(B)).LLL()
+	for lig in B:
+		print("HAHA")
 		print(lig)
+	Betoile = [[sum([B[i][j] * B[k][j] for j in range(n)]) % p for k in range(n)] for i in range(n)]
+	Cseconde = babai_coefficient_reduction(C, *mns, B, Betoile)
+	print("Cseconde")
+	print(Cseconde)
+	if horner_modulo(C, gamma, p) != horner_modulo(Cseconde, gamma, p):
+		print("WRONG AGAIN")

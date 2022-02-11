@@ -1,0 +1,4 @@
+IntegerLattice(matrix(B)).LLL() <- test w/ and w/o LLL
+F = GF(P)
+P.<X> = F[]
+xgcd for gcd
