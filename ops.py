@@ -1,6 +1,6 @@
 from random import randrange
 from time import process_time
-from sage.all import next_prime, factor, matrix
+from sage.all import next_prime, factor, matrix, ZZ
 from sage.modules.free_module_integer import IntegerLattice
 from copy import deepcopy
 
@@ -204,15 +204,6 @@ def mns_mod_mult(A, B, p, n, gamma, rho, lam, M):
 		R[i] *= lam
 		for j in range(i + 1):
 			R[i] += A[j] * B[i-j]
-#	while True:
-#		flag = True
-#		for elem in R:
-#			if elem >= rho and elem - p <= -rho:
-#				flag = False
-#				break
-#		if flag:
-#			break
-#		R = internal_reduction(R, n, k, p, gamma, M)
 	return R
 
 def external_reduction(C, n, lam):
@@ -285,13 +276,17 @@ def babai_coefficient_reduction(V, p, n, gamma, rho, B, Betoile):
 	S = V.copy()
 	for i in range(n):
 		c = round(
-		int(sum(
+		int((sum(
 		[S[j] * Betoile[n - 1 - i][j] for j in range(n)]
-		)) / int(Betoile[n - 1 - i][n - 1 - i])
+		)) % p ) / int(Betoile[n - 1 - i][n - 1 - i])
 		)
 		S = [(int(S[j]) - c * int(B[n - 1 - i][j])) for j in range(n)]
 	S = [S[i] if abs(S[i]) < p else S[i] % p for i in range(n)]
 	return S
+
+def barett_like_coefficient_reduction():
+	#TODO: do it. Find a method to find a proper M and how to get M^-1 mod E
+	pass
 
 if __name__ == "__main__":
 	n = 512
@@ -395,7 +390,7 @@ if __name__ == "__main__":
 	sum2 = 0
 	sum3 = 0
 	sum4 = 0
-	for _ in range(100):
+	for _ in range(1000):
 		n = (randrange(64, 256))
 		p = randrange(1 << n)
 		a = randrange(p)
@@ -455,7 +450,7 @@ if __name__ == "__main__":
 	p, gamma, rho, M = create_mns(l, n, k, lam, ksi)
 	mns = (p, n, gamma, rho)
 	print(mns)
-	for _ in range(1):
+	for _ in range(10):
 		a = randrange(p)
 		A = naive_convert_to_mns(a, *mns)
 		if horner_modulo(A, gamma, p) != a:
@@ -476,27 +471,23 @@ if __name__ == "__main__":
 			break
 	B = [[-pow(gamma, i, p) if j == 0 else 1 if i == j else 0 for j in range(n)] for i in range(n)]
 	B[0][0] = p
-	for lig in B:
-		print(lig)
 	Betoile = [[int(sum([B[i][j] * B[k][j] for j in range(n)]) % p) for k in range(n)] for i in range(n)]
 	Betoile[0][0] = p
 	Cprime = babai_coefficient_reduction(C, *mns, B, Betoile)
-	print("\n\nC\n", C)
-	print("Cprime\n", Cprime)
 	if horner_modulo(C, gamma, p) != horner_modulo(Cprime, gamma, p):
 		print("WRONG")
 		print(horner_modulo(C, gamma, p))
 		print(horner_modulo(Cprime, gamma, p))
 		print(int(horner_modulo(Cprime, gamma, p)) - int(horner_modulo(C, gamma, p)))
 		print(gamma)
-	print(B)
-	B = IntegerLattice(matrix(B)).LLL()
-	for lig in B:
-		print("HAHA")
-		print(lig)
-	Betoile = [[sum([B[i][j] * B[k][j] for j in range(n)]) % p for k in range(n)] for i in range(n)]
+	print("Babai rounding causes smaller coefficients:")
+	CTEST = [abs(Cprime[i]) <= abs(C[i]) for i in range(n)]
+	print(CTEST)
+	B = IntegerLattice(matrix(ZZ, B)).LLL()
+	Betoile = [[int(sum([B[i][j] * B[k][j] for j in range(n)]) % p) for k in range(n)] for i in range(n)]
 	Cseconde = babai_coefficient_reduction(C, *mns, B, Betoile)
-	print("Cseconde")
-	print(Cseconde)
+	print("Babai rounding causes smaller coefficients after LLL:")
+	CTEST = [abs(Cseconde[i]) <= abs(C[i]) for i in range(n)]
+	print(CTEST)
 	if horner_modulo(C, gamma, p) != horner_modulo(Cseconde, gamma, p):
 		print("WRONG AGAIN")
