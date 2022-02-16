@@ -1,6 +1,6 @@
 from random import randrange
 from time import process_time
-from sage.all import next_prime, factor, matrix, ZZ
+from sage.all import next_prime, factor, matrix, ZZ, PolynomialRing, xgcd
 from sage.modules.free_module_integer import IntegerLattice
 from copy import deepcopy
 
@@ -196,7 +196,7 @@ def create_mns(l, n, k, lam, ksi):
 		gamma = None
 	return (p, gamma, rho, M)
 
-def mns_mod_mult(A, B, p, n, gamma, rho, lam, M):
+def mns_mod_mult(A, B, p, n, gamma, rho, lam):
 	R = [0] * n
 	for i in range(n):
 		for j in range(1, n - i):
@@ -286,7 +286,26 @@ def babai_coefficient_reduction(V, p, n, gamma, rho, B, Betoile):
 
 def barett_like_coefficient_reduction():
 	#TODO: do it. Find a method to find a proper M and how to get M^-1 mod E
+	# or don't
 	pass
+
+def list_to_poly(L):
+	rstr = str(L[0])
+	for i in range(1, len(L)):
+		rstr += " + (" + str(L[i]) + ") * X" + ("^" + str(i) if i != 1 else "")
+	return rstr
+
+def montgomery_like_coefficient_reduction(V, p, n, gamma, rho, lam, phi, M, M1):
+	Q = [V[i] & (phi - 1) for i in range(n)]
+	Q = mns_mod_mult(Q, M1, p, n, gamma, rho, lam)
+	print(Q)
+	print([Q[i] & (phi - 1) for i in range(n)])
+	Q = [Q[i] & (phi - 1) for i in range(n)]
+	T = mns_mod_mult(Q, M, p, n, gamma, rho, lam)
+	# TODO: don't be stupid and use phi^-1 instead of dividing by phi
+	S = [int((int(V[i]) + int(T[i])) >> phi) for i in range(n)]
+	return S
+
 
 if __name__ == "__main__":
 	n = 512
@@ -458,7 +477,7 @@ if __name__ == "__main__":
 			print(horner_modulo(A, gamma, p) - a)
 		b = randrange(p)
 		B = naive_convert_to_mns(b, *mns)
-		C = mns_mod_mult(A, B, *mns, lam, M)
+		C = mns_mod_mult(A, B, *mns, lam)
 		c = (a * b) % p
 		if horner_modulo(C, gamma, p) != c:
 			print("Error:")
@@ -491,3 +510,31 @@ if __name__ == "__main__":
 	print(CTEST)
 	if horner_modulo(C, gamma, p) != horner_modulo(Cseconde, gamma, p):
 		print("WRONG AGAIN")
+	B = list(B)
+	RingPoly = PolynomialRing(ZZ, 'X')
+	E = RingPoly("X^5 - 2")
+	phi = 2**64
+	for lig in B:
+		for elem in lig:
+			if abs(elem) > rho:
+				print("Something wrong with LLL'd matrix")
+		M = RingPoly(list_to_poly(lig))
+		val, M1, soak = xgcd(M, E)
+		val = ZZ(val)
+		if val & 1:
+			M1 = (M1 * ZZ(pow(val, -1, phi)) % phi)
+			print(M)
+			print(M1)
+			print(((M * M1) % E) % phi)
+			print(M(gamma) % p == 0)
+			break
+	M = list(M)
+	M1 = list(M1)
+	print("M1")
+	print(M1)
+	M1 = [(int(M1[i]) * -1) % phi for i in range(n)]
+	print(M1)
+	print("Ctierce")
+	Ctierce = montgomery_like_coefficient_reduction(C, *mns, lam, phi, M, M1)
+	print(Ctierce)
+	print(horner_modulo(Ctierce, gamma, p) * phi % p == horner_modulo(C, gamma, p))

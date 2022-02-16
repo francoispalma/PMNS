@@ -2,3 +2,15 @@ IntegerLattice(matrix(B)).LLL() <- test w/ and w/o LLL
 F = GF(P)
 P.<X> = F[]
 xgcd for gcd
+
+
+
+---------------------------------------
+
+RingPol.<X> = ZZ[]
+E = X^5 - 2
+M = -1168893757901713*X^4 - 9972106589416037*X^3 - 7474685133321913*X^2 - 18428526525862541*X + 14619627279334803
+phi = 2**64
+temp = xgcd(M, E)
+M1 = (temp[1] * ZZ(pow(ZZ(temp[0]), -1, phi)) % phi)
+((M * M1) % E) % phi
