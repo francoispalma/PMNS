@@ -298,12 +298,9 @@ def list_to_poly(L):
 def montgomery_like_coefficient_reduction(V, p, n, gamma, rho, lam, phi, M, M1):
 	Q = [V[i] & (phi - 1) for i in range(n)]
 	Q = mns_mod_mult(Q, M1, p, n, gamma, rho, lam)
-	print(Q)
-	print([Q[i] & (phi - 1) for i in range(n)])
 	Q = [Q[i] & (phi - 1) for i in range(n)]
 	T = mns_mod_mult(Q, M, p, n, gamma, rho, lam)
-	# TODO: don't be stupid and use phi^-1 instead of dividing by phi
-	S = [int((int(V[i]) + int(T[i])) >> phi) for i in range(n)]
+	S = [int(int(V[i]) + int(T[i])) >> (phi.bit_length() - 1) for i in range(n)]
 	return S
 
 
@@ -464,6 +461,7 @@ if __name__ == "__main__":
 				print()
 	print("res:\t", sum1, "\t", sum2, "\t", sum3)
 
+	# From here on MNS
 	print("\nMNS")
 	l, n, k, lam, ksi = 272, 5, 60, 2, [0, 0, 0, 0, -1]
 	p, gamma, rho, M = create_mns(l, n, k, lam, ksi)
@@ -488,6 +486,8 @@ if __name__ == "__main__":
 			print("difference")
 			print(c - horner_modulo(C, gamma, p))
 			break
+
+	# Babai rounding method for coefficient reduction
 	B = [[-pow(gamma, i, p) if j == 0 else 1 if i == j else 0 for j in range(n)] for i in range(n)]
 	B[0][0] = p
 	Betoile = [[int(sum([B[i][j] * B[k][j] for j in range(n)]) % p) for k in range(n)] for i in range(n)]
@@ -510,6 +510,12 @@ if __name__ == "__main__":
 	print(CTEST)
 	if horner_modulo(C, gamma, p) != horner_modulo(Cseconde, gamma, p):
 		print("WRONG AGAIN")
+
+	# Barrett like
+	# TODO: if I have time later on (probably not)
+
+	# Montgomery
+	print("Montgomery reduction")
 	B = list(B)
 	RingPoly = PolynomialRing(ZZ, 'X')
 	E = RingPoly("X^5 - 2")
@@ -521,20 +527,23 @@ if __name__ == "__main__":
 		M = RingPoly(list_to_poly(lig))
 		val, M1, soak = xgcd(M, E)
 		val = ZZ(val)
-		if val & 1:
+		if val & 1:  # if val is even it won't have a gcd of 1 with phi.
 			M1 = (M1 * ZZ(pow(val, -1, phi)) % phi)
-			print(M)
-			print(M1)
 			print(((M * M1) % E) % phi)
 			print(M(gamma) % p == 0)
 			break
 	M = list(M)
 	M1 = list(M1)
 	print("M1")
-	print(M1)
 	M1 = [(int(M1[i]) * -1) % phi for i in range(n)]
 	print(M1)
 	print("Ctierce")
 	Ctierce = montgomery_like_coefficient_reduction(C, *mns, lam, phi, M, M1)
 	print(Ctierce)
 	print(horner_modulo(Ctierce, gamma, p) * phi % p == horner_modulo(C, gamma, p))
+	print("Montgomery-like causes smaller coefficients:")
+	CTEST = [abs(Ctierce[i]) <= abs(C[i]) for i in range(n)]
+	print(CTEST)
+	print("Montgomery-like causes coefficients under rho:")
+	CTEST = [abs(Ctierce[i]) <= rho for i in range(n)]
+	print(CTEST)
