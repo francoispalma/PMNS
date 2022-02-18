@@ -475,6 +475,7 @@ if __name__ == "__main__":
 			print(horner_modulo(A, gamma, p) - a)
 		b = randrange(p)
 		B = naive_convert_to_mns(b, *mns)
+		Bcopy = B
 		C = mns_mod_mult(A, B, *mns, lam)
 		c = (a * b) % p
 		if horner_modulo(C, gamma, p) != c:
@@ -533,9 +534,12 @@ if __name__ == "__main__":
 			print(M(gamma) % p == 0)
 			break
 	M = list(M)
+	print("M")
+	print(M)
 	M1 = list(M1)
 	print("M1")
 	M1 = [(int(M1[i]) * -1) % phi for i in range(n)]
+	M1 = [int(M1[i]) - phi if M1[i] >= (phi >> 1) else M1[i] for i in range(n)]
 	print(M1)
 	print("Ctierce")
 	Ctierce = montgomery_like_coefficient_reduction(C, *mns, lam, phi, M, M1)
@@ -547,3 +551,9 @@ if __name__ == "__main__":
 	print("Montgomery-like causes coefficients under rho:")
 	CTEST = [abs(Ctierce[i]) <= rho for i in range(n)]
 	print(CTEST)
+	print("A")
+	print(A)
+	print("B")
+	print(Bcopy)
+	print("C")
+	print(Ctierce)
