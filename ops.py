@@ -201,14 +201,9 @@ def mns_mod_mult(A, B, p, n, gamma, rho, lam):
 	for i in range(n):
 		for j in range(1, n - i):
 			R[i] += A[i + j] * B[n - j]
-			print(i, j, hex(R[i]))
-		print("Before lambda:", hex(R[i]))
 		R[i] *= lam
-		print("After lambda:", hex(R[i]))
 		for j in range(i + 1):
 			R[i] += A[j] * B[i - j]
-	print("R =", [hex(elem) for elem in R])
-	exit()
 	return R
 
 def external_reduction(C, n, lam):
@@ -301,11 +296,11 @@ def list_to_poly(L):
 	return rstr
 
 def montgomery_like_coefficient_reduction(V, p, n, gamma, rho, lam, phi, M, M1):
-	Q = [V[i] & (phi - 1) for i in range(n)]
+	Q = [int(int(V[i]) & (phi - 1)) for i in range(n)]
 	Q = mns_mod_mult(Q, M1, p, n, gamma, rho, lam)
-	Q = [Q[i] & (phi - 1) for i in range(n)]
+	Q = [int(int(Q[i]) & (phi - 1)) for i in range(n)]
 	T = mns_mod_mult(Q, M, p, n, gamma, rho, lam)
-	S = [int(int(V[i]) + int(T[i])) >> (phi.bit_length() - 1) for i in range(n)]
+	S = [int(int(int(V[i]) + int(T[i])) >> (phi.bit_length() - 1)) for i in range(n)]
 	return S
 
 
@@ -472,7 +467,7 @@ if __name__ == "__main__":
 	p, gamma, rho, M = create_mns(l, n, k, lam, ksi)
 	mns = (p, n, gamma, rho)
 	print(mns)
-	for _ in range(10):
+	for _ in range(1):
 		a = randrange(p)
 		A = naive_convert_to_mns(a, *mns)
 		if horner_modulo(A, gamma, p) != a:
@@ -482,6 +477,7 @@ if __name__ == "__main__":
 		B = naive_convert_to_mns(b, *mns)
 		A = [3175695016735605, 20859843725, -123954529873808582, 541629668316248009, -29410447444707128]
 		B = [1061418265038816869, 20374760404, -477028757217305698, 161008708292031432, -62502744134330068]
+		a, b = horner_modulo(A, gamma, p), horner_modulo(B, gamma, p)
 		Bcopy = B
 		C = mns_mod_mult(A, B, *mns, lam)
 		c = (a * b) % p
@@ -564,3 +560,4 @@ if __name__ == "__main__":
 	print(Bcopy)
 	print("C")
 	print(Ctierce)
+	print(horner_modulo([-45427161615311394, 15593644179898433, 7040936443281178, 18209456034359938, -2124383526193652], gamma, p) == horner_modulo(Ctierce, gamma, p))
