@@ -201,9 +201,14 @@ def mns_mod_mult(A, B, p, n, gamma, rho, lam):
 	for i in range(n):
 		for j in range(1, n - i):
 			R[i] += A[i + j] * B[n - j]
+			print(i, j, hex(R[i]))
+		print("Before lambda:", hex(R[i]))
 		R[i] *= lam
+		print("After lambda:", hex(R[i]))
 		for j in range(i + 1):
-			R[i] += A[j] * B[i-j]
+			R[i] += A[j] * B[i - j]
+	print("R =", [hex(elem) for elem in R])
+	exit()
 	return R
 
 def external_reduction(C, n, lam):
@@ -475,6 +480,8 @@ if __name__ == "__main__":
 			print(horner_modulo(A, gamma, p) - a)
 		b = randrange(p)
 		B = naive_convert_to_mns(b, *mns)
+		A = [3175695016735605, 20859843725, -123954529873808582, 541629668316248009, -29410447444707128]
+		B = [1061418265038816869, 20374760404, -477028757217305698, 161008708292031432, -62502744134330068]
 		Bcopy = B
 		C = mns_mod_mult(A, B, *mns, lam)
 		c = (a * b) % p

@@ -62,20 +62,69 @@ void print(poly P)
 	printf("%ld]\n", P->t[0]);
 }
 
-void amns_montg_mult(poly res, poly op1, poly op2, poly M, poly M1)
+void mns_mod_mult_ext_red(__int128* R, poly op1, poly op2, int64_t lambda)
 {
-	// Function that multiplies op1 by op2 using the montgomery approach in an
+	register uint16_t n = op1->deg;
+	uint16_t i, j;
+	__int128 *A, *B, lam = (__int128)(lambda);
+	A = malloc(n * sizeof(__int128));
+	B = malloc(n * sizeof(__int128));
+	
+	for(i = 0; i < n; i++)
+	{
+		A[i] = (__int128) op1->t[i];
+		B[i] = (__int128) op2->t[i];
+	}
+	
+	for(i = 0; i < n; i++)
+	{
+		for(j = 1; j < n - i; j++)
+		{
+			R[i] += A[i + j] * B[n - j];
+			printf("%d %d 0x%lx%016lx\n", i, j, (R[i] >> 64), R[i]);
+		}
+		
+		printf("Before lambda 0x%lx%016lx\n", (R[i] >> 64), ((R[i]<<64)>>64));
+		R[i] = (__int128)((__int128)(R[i]) * (__int128)(lam));
+		printf("After lambda 0x%lx%016lx\n", (R[i] >> 64), R[i]);
+		
+		for(j = 0; j < i + 1; j++)
+			R[i] += A[j] * B[i - j];
+	}
+	
+	free(A);
+	free(B);
+}
+
+void amns_montg_mult(poly res, poly A, poly B, poly M, poly M1, int64_t lambda)
+{
+	// Function that multiplies A by B using the montgomery approach in an
 	// amns. Puts the result in res;
 	
-	register uint16_t n = op1->deg;
+	register uint16_t n = A->deg;
+	
 	__int128* R = calloc(n, sizeof(__int128));
+	uint64_t* Q = calloc(n, sizeof(int64_t));
+	uint64_t* Q2 = calloc(n, sizeof(int64_t));
+	
+	mns_mod_mult_ext_red(R, A, B, lambda);
+	
+	for(int i = 0; i < n; i++)
+	{
+		Q[i] = R[i];
+		Q2[i] = (R[i] >> 64);
+		printf("0x%lx%016lx\n", Q2[i], Q[i]);
+	}
 	
 	free(R);
+	free(Q);
+	free(Q2);
 }
 
 void __init_tests__()
 {
 	unsigned short n = 5;
+	unsigned long lambda = 2;
 	poly a, b, c, c_check, M, M1;
 	init_polys(n, &a, &b, &c, &c_check, &M, &M1, NULL);
 	
@@ -85,7 +134,7 @@ void __init_tests__()
 	set_val(M, 9446094647596025, -89344859775265, 366378001529314, -4558175830143501, 19231042282234940);
 	set_val(M1, 7045631417041842631, -6084863496536136821, 8006399337547548431, 1601279867509509692, 4355481239625866353);
 	
-	amns_montg_mult(c, a, b, M, M1);
+	amns_montg_mult(c, a, b, M, M1, lambda);
 	
 	print(c);
 	print(c_check);
