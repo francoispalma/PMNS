@@ -270,7 +270,7 @@ def horner_modulo(Poly, X, modulo):
 	for i in range(len(Poly) - 1, -1, -1):
 		sum_ = sum_ * X
 		sum_ = sum_ + Poly[i]
-	return sum_
+	return int(sum_ % modulo)
 
 def babai_coefficient_reduction(V, p, n, gamma, rho, B, Betoile):
 	S = V.copy()
@@ -303,6 +303,10 @@ def montgomery_like_coefficient_reduction(V, p, n, gamma, rho, lam, phi, M, M1):
 	S = [int(int(int(V[i]) + int(T[i])) >> (phi.bit_length() - 1)) for i in range(n)]
 	return S
 
+def amns_montg_mult(A, B, p, n, gamma, rho, lam, phi, M, M1):
+	amns = (p, n, gamma, rho, lam)
+	return montgomery_like_coefficient_reduction(mns_mod_mult(A, B, *amns),
+		*amns, phi, M, M1)
 
 if __name__ == "__main__":
 	n = 512
@@ -561,3 +565,4 @@ if __name__ == "__main__":
 	print("C")
 	print(Ctierce)
 	print(horner_modulo([-45427161615311394, 15593644179898433, 7040936443281178, 18209456034359938, -2124383526193652], gamma, p) == horner_modulo(Ctierce, gamma, p))
+	print(amns_montg_mult(A, Bcopy, p, n, gamma, rho, lam, phi, M, M1))

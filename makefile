@@ -1,4 +1,4 @@
-FLAGS= -Wall -g
+FLAGS= -Wall -Wextra -g -O3
 
 all: main.exe
 
@@ -16,3 +16,7 @@ check: main.exe
 
 demo: main.exe
 	./main.exe
+
+proof: main.exe
+	./main.exe > log
+	python3 proof.py
