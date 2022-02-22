@@ -94,20 +94,12 @@ void amns_montg_mult(restrict poly res, const restrict poly A,
 	// of the set of polynomials of that amns who have gamma as a root such that
 	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
 	
-	register uint16_t n = A->deg;
-	
-/*	__int128* R = calloc(n, sizeof(__int128));*/
-/*	uint64_t* V = malloc(n * sizeof(int64_t));*/
-/*	uint64_t* V2 = malloc(n * sizeof(int64_t));*/
-/*	uint64_t* T = malloc(n * sizeof(int64_t));*/
-/*	uint64_t* T2 = malloc(n *  sizeof(int64_t));*/
-	
 	__int128 R[N] = {0};
 	uint64_t V[N], V2[N], T[N], T2[N];
 	
 	mns_mod_mult_ext_red(R, A, B);
 	
-	for(int i = 0; i < n; i++)
+	for(int i = 0; i < N; i++)
 	{
 		V[i] = R[i];
 		res->t[i] = R[i];
@@ -117,7 +109,7 @@ void amns_montg_mult(restrict poly res, const restrict poly A,
 	
 	mns_mod_mult_ext_red(R, res, M1);
 	
-	for(int i = 0; i < n; i++)
+	for(int i = 0; i < N; i++)
 	{
 		res->t[i] = R[i];
 		R[i] = 0;
@@ -125,7 +117,7 @@ void amns_montg_mult(restrict poly res, const restrict poly A,
 	
 	mns_mod_mult_ext_red(R, res, M);
 	
-	for(int i = 0; i < n; i++)
+	for(int i = 0; i < N; i++)
 	{
 		T[i] = R[i];
 		T2[i] = (R[i] >> 64);
@@ -133,12 +125,6 @@ void amns_montg_mult(restrict poly res, const restrict poly A,
 		T[i] = V[i] + T[i];
 		res->t[i] = V2[i] + T2[i] + (T[i] < V[i]); 
 	}
-	
-/*	free(R);*/
-/*	free(V);*/
-/*	free(V2);*/
-/*	free(T);*/
-/*	free(T2);*/
 }
 
 static inline int64_t randomint64(void)
