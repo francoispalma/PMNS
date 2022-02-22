@@ -566,3 +566,6 @@ if __name__ == "__main__":
 	print(Ctierce)
 	print(horner_modulo([-45427161615311394, 15593644179898433, 7040936443281178, 18209456034359938, -2124383526193652], gamma, p) == horner_modulo(Ctierce, gamma, p))
 	print(amns_montg_mult(A, Bcopy, p, n, gamma, rho, lam, phi, M, M1))
+	print("MM1")
+	print([elem * lam for elem in M])
+	print([elem * lam for elem in M1])
