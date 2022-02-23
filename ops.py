@@ -196,16 +196,6 @@ def create_mns(l, n, k, lam, ksi):
 		gamma = None
 	return (p, gamma, rho, M)
 
-def mns_mod_mult(A, B, p, n, gamma, rho, lam):
-	R = [0] * n
-	for i in range(n):
-		for j in range(1, n - i):
-			R[i] += A[i + j] * B[n - j]
-		R[i] *= lam
-		for j in range(i + 1):
-			R[i] += A[j] * B[i - j]
-	return R
-
 def external_reduction(C, n, lam):
 	R = [0] * n
 	for i in range(n - 1):
@@ -295,11 +285,28 @@ def list_to_poly(L):
 		rstr += " + (" + str(L[i]) + ") * X" + ("^" + str(i) if i != 1 else "")
 	return rstr
 
+def mns_mod_mult(A, B, p, n, gamma, rho, lam):
+	R = [0] * n
+	for i in range(n):
+		for j in range(1, n - i):
+			R[i] += A[i + j] * B[n - j]
+		R[i] *= lam
+		for j in range(i + 1):
+			R[i] += A[j] * B[i - j]
+	return R
+
 def montgomery_like_coefficient_reduction(V, p, n, gamma, rho, lam, phi, M, M1):
+	for elem in V:
+		print(hex(elem))
 	Q = [int(int(V[i]) & (phi - 1)) for i in range(n)]
+	print(Q)
 	Q = mns_mod_mult(Q, M1, p, n, gamma, rho, lam)
+	for elem in Q:
+		print(hex(elem))
 	Q = [int(int(Q[i]) & (phi - 1)) for i in range(n)]
 	T = mns_mod_mult(Q, M, p, n, gamma, rho, lam)
+	for elem in T:
+		print(hex(elem))
 	S = [int(int(int(V[i]) + int(T[i])) >> (phi.bit_length() - 1)) for i in range(n)]
 	return S
 

@@ -17,7 +17,7 @@ if __name__ == "__main__":
 				b = literal_eval(f.readline()[:-1])
 				c = literal_eval(f.readline()[:-1])
 				c_check = amns_montg_mult(a, b, *amns, phi, M, M1)
-				if horner_modulo(c, gamma,p) != horner_modulo(c_check, gamma, p):
+				if horner_modulo(c, gamma, p) != horner_modulo(c_check, gamma, p):
 					print("False")
 				for elem in c:
 					if abs(elem) >= rho:

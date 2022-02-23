@@ -67,6 +67,14 @@ static inline void print(const restrict poly P)
 	printf("%ld]\n", P->t[P->deg - 1]);
 }
 
+static inline void __print128(register const __int128 Val)
+{
+	int64_t hi = Val >> 64;
+	uint64_t lo = Val;
+	if (hi & 0x8000000000000000) printf("-");
+	printf("0x%lx%016lx\n", hi & 0x8000000000000000 ? -hi : hi, lo);
+}
+
 static inline void mns_mod_mult_ext_red(__int128* R, const restrict poly A,
 	const restrict poly B)
 {
@@ -123,14 +131,17 @@ void amns_montg_mult(restrict poly res, const restrict poly A,
 		V[i] = R[i];
 		res->t[i] = R[i];
 		V2[i] = (R[i] >> 64);
+		//__print128(R[i]);
 		R[i] = 0;
 	}
 	
+	//print(res);
 	mm1_mns_mod_mult_ext_red(R, res, M1, M1lambda);
 	
 	for(int i = 0; i < N; i++)
 	{
 		res->t[i] = R[i];
+		//__print128(R[i]);
 		R[i] = 0;
 	}
 	
@@ -142,7 +153,8 @@ void amns_montg_mult(restrict poly res, const restrict poly A,
 		T2[i] = (R[i] >> 64);
 		
 		T[i] = V[i] + T[i];
-		res->t[i] = V2[i] + T2[i] + (T[i] < V[i]); 
+		res->t[i] = V2[i] + T2[i] + (T[i] < V[i]);
+		//__print128(R[i]);
 	}
 }
 
@@ -164,23 +176,28 @@ static inline void randpoly(poly P)
 
 void __init_tests__(void)
 {
-	poly a, b, c, c_check, M, M1, Mlambda, M1lambda;
-	init_polys(N, &a, &b, &c, &c_check, &M, &M1, &Mlambda, &M1lambda, NULL);
+	poly a, b, c, c_check, M, M1, Mlambda, M1lambda, Phisquared;
+	init_polys(N, &a, &b, &c, &c_check, &M, &M1, &Mlambda, &M1lambda, &Phisquared,
+		NULL);
 	
 	set_val(a, 3175695016735605, 20859843725, -123954529873808582, 541629668316248009, -29410447444707128);
-	set_val(b, 1061418265038816869, 20374760404, -477028757217305698, 161008708292031432, -62502744134330068);
+	//set_val(b, 1061418265038816869, 20374760404, -477028757217305698, 161008708292031432, -62502744134330068);
+	set_val(b, 1, 0, 0, 0, 0);
 	set_val(c_check, 2302327877203981, 25683149970777821, -1798382075251775, 52479742770215631, 21994577573493812);
 	set_val(M, 9446094647596025, -89344859775265, 366378001529314, -4558175830143501, 19231042282234940);
 	set_val(M1, 7045631417041842631, -6084863496536136821, 8006399337547548431, 1601279867509509692, 4355481239625866353);
 	set_val(Mlambda, M->t[0] * LAMBDA, M->t[1] * LAMBDA, M->t[2] * LAMBDA, M->t[3] * LAMBDA, M->t[4] * LAMBDA);
 	set_val(M1lambda, M1->t[0] * LAMBDA, M1->t[1] * LAMBDA, M1->t[2] * LAMBDA, M1->t[3] * LAMBDA, M1->t[4] * LAMBDA);
+	set_val(Phisquared, 0, 0, 0, 512, 0);
 	
 	amns_montg_mult(c, a, b, M, M1, Mlambda, M1lambda);
-	
+		
+	print(a);
+	//print(b);
+	//print(c_check);
 	print(c);
-	print(c_check);
 	
-	free_polys(a, b, c, c_check, M, M1, Mlambda, M1lambda, NULL);
+	free_polys(a, b, c, c_check, M, M1, Mlambda, M1lambda, Phisquared, NULL);
 }
 
 void __proof_of_accuracy(void)
@@ -212,7 +229,7 @@ void __proof_of_accuracy(void)
 
 int main(void)
 {
-	//__init_tests__();
-	__proof_of_accuracy();
+	__init_tests__();
+	//__proof_of_accuracy();
 	return 0;
 }
