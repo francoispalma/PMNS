@@ -8,6 +8,12 @@ main.exe: montgom.o
 montgom.o: montgom.c montgom.h
 	gcc -c $< $(FLAGS)
 
+hardcode.exe: hardcode.o	
+	gcc -o $@ $^ $(FLAGS)
+
+hardcode.o: hardcode/hardcode.c
+	gcc -c $< $(FLAGS)
+
 clean:
 	rm -rf *.o
 
@@ -19,4 +25,11 @@ demo: main.exe
 
 proof: main.exe
 	./main.exe > log
+	python3 proof.py
+
+hard: hardcode.exe
+	./hardcode.exe
+
+hardproof: hardcode.exe
+	./hardcode.exe > log
 	python3 proof.py

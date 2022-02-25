@@ -7,6 +7,8 @@
 #define N 5
 #define LAMBDA 2
 
+int64_t M[] = {9446094647596025, -89344859775265, 366378001529314, -4558175830143501, 19231042282234940}, M1[] = {7045631417041842631, -6084863496536136821, 8006399337547548431, 1601279867509509692, 4355481239625866353}, MLambda[] = {18892189295192050, -178689719550530, 732756003058628, -9116351660287002, 38462084564469880}, M1Lambda[] = {-4355481239625866354, 6277017080637277974, -2433945398614454754, 3202559735019019384, 8710962479251732706};
+
 static inline void init_poly(const uint16_t deg, restrict poly* P)
 {
 	*P = malloc(sizeof(_poly));
@@ -94,8 +96,7 @@ static inline void mns_mod_mult_ext_red(__int128* R, const restrict poly A,
 	}
 }
 
-static inline void mm1_mns_mod_mult_ext_red(__int128* R, const restrict poly A,
-	const restrict poly M, const restrict poly Mlambda)
+static inline void m_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
 {
 	// Same as above but with some pre calculations done in the case of M being
 	// the second operand.
@@ -105,16 +106,32 @@ static inline void mm1_mns_mod_mult_ext_red(__int128* R, const restrict poly A,
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			R[i] += (__int128) A->t[i + j] * Mlambda->t[N - j];
+			R[i] += (__int128) A->t[i + j] * MLambda[N - j];
 		
 		for(j = 0; j < i + 1; j++)
-			R[i] += (__int128) A->t[j] * M->t[i - j];
+			R[i] += (__int128) A->t[j] * M[i - j];
+	}
+}
+
+static inline void m1_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
+{
+	// Same as above but with some pre calculations done in the case of M being
+	// the second operand.
+	
+	register uint16_t i, j;
+	
+	for(i = 0; i < N; i++)
+	{
+		for(j = 1; j < N - i; j++)
+			R[i] += (__int128) A->t[i + j] * M1Lambda[N - j];
+		
+		for(j = 0; j < i + 1; j++)
+			R[i] += (__int128) A->t[j] * M1[i - j];
 	}
 }
 
 void amns_montg_mult(restrict poly res, const restrict poly A,
-	const restrict poly B, const restrict poly M, const restrict poly M1,
-	const restrict poly Mlambda, const restrict poly M1lambda)
+	const restrict poly B)
 {
 	// Function that multiplies A by B using the montgomery approach in an
 	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
@@ -136,7 +153,7 @@ void amns_montg_mult(restrict poly res, const restrict poly A,
 	}
 	
 	//print(res);
-	mm1_mns_mod_mult_ext_red(R, res, M1, M1lambda);
+	m1_mns_mod_mult_ext_red(R, res);
 	
 	for(int i = 0; i < N; i++)
 	{
@@ -145,7 +162,7 @@ void amns_montg_mult(restrict poly res, const restrict poly A,
 		R[i] = 0;
 	}
 	
-	mm1_mns_mod_mult_ext_red(R, res, M, Mlambda);
+	m_mns_mod_mult_ext_red(R, res);
 	
 	for(int i = 0; i < N; i++)
 	{
@@ -176,55 +193,49 @@ static inline void randpoly(poly P)
 
 void __init_tests__(void)
 {
-	poly a, b, c, c_check, M, M1, Mlambda, M1lambda, Phisquared;
-	init_polys(N, &a, &b, &c, &c_check, &M, &M1, &Mlambda, &M1lambda, &Phisquared,
-		NULL);
+	poly a, b, c, c_check, Phisquared;
+	init_polys(N, &a, &b, &c, &c_check, &Phisquared, NULL);
 	
 	set_val(a, 3175695016735605, 20859843725, -123954529873808582, 541629668316248009, -29410447444707128);
-	//set_val(b, 1061418265038816869, 20374760404, -477028757217305698, 161008708292031432, -62502744134330068);
-	set_val(b, 1, 0, 0, 0, 0);
+	set_val(b, 1061418265038816869, 20374760404, -477028757217305698, 161008708292031432, -62502744134330068);
+	//set_val(b, 1, 0, 0, 0, 0);
 	set_val(c_check, 2302327877203981, 25683149970777821, -1798382075251775, 52479742770215631, 21994577573493812);
-	set_val(M, 9446094647596025, -89344859775265, 366378001529314, -4558175830143501, 19231042282234940);
-	set_val(M1, 7045631417041842631, -6084863496536136821, 8006399337547548431, 1601279867509509692, 4355481239625866353);
-	set_val(Mlambda, M->t[0] * LAMBDA, M->t[1] * LAMBDA, M->t[2] * LAMBDA, M->t[3] * LAMBDA, M->t[4] * LAMBDA);
-	set_val(M1lambda, M1->t[0] * LAMBDA, M1->t[1] * LAMBDA, M1->t[2] * LAMBDA, M1->t[3] * LAMBDA, M1->t[4] * LAMBDA);
 	set_val(Phisquared, 0, 0, 0, 512, 0);
 	
-	amns_montg_mult(c, a, b, M, M1, Mlambda, M1lambda);
+	amns_montg_mult(c, a, b);
+	//amns_montg_mult(c_check, a, Phisquared, M, M1, Mlambda, M1lambda);
+	//amns_montg_mult(c, c_check, b, M, M1, Mlambda, M1lambda);
 		
+	
+	//print(Mlambda);
+	//print(M1lambda);
 	print(a);
-	//print(b);
+	print(b);
 	//print(c_check);
 	print(c);
 	
-	free_polys(a, b, c, c_check, M, M1, Mlambda, M1lambda, Phisquared, NULL);
+	free_polys(a, b, c, c_check, NULL);
 }
 
 void __proof_of_accuracy(void)
 {
 	time_t seed;
-	poly a, b, c, M, M1, Mlambda, M1lambda;
-	init_polys(N, &a, &b, &c, &M, &M1, &Mlambda, &M1lambda, NULL);
+	poly a, b, c;
+	init_polys(N, &a, &b, &c, NULL);
 	srand((unsigned)time(&seed));
 	
-	
-	set_val(M, 9446094647596025, -89344859775265, 366378001529314, -4558175830143501, 19231042282234940);
-	set_val(M1, 7045631417041842631, -6084863496536136821, 8006399337547548431, 1601279867509509692, 4355481239625866353);
-	set_val(Mlambda, M->t[0] * LAMBDA, M->t[1] * LAMBDA, M->t[2] * LAMBDA, M->t[3] * LAMBDA, M->t[4] * LAMBDA);
-	set_val(M1lambda, M1->t[0] * LAMBDA, M1->t[1] * LAMBDA, M1->t[2] * LAMBDA, M1->t[3] * LAMBDA, M1->t[4] * LAMBDA);
-	
-	for(register int64_t i = 0; i < 100000; i++)
+		for(register int64_t i = 0; i < 100000; i++)
 	{
 		randpoly(a);
 		randpoly(b);
-		amns_montg_mult(c, a, b, M, M1, Mlambda, M1lambda);
+		amns_montg_mult(c, a, b);
 		
 		print(a);
 		print(b);
 		print(c);
 	}
 	
-	free_polys(a, b, c, M, M1, Mlambda, M1lambda, NULL);
+	free_polys(a, b, c, NULL);
 }
 
 int main(void)

@@ -296,17 +296,10 @@ def mns_mod_mult(A, B, p, n, gamma, rho, lam):
 	return R
 
 def montgomery_like_coefficient_reduction(V, p, n, gamma, rho, lam, phi, M, M1):
-	for elem in V:
-		print(hex(elem))
 	Q = [int(int(V[i]) & (phi - 1)) for i in range(n)]
-	print(Q)
 	Q = mns_mod_mult(Q, M1, p, n, gamma, rho, lam)
-	for elem in Q:
-		print(hex(elem))
 	Q = [int(int(Q[i]) & (phi - 1)) for i in range(n)]
 	T = mns_mod_mult(Q, M, p, n, gamma, rho, lam)
-	for elem in T:
-		print(hex(elem))
 	S = [int(int(int(V[i]) + int(T[i])) >> (phi.bit_length() - 1)) for i in range(n)]
 	return S
 
