@@ -199,13 +199,12 @@ void __init_tests__(void)
 	set_val(a, 3175695016735605, 20859843725, -123954529873808582, 541629668316248009, -29410447444707128);
 	set_val(b, 1061418265038816869, 20374760404, -477028757217305698, 161008708292031432, -62502744134330068);
 	//set_val(b, 1, 0, 0, 0, 0);
-	set_val(c_check, 2302327877203981, 25683149970777821, -1798382075251775, 52479742770215631, 21994577573493812);
+	//set_val(c_check, 2302327877203981, 25683149970777821, -1798382075251775, 52479742770215631, 21994577573493812);
 	set_val(Phisquared, 0, 0, 0, 512, 0);
 	
-	amns_montg_mult(c, a, b);
-	//amns_montg_mult(c_check, a, Phisquared, M, M1, Mlambda, M1lambda);
-	//amns_montg_mult(c, c_check, b, M, M1, Mlambda, M1lambda);
-		
+	//amns_montg_mult(c, a, b);
+	amns_montg_mult(c_check, a, Phisquared);
+	amns_montg_mult(c, c_check, b);
 	
 	//print(Mlambda);
 	//print(M1lambda);
