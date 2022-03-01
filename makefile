@@ -38,3 +38,8 @@ hard: hardcode.exe
 hardproof: hardcode.exe
 	./hardcode.exe > log
 	python3 proof.py
+
+progress: *.c *.py *.h makefile
+	git add .
+	git commit -m "progress"
+	git push
