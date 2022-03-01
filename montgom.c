@@ -9,6 +9,8 @@
 
 int64_t M[] = {9446094647596025, -89344859775265, 366378001529314, -4558175830143501, 19231042282234940}, M1[] = {7045631417041842631, -6084863496536136821, 8006399337547548431, 1601279867509509692, 4355481239625866353}, MLambda[] = {18892189295192050, -178689719550530, 732756003058628, -9116351660287002, 38462084564469880}, M1Lambda[] = {-4355481239625866354, 6277017080637277974, -2433945398614454754, 3202559735019019384, 8710962479251732706};
 
+
+
 static inline void init_poly(const uint16_t deg, restrict poly* P)
 {
 	*P = malloc(sizeof(_poly));
@@ -60,6 +62,51 @@ void set_val(restrict poly P, int64_t val, ...)
 	}
 	va_end(args);
 }
+
+poly convert_string_to_amns(const char* string)
+{
+	uint16_t tabsize = 0, maxi, j;
+	int16_t i = 0;
+	//const uint8_t phimoinsrho = 64 - RHO;
+	uint8_t counter;
+	
+	const uint64_t rho = (1ULL<<RHO);
+	uint64_t *tab;
+	poly res;
+	init_poly(N, &res);
+	char store[17];
+	store[16] = '\0';
+	
+	while(string[i] != '\0')
+	{
+		if(i % 16 == 0) ++tabsize;
+		++i;
+	}
+	tab = malloc(tabsize * sizeof(uint64_t));
+	maxi = i;
+	for(i = maxi; i > -1; i -= 16)
+	{
+		for(j = 0; j < 16; j++)
+		{
+			if(i - 16 + j >= 0)
+				store[j] = string[i - 16 + j];
+			else
+				store[j] = '0';
+		}
+		tab[(i / 16)] = strtoul(store, NULL, 16);
+	}
+	
+	
+	res->t[0] = tab[0] & (rho - 1);
+	counter = 0;
+	for(i = 1; i < N; i++)
+	{
+		counter = (counter + 64 - RHO) % RHO;
+		res->t[i] = ((tab[i] << counter) & (rho - 1)) | (tab[i - 1] >> (RHO - counter));
+	}
+	
+	return res;
+} 
 
 static inline void print(const restrict poly P)
 {
@@ -196,6 +243,12 @@ void __init_tests__(void)
 	poly a, b, c, c_check, Phisquared;
 	init_polys(N, &a, &b, &c, &c_check, &Phisquared, NULL);
 	
+	const char* A = "9b6afe91a6e17ff3e5b7331bc220a825e6bbe48687ca568a0873800b48471d633375";
+	poly converted = convert_string_to_amns(A);
+	printf("%s\n", A);
+	print(converted);
+	free_poly(converted);	
+	
 	set_val(a, 3175695016735605, 20859843725, -123954529873808582, 541629668316248009, -29410447444707128);
 	set_val(b, 1061418265038816869, 20374760404, -477028757217305698, 161008708292031432, -62502744134330068);
 	//set_val(b, 1, 0, 0, 0, 0);
@@ -213,7 +266,7 @@ void __init_tests__(void)
 	//print(c_check);
 	print(c);
 	
-	free_polys(a, b, c, c_check, NULL);
+	free_polys(a, b, c, c_check, Phisquared, NULL);
 }
 
 void __proof_of_accuracy(void)

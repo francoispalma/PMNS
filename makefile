@@ -16,6 +16,11 @@ hardcode.o: hardcode/hardcode.c
 
 clean:
 	rm -rf *.o
+	rm -rf *.exe
+
+gedit: clean
+	gedit makefile &
+	gedit *.* &
 
 check: main.exe
 	valgrind -s --leak-check=full ./main.exe
