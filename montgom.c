@@ -70,51 +70,6 @@ void set_val(restrict poly P, int64_t val, ...)
 	va_end(args);
 }
 
-poly convert_string_to_amns(const char* string)
-{
-	uint16_t tabsize = 0, maxi, j;
-	int16_t i = 0;
-	//const uint8_t phimoinsrho = 64 - RHO;
-	uint8_t counter;
-	
-	const uint64_t rho = (1ULL<<RHO);
-	uint64_t *tab;
-	poly res;
-	init_poly(N, &res);
-	char store[17];
-	store[16] = '\0';
-	
-	while(string[i] != '\0')
-	{
-		if(i % 16 == 0) ++tabsize;
-		++i;
-	}
-	tab = malloc(tabsize * sizeof(uint64_t));
-	maxi = i;
-	for(i = maxi; i > -1; i -= 16)
-	{
-		for(j = 0; j < 16; j++)
-		{
-			if(i - 16 + j >= 0)
-				store[j] = string[i - 16 + j];
-			else
-				store[j] = '0';
-		}
-		tab[(i / 16)] = strtoul(store, NULL, 16);
-	}
-	
-	
-	res->t[0] = tab[N - 1] & (rho - 1);
-	counter = 0;
-	for(i = 1; i < N; i++)
-	{
-		counter = (counter + 64 - RHO) % RHO;
-		res->t[i] = ((tab[N - i - 1] << counter) & (rho - 1)) | (tab[N - i] >> (64 - counter));
-	}
-	
-	return res;
-} 
-
 static inline void print(const restrict poly P)
 {
 	printf("[");
@@ -184,35 +139,22 @@ static inline void m1_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
 	}
 }
 
-void amns_montg_mult(restrict poly res, const restrict poly A,
-	const restrict poly B)
+static inline void mns_montg_int_red(restrict poly res, __int128* R)
 {
-	// Function that multiplies A by B using the montgomery approach in an
-	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
-	// of the set of polynomials of that amns who have gamma as a root such that
-	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
-	
-	__int128 R[N] = {0};
 	uint64_t V[N], V2[N], T[N], T2[N];
-	
-	mns_mod_mult_ext_red(R, A, B);
-	
+
 	for(int i = 0; i < N; i++)
 	{
 		V[i] = R[i];
 		res->t[i] = R[i];
 		V2[i] = (R[i] >> 64);
-		//__print128(R[i]);
 		R[i] = 0;
 	}
-	
-	//print(res);
 	m1_mns_mod_mult_ext_red(R, res);
 	
 	for(int i = 0; i < N; i++)
 	{
 		res->t[i] = R[i];
-		//__print128(R[i]);
 		R[i] = 0;
 	}
 	
@@ -225,9 +167,67 @@ void amns_montg_mult(restrict poly res, const restrict poly A,
 		
 		T[i] = V[i] + T[i];
 		res->t[i] = V2[i] + T2[i] + (T[i] < V[i]);
-		//__print128(R[i]);
 	}
 }
+
+inline void amns_montg_mult(restrict poly res, const restrict poly A,
+	const restrict poly B)
+{
+	// Function that multiplies A by B using the montgomery approach in an
+	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
+	// of the set of polynomials of that amns who have gamma as a root such that
+	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
+	
+	__int128 R[N] = {0};
+	
+	mns_mod_mult_ext_red(R, A, B);
+
+	mns_montg_int_red(res, R);
+}
+
+poly convert_string_to_amns(const char* string)
+{
+	uint16_t tabsize = 0, maxi, j;
+	int16_t i = 0;
+	uint8_t counter;
+	
+	const uint64_t rho = (1ULL<<RHO);
+	uint64_t *tab;
+	poly res;
+	init_poly(N, &res);
+	char store[17];
+	store[16] = '\0';
+	
+	while(string[i] != '\0')
+	{
+		if(i % 16 == 0) ++tabsize;
+		++i;
+	}
+	tab = malloc(tabsize * sizeof(uint64_t));
+	maxi = i;
+	for(i = maxi; i > -1; i -= 16)
+	{
+		for(j = 0; j < 16; j++)
+		{
+			if(i - 16 + j >= 0)
+				store[j] = string[i - 16 + j];
+			else
+				store[j] = '0';
+		}
+		tab[(i / 16)] = strtoul(store, NULL, 16);
+	}
+	
+	
+	res->t[0] = tab[N - 1] & (rho - 1);
+	counter = 0;
+	for(i = 1; i < N; i++)
+	{
+		counter = (counter + 64 - RHO) % RHO;
+		res->t[i] = ((tab[N - i - 1] << counter) & (rho - 1)) | (tab[N - i] >> (64 - counter));
+	}
+	
+	return res;
+} 
 
 static inline int64_t randomint64(void)
 {
@@ -252,8 +252,8 @@ void __init_tests__(void)
 	
 	const char* A = "9b6afe91a6e17ff3e5b7331bc220a825e6bbe48687ca568a0873800b48471d633375";
 	poly converted = convert_string_to_amns(A);
-	printf("%s\n", A);
-	print(converted);
+	//printf("%s\n", A);
+	//print(converted);
 	free_poly(converted);	
 	
 	set_val(a, 3175695016735605, 20859843725, -123954529873808582, 541629668316248009, -29410447444707128);
@@ -279,22 +279,24 @@ void __init_tests__(void)
 void __proof_of_accuracy(void)
 {
 	time_t seed;
-	poly a, b, c;
-	init_polys(N, &a, &b, &c, NULL);
+	poly a, aphi, b, c, Phisquared;
+	init_polys(N, &a, &aphi, &b, &c, &Phisquared, NULL);
+	set_val(Phisquared, 0, 0, 0, 512, 0);
 	srand((unsigned)time(&seed));
 	
 		for(register int64_t i = 0; i < 100000; i++)
 	{
 		randpoly(a);
+		amns_montg_mult(aphi, a, Phisquared);
 		randpoly(b);
-		amns_montg_mult(c, a, b);
+		amns_montg_mult(c, aphi, b);
 		
 		print(a);
 		print(b);
 		print(c);
 	}
 	
-	free_polys(a, b, c, NULL);
+	free_polys(a, aphi, b, c, Phisquared, NULL);
 }
 
 int main(void)

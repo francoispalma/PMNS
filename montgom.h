@@ -11,5 +11,7 @@ typedef struct
 	int64_t* t;
 } _poly, *poly;
 
+extern void amns_montg_mult(restrict poly res, const restrict poly A,
+	const restrict poly B);
 
 #endif
