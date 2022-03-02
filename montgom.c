@@ -190,12 +190,13 @@ poly convert_string_to_amns(const char* string)
 	uint16_t tabsize = 0, maxi, j;
 	int16_t i = 0;
 	uint8_t counter;
-	
 	const uint64_t rho = (1ULL<<RHO);
-	uint64_t *tab;
+	uint64_t tab[N];
+	__int128 R[N] = {0};
 	poly res;
-	init_poly(N, &res);
 	char store[17];
+	
+	init_poly(N, &res);
 	store[16] = '\0';
 	
 	while(string[i] != '\0')
@@ -203,7 +204,7 @@ poly convert_string_to_amns(const char* string)
 		if(i % 16 == 0) ++tabsize;
 		++i;
 	}
-	tab = malloc(tabsize * sizeof(uint64_t));
+	//tab = malloc(tabsize * sizeof(uint64_t));
 	maxi = i;
 	for(i = maxi; i > -1; i -= 16)
 	{
@@ -225,6 +226,12 @@ poly convert_string_to_amns(const char* string)
 		counter = (counter + 64 - RHO) % RHO;
 		res->t[i] = ((tab[N - i - 1] << counter) & (rho - 1)) | (tab[N - i] >> (64 - counter));
 	}
+	
+	for(i = 0; i < N; i++)
+		for(j = 0; j < N; j++)
+			R[j] += (__int128) res->t[i] * __Pi__[i][j];
+	
+	mns_montg_int_red(res, R);
 	
 	return res;
 } 
@@ -252,8 +259,8 @@ void __init_tests__(void)
 	
 	const char* A = "9b6afe91a6e17ff3e5b7331bc220a825e6bbe48687ca568a0873800b48471d633375";
 	poly converted = convert_string_to_amns(A);
-	//printf("%s\n", A);
-	//print(converted);
+	printf("%s\n", A);
+	print(converted);
 	free_poly(converted);	
 	
 	set_val(a, 3175695016735605, 20859843725, -123954529873808582, 541629668316248009, -29410447444707128);

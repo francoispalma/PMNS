@@ -46,11 +46,6 @@ if __name__ == "__main__":
 	phisquared = [0, 0, 0, 512, 0]
 	phinmoinsun = pow(phi, n - 1, p)
 	Pi = [montgomery_convert_to_mns((rho**i) * (phi**2), *amns, phi, M, M1, phinmoinsun) for i in range(n)]
-	for P in Pi:
-		for elem in P:
-			if abs(elem) >= rho:
-				print("Oopsie")
-	print(Pi)
 	sum1 = 0
 	sum2 = 0
 	sum3 = 0
