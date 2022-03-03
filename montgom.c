@@ -18,7 +18,7 @@ const int64_t M[] = {9446094647596025, -89344859775265, 366378001529314, -455817
 
 
 
-static inline void init_poly(const uint16_t deg, restrict poly* P)
+inline void init_poly(const uint16_t deg, restrict poly* P)
 {
 	*P = malloc(sizeof(_poly));
 	(*P)->deg = deg;
@@ -38,7 +38,7 @@ void init_polys(const uint16_t deg, restrict poly* P, ...)
 	va_end(args);
 }
 
-static inline void free_poly(restrict poly P)
+inline void free_poly(restrict poly P)
 {
 	free(P->t);
 	free(P);
@@ -70,7 +70,7 @@ void set_val(restrict poly P, int64_t val, ...)
 	va_end(args);
 }
 
-static inline void print(const restrict poly P)
+inline void print(const restrict poly P)
 {
 	printf("[");
 	for(int16_t i = 0; i < P->deg - 1; i++)
@@ -185,18 +185,12 @@ inline void amns_montg_mult(restrict poly res, const restrict poly A,
 	mns_montg_int_red(res, R);
 }
 
-poly convert_string_to_amns(const char* string)
+inline void convert_string_to_poly(restrict poly* res, const char* string)
 {
-	uint16_t tabsize = 0, maxi, j;
+	uint16_t tabsize = 0, j;
 	int16_t i = 0;
-	uint8_t counter;
-	const uint64_t rho = (1ULL<<RHO);
-	uint64_t tab[N];
-	__int128 R[N] = {0};
-	poly res;
 	char store[17];
 	
-	init_poly(N, &res);
 	store[16] = '\0';
 	
 	while(string[i] != '\0')
@@ -204,9 +198,14 @@ poly convert_string_to_amns(const char* string)
 		if(i % 16 == 0) ++tabsize;
 		++i;
 	}
-	//tab = malloc(tabsize * sizeof(uint64_t));
-	maxi = i;
-	for(i = maxi; i > -1; i -= 16)
+	if (tabsize > (*res)->deg)
+	{
+		free_poly(*res);
+		init_poly(tabsize, res);
+	}
+
+	// we keep i from the end of the last loop on purpose.
+	for(i=i; i > -1; i -= 16)
 	{
 		for(j = 0; j < 16; j++)
 		{
@@ -215,25 +214,77 @@ poly convert_string_to_amns(const char* string)
 			else
 				store[j] = '0';
 		}
-		tab[(i / 16)] = strtoul(store, NULL, 16);
+		(*res)->t[tabsize - 1 - (i / 16)] = strtoul(store, NULL, 16);
 	}
+}
+
+void convert_string_to_amns(restrict poly res, const char* string)
+{
+/*	uint16_t tabsize = 0, maxi, j;*/
+/*	int16_t i = 0;*/
+/*	uint8_t counter;*/
+/*	const uint64_t rho = (1ULL<<RHO);*/
+/*	uint64_t tab[N];*/
+/*	__int128 R[N] = {0};*/
+/*	char store[17];*/
+/*	*/
+/*	store[16] = '\0';*/
+/*	*/
+/*	while(string[i] != '\0')*/
+/*	{*/
+/*		if(i % 16 == 0) ++tabsize;*/
+/*		++i;*/
+/*	}*/
+/*	maxi = i;*/
+/*	for(i = maxi; i > -1; i -= 16)*/
+/*	{*/
+/*		for(j = 0; j < 16; j++)*/
+/*		{*/
+/*			if(i - 16 + j >= 0)*/
+/*				store[j] = string[i - 16 + j];*/
+/*			else*/
+/*				store[j] = '0';*/
+/*		}*/
+/*		tab[tabsize - 1 - (i / 16)] = strtoul(store, NULL, 16);*/
+/*	}*/
 	
+
+
+	uint8_t counter;
+	uint16_t i, j;
+	const uint64_t rho = (1ULL<<RHO);
+	__int128 R[N];
+	poly stok;
+	init_poly(N, &stok);
 	
-	res->t[0] = tab[N - 1] & (rho - 1);
+	convert_string_to_poly(&stok, string);
+	printf("%lx", stok->t[N - 1]);
+	for(i = 1; i < N; i++)
+		printf("%016lx", stok->t[N - 1 - i]);
+	printf("\n");
+	//TODO check deg
+	
+/*	printf("%lx", tab[tabsize - 1]);	*/
+	
+	res->t[0] = ((uint64_t) stok->t[0]) & (rho - 1);
+	//res->t[0] = tab[0] & (rho - 1);
 	counter = 0;
 	for(i = 1; i < N; i++)
 	{
+/*		printf("%016lx", tab[tabsize - 1 - i]);*/
 		counter = (counter + 64 - RHO) % RHO;
-		res->t[i] = ((tab[N - i - 1] << counter) & (rho - 1)) | (tab[N - i] >> (64 - counter));
+		res->t[i] = ((((uint64_t) stok->t[i]) << counter) & (rho - 1)) | (((uint64_t) stok->t[i - 1]) >> (64 - counter));
+		//res->t[i] = ((tab[i] << counter) & (rho - 1)) | (tab[i - 1] >> (64 - counter));
 	}
+/*	printf("\n");*/
 	
 	for(i = 0; i < N; i++)
 		for(j = 0; j < N; j++)
 			R[j] += (__int128) res->t[i] * __Pi__[i][j];
 	
 	mns_montg_int_red(res, R);
-	
-	return res;
+
+	free_poly(stok);
 } 
 
 static inline int64_t randomint64(void)
@@ -258,9 +309,14 @@ void __init_tests__(void)
 	init_polys(N, &a, &b, &c, &c_check, &Phisquared, NULL);
 	
 	const char* A = "9b6afe91a6e17ff3e5b7331bc220a825e6bbe48687ca568a0873800b48471d633375";
-	poly converted = convert_string_to_amns(A);
+	poly converted;
+	printf("%p\n", converted);
+	init_poly(N, &converted);
+	printf("%p deg: %d %p\n", converted, converted->deg, converted->t);
+	convert_string_to_amns(converted, A);
+	printf("%p deg: %d %p\n", converted, converted->deg, converted->t);
+	//printf("%lx\n", converted->t[N - 1]);
 	printf("%s\n", A);
-	print(converted);
 	free_poly(converted);	
 	
 	set_val(a, 3175695016735605, 20859843725, -123954529873808582, 541629668316248009, -29410447444707128);
@@ -304,11 +360,4 @@ void __proof_of_accuracy(void)
 	}
 	
 	free_polys(a, aphi, b, c, Phisquared, NULL);
-}
-
-int main(void)
-{
-	__init_tests__();
-	//__proof_of_accuracy();
-	return 0;
 }
