@@ -253,7 +253,7 @@ void convert_string_to_amns(restrict poly res, const char* string)
 	uint8_t counter;
 	uint16_t i, j;
 	const uint64_t rho = (1ULL<<RHO);
-	__int128 R[N];
+	__int128 R[N] = {0};
 	poly stok;
 	init_poly(N, &stok);
 	
@@ -262,21 +262,20 @@ void convert_string_to_amns(restrict poly res, const char* string)
 	for(i = 1; i < N; i++)
 		printf("%016lx", stok->t[N - 1 - i]);
 	printf("\n");
-	//TODO check deg
+	if(stok->deg != N)
+	{
+		printf("ERROR: polynomial degree too high in given number for conversion\n");
+		goto end;
+	}
 	
-/*	printf("%lx", tab[tabsize - 1]);	*/
 	
 	res->t[0] = ((uint64_t) stok->t[0]) & (rho - 1);
-	//res->t[0] = tab[0] & (rho - 1);
 	counter = 0;
 	for(i = 1; i < N; i++)
 	{
-/*		printf("%016lx", tab[tabsize - 1 - i]);*/
 		counter = (counter + 64 - RHO) % RHO;
 		res->t[i] = ((((uint64_t) stok->t[i]) << counter) & (rho - 1)) | (((uint64_t) stok->t[i - 1]) >> (64 - counter));
-		//res->t[i] = ((tab[i] << counter) & (rho - 1)) | (tab[i - 1] >> (64 - counter));
 	}
-/*	printf("\n");*/
 	
 	for(i = 0; i < N; i++)
 		for(j = 0; j < N; j++)
@@ -284,6 +283,7 @@ void convert_string_to_amns(restrict poly res, const char* string)
 	
 	mns_montg_int_red(res, R);
 
+end:
 	free_poly(stok);
 } 
 
@@ -310,13 +310,10 @@ void __init_tests__(void)
 	
 	const char* A = "9b6afe91a6e17ff3e5b7331bc220a825e6bbe48687ca568a0873800b48471d633375";
 	poly converted;
-	printf("%p\n", converted);
 	init_poly(N, &converted);
-	printf("%p deg: %d %p\n", converted, converted->deg, converted->t);
 	convert_string_to_amns(converted, A);
-	printf("%p deg: %d %p\n", converted, converted->deg, converted->t);
-	//printf("%lx\n", converted->t[N - 1]);
 	printf("%s\n", A);
+	print(converted);
 	free_poly(converted);	
 	
 	set_val(a, 3175695016735605, 20859843725, -123954529873808582, 541629668316248009, -29410447444707128);
