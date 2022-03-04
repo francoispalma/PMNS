@@ -216,42 +216,15 @@ inline void convert_string_to_poly(restrict poly* res, const char* string)
 		}
 		(*res)->t[tabsize - 1 - (i / 16)] = strtoul(store, NULL, 16);
 	}
+	
+	while((*res)->t[(*res)->deg - 1] == 0)
+		--(*res)->deg;
 }
 
 void convert_string_to_amns(restrict poly res, const char* string)
 {
-/*	uint16_t tabsize = 0, maxi, j;*/
-/*	int16_t i = 0;*/
-/*	uint8_t counter;*/
-/*	const uint64_t rho = (1ULL<<RHO);*/
-/*	uint64_t tab[N];*/
-/*	__int128 R[N] = {0};*/
-/*	char store[17];*/
-/*	*/
-/*	store[16] = '\0';*/
-/*	*/
-/*	while(string[i] != '\0')*/
-/*	{*/
-/*		if(i % 16 == 0) ++tabsize;*/
-/*		++i;*/
-/*	}*/
-/*	maxi = i;*/
-/*	for(i = maxi; i > -1; i -= 16)*/
-/*	{*/
-/*		for(j = 0; j < 16; j++)*/
-/*		{*/
-/*			if(i - 16 + j >= 0)*/
-/*				store[j] = string[i - 16 + j];*/
-/*			else*/
-/*				store[j] = '0';*/
-/*		}*/
-/*		tab[tabsize - 1 - (i / 16)] = strtoul(store, NULL, 16);*/
-/*	}*/
-	
-
-
 	uint8_t counter;
-	uint16_t i, j;
+	register uint16_t i, j;
 	const uint64_t rho = (1ULL<<RHO);
 	__int128 R[N] = {0};
 	poly stok;
@@ -303,12 +276,71 @@ static inline void randpoly(poly P)
 		P->t[i] = __modrho(randomint64());
 }
 
+static inline void printasonenumber(poly P)
+{
+	printf("%lx", P->t[P->deg - 1]);
+	for(register uint16_t i = 1; i < P->deg; i++)
+		printf("%016lx", P->t[P->deg - 1 - i]);
+	printf("\n"); 
+}
+
+static inline void multmp(restrict poly* res, restrict const poly op1, restrict const poly op2)
+{
+	register int16_t i, j, k;
+	unsigned __int128 R[op1->deg + op2->deg], stok;
+
+	// We check if the degree is high enough. If it isn't we fix the problem.
+	if((*res)->deg < op1->deg + op2->deg)
+	{
+		free_poly(*res);
+		init_poly(op1->deg + op2->deg, res);
+	}
+	
+	for(i = 0; i < op1->deg + op2->deg; i++)
+		R[i] = 0;
+
+	for(i = 0; i < op1->deg; i++)
+	{
+		for(j = 0; j < op2->deg; j++)
+		{
+			k = i + j;
+			stok = R[k];
+			R[k] += (unsigned __int128) ((uint64_t) op1->t[i]) * ((uint64_t)op2->t[j]);
+			while(stok > R[k])
+			{
+				++k;
+				stok = R[k];
+				R[k] += 1;
+			}
+		}
+	}
+	
+
+	(*res)->t[0] = R[0];
+	for(i = 1; i < op1->deg + op2->deg; i++)
+	{
+		k = i;
+		stok = R[i];
+		R[i] += R[i - 1] >> 64;
+		while(stok > R[k])
+		{
+			++k;
+			stok = R[k];
+			R[k] += 1;
+		}
+		(*res)->t[i] = R[i];
+	}
+	
+	while((*res)->t[(*res)->deg - 1] == 0)
+		--(*res)->deg;
+}
+
 void __init_tests__(void)
 {
 	poly a, b, c, c_check, Phisquared;
 	init_polys(N, &a, &b, &c, &c_check, &Phisquared, NULL);
 	
-	const char* A = "9b6afe91a6e17ff3e5b7331bc220a825e6bbe48687ca568a0873800b48471d633375";
+	const char A[] = "9b6afe91a6e17ff3e5b7331bc220a825e6bbe48687ca568a0873800b48471d633375";
 	poly converted;
 	init_poly(N, &converted);
 	convert_string_to_amns(converted, A);
@@ -358,3 +390,30 @@ void __proof_of_accuracy(void)
 	
 	free_polys(a, aphi, b, c, Phisquared, NULL);
 }
+
+
+void __multtests(void)
+{
+	poly A, B, C, C_test;
+	init_polys(5, &A, &B, NULL);
+	init_polys(10, &C, &C_test, NULL);
+	
+	const char a[] = "163dbed3b4fbeee3bb542bc62983a51f4ecb077c3af9a6d451e1c4b6cd0a99563d55",
+		b[] = "c64be1b07fc889170737a3bbd0501940eb5cdffbb228d09f6c4527812aa64b8cde15",
+		c[] = "113a594a40463202213fb6a4f7f7c643b20e4efcf7206e5154247afe315d4d6c9a5f8dcd34573cc1b63874bccb81c44e190796da9afb9b7f144f1fe35456d916cebebdf9";
+	
+	convert_string_to_poly(&A, a);
+	printf("%s\n", a);
+	printasonenumber(A);
+	convert_string_to_poly(&B, b);
+	printf("%s\n", b);
+	printasonenumber(B);
+	convert_string_to_poly(&C_test, c);
+	printf("%s\n", c);
+	printasonenumber(C_test);
+	multmp(&C, A, B);
+	printasonenumber(C);
+		
+	free_polys(A, B, C, C_test, NULL);
+}
+
