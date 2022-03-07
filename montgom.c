@@ -293,6 +293,78 @@ static inline void randpoly(poly P)
 		P->t[i] = __modrho(randomint64());
 }
 
+static inline void mp_add(restrict poly* res, restrict const poly op1, restrict const poly op2)
+{
+	// Puts the result of op1 + op2 in res.
+
+	const uint16_t maxdeg = op1->deg < op2->deg ? op2->deg : op1->deg;
+	register uint16_t i, j;
+	uint64_t stok;
+
+	// We check if the degree is high enough. If it isn't we fix the problem.
+	if((*res)->deg < maxdeg + 1)
+	{
+		free_poly(*res);
+		init_poly(maxdeg + 1, res);
+	}
+	
+	for(i = 0; i < op1->deg; i++)
+		(*res)->t[i] = op1->t[i];
+	
+	for(i = 0; i < op2->deg; i++)
+	{
+		stok = ((uint64_t) (*res)->t[i]);
+		(*res)->t[i] += op2->t[i];
+		
+		j = i;
+		while(stok > ((uint64_t) (*res)->t[j]) && j < maxdeg)
+		{
+			++j;
+			stok = ((uint64_t) (*res)->t[j]);
+			(*res)->t[j] = ((uint64_t) (*res)->t[j]) + 1;
+		}
+	}
+	
+	while((*res)->t[(*res)->deg - 1] == 0)
+		--(*res)->deg;
+}
+
+static inline void mp_sub(restrict poly* res, restrict const poly op1, restrict const poly op2)
+{
+	// Puts the result of op1 - op2 in res.
+
+	const uint16_t maxdeg = op1->deg < op2->deg ? op2->deg : op1->deg;
+	register uint16_t i, j;
+	uint64_t stok;
+
+	// We check if the degree is high enough. If it isn't we fix the problem.
+	if((*res)->deg < maxdeg)
+	{
+		free_poly(*res);
+		init_poly(maxdeg, res);
+	}
+	
+	for(i = 0; i < op1->deg; i++)
+		(*res)->t[i] = op1->t[i];
+	
+	for(i = 0; i < op2->deg; i++)
+	{
+		stok = ((uint64_t) (*res)->t[i]);
+		(*res)->t[i] -= op2->t[i];
+		
+		j = i;
+		while(stok < ((uint64_t) (*res)->t[j]) && j < maxdeg - 1)
+		{
+			++j;
+			stok = ((uint64_t) (*res)->t[j]);
+			(*res)->t[j] = ((uint64_t) (*res)->t[j]) - 1;
+		}
+	}
+	
+	while((*res)->t[(*res)->deg - 1] == 0)
+		--(*res)->deg;
+}
+
 static inline void mp_mult(restrict poly* res, restrict const poly op1, restrict const poly op2)
 {
 	// Puts the result of op1 * op2 into res.
@@ -340,78 +412,6 @@ static inline void mp_mult(restrict poly* res, restrict const poly op1, restrict
 			R[k] += 1;
 		}
 		(*res)->t[i] = R[i];
-	}
-	
-	while((*res)->t[(*res)->deg - 1] == 0)
-		--(*res)->deg;
-}
-
-static inline void mp_add(restrict poly* res, restrict const poly op1, restrict const poly op2)
-{
-	// Puts the result of op1 + op2 in res.
-
-	const uint16_t maxdeg = op1->deg < op2->deg ? op2->deg : op1->deg;
-	register uint16_t i, j;
-	uint64_t stok;
-
-	// We check if the degree is high enough. If it isn't we fix the problem.
-	if((*res)->deg < maxdeg + 1)
-	{
-		free_poly(*res);
-		init_poly(maxdeg + 1, res);
-	}
-	
-	for(i = 0; i < op1->deg; i++)
-		(*res)->t[i] = op1->t[i];
-	
-	for(i = 0; i < op2->deg; i++)
-	{
-		stok = ((uint64_t) (*res)->t[i]);
-		(*res)->t[i] += op2->t[i];
-		
-		j = i;
-		while(stok < ((uint64_t) (*res)->t[j]) && j < maxdeg)
-		{
-			++j;
-			stok = ((uint64_t) (*res)->t[j]);
-			(*res)->t[j] = ((uint64_t) (*res)->t[j]) + 1;
-		}
-	}
-	
-	while((*res)->t[(*res)->deg - 1] == 0)
-		--(*res)->deg;
-}
-
-static inline void mp_sub(restrict poly* res, restrict const poly op1, restrict const poly op2)
-{
-	// Puts the result of op1 - op2 in res.
-
-	const uint16_t maxdeg = op1->deg < op2->deg ? op2->deg : op1->deg;
-	register uint16_t i, j;
-	uint64_t stok;
-
-	// We check if the degree is high enough. If it isn't we fix the problem.
-	if((*res)->deg < maxdeg)
-	{
-		free_poly(*res);
-		init_poly(maxdeg, res);
-	}
-	
-	for(i = 0; i < op1->deg; i++)
-		(*res)->t[i] = op1->t[i];
-	
-	for(i = 0; i < op2->deg; i++)
-	{
-		stok = ((uint64_t) (*res)->t[i]);
-		(*res)->t[i] -= op2->t[i];
-		
-		j = i;
-		while(stok < ((uint64_t) (*res)->t[j]) && j < maxdeg - 1)
-		{
-			++j;
-			stok = ((uint64_t) (*res)->t[j]);
-			(*res)->t[j] = ((uint64_t) (*res)->t[j]) - 1;
-		}
 	}
 	
 	while((*res)->t[(*res)->deg - 1] == 0)
