@@ -78,6 +78,23 @@ inline void print(const restrict poly P)
 	printf("%ld]\n", P->t[P->deg - 1]);
 }
 
+static inline void mp_print(poly P)
+{
+/*	if(P->t[P->deg - 1] & 0x8000000000000000)*/
+/*	{*/
+/*		printf("-%lx", -P->t[P->deg - 1]);*/
+/*		for(register uint16_t i = 1; i < P->deg; i++)*/
+/*			printf("%016lx", -P->t[P->deg - 1 - i]);*/
+/*	}*/
+/*	else*/
+/*	{*/
+		printf("%lx", P->t[P->deg - 1]);
+		for(register uint16_t i = 1; i < P->deg; i++)
+			printf("%016lx", P->t[P->deg - 1 - i]);
+	//}
+	printf("\n"); 
+}
+
 static inline void __print128(register const __int128 Val)
 {
 	int64_t hi = Val >> 64;
@@ -276,16 +293,10 @@ static inline void randpoly(poly P)
 		P->t[i] = __modrho(randomint64());
 }
 
-static inline void printasonenumber(poly P)
+static inline void mp_mult(restrict poly* res, restrict const poly op1, restrict const poly op2)
 {
-	printf("%lx", P->t[P->deg - 1]);
-	for(register uint16_t i = 1; i < P->deg; i++)
-		printf("%016lx", P->t[P->deg - 1 - i]);
-	printf("\n"); 
-}
+	// Puts the result of op1 * op2 into res.
 
-static inline void multmp(restrict poly* res, restrict const poly op1, restrict const poly op2)
-{
 	register int16_t i, j, k;
 	unsigned __int128 R[op1->deg + op2->deg], stok;
 
@@ -329,6 +340,42 @@ static inline void multmp(restrict poly* res, restrict const poly op1, restrict 
 			R[k] += 1;
 		}
 		(*res)->t[i] = R[i];
+	}
+	
+	while((*res)->t[(*res)->deg - 1] == 0)
+		--(*res)->deg;
+}
+
+void mp_sub(restrict poly* res, restrict const poly op1, restrict const poly op2)
+{
+	// Puts the result of op1 - op2 in res.
+
+	const uint16_t maxdeg = op1->deg < op2->deg ? op2->deg : op1->deg;
+	register uint16_t i, j;
+	uint64_t stok;
+
+	// We check if the degree is high enough. If it isn't we fix the problem.
+	if((*res)->deg < maxdeg)
+	{
+		free_poly(*res);
+		init_poly(maxdeg, res);
+	}
+	
+	for(i = 0; i < op1->deg; i++)
+		(*res)->t[i] = op1->t[i];
+	
+	for(i = 0; i < op2->deg; i++)
+	{
+		stok = ((uint64_t) (*res)->t[i]);
+		(*res)->t[i] -= op2->t[i];
+		
+		j = i;
+		while(stok < ((uint64_t) (*res)->t[j]) && j < maxdeg - 1)
+		{
+			++j;
+			stok = ((uint64_t) (*res)->t[j]);
+			(*res)->t[j] = ((uint64_t) (*res)->t[j]) - 1;
+		}
 	}
 	
 	while((*res)->t[(*res)->deg - 1] == 0)
@@ -392,7 +439,7 @@ void __proof_of_accuracy(void)
 }
 
 
-void __multtests(void)
+void __mult_tests(void)
 {
 	poly A, B, C, C_test;
 	init_polys(5, &A, &B, NULL);
@@ -404,16 +451,39 @@ void __multtests(void)
 	
 	convert_string_to_poly(&A, a);
 	printf("%s\n", a);
-	printasonenumber(A);
+	mp_print(A);
 	convert_string_to_poly(&B, b);
 	printf("%s\n", b);
-	printasonenumber(B);
+	mp_print(B);
 	convert_string_to_poly(&C_test, c);
 	printf("%s\n", c);
-	printasonenumber(C_test);
-	multmp(&C, A, B);
-	printasonenumber(C);
+	mp_print(C_test);
+	mp_mult(&C, A, B);
+	mp_print(C);
 		
 	free_polys(A, B, C, C_test, NULL);
+}
+
+void __sub_tests(void)
+{
+	poly A, B, AmB, BmA, AmBmBmA, BmAmAmB;
+	init_polys(5, &A, &B, &AmB, &BmA, &AmBmBmA, &BmAmAmB, NULL);
+	
+	const char a[] = "163dbed3b4fbeee3bb542bc62983a51f4ecb077c3af9a6d451e1c4b6cd0a99563d55",
+		b[] = "c64be1b07fc889170737a3bbd0501940eb5cdffbb228d09f6c4527812aa64b8cde15";
+	convert_string_to_poly(&A, a);
+	mp_print(A);
+	convert_string_to_poly(&B, b);
+	mp_print(B);
+	mp_sub(&AmB, A, B);
+	mp_print(AmB);
+	mp_sub(&BmA, B, A);
+	mp_print(BmA);
+	mp_sub(&AmBmBmA, AmB, BmA);
+	mp_print(AmBmBmA);
+	mp_sub(&BmAmAmB, BmA, AmB);
+	mp_print(BmAmAmB);
+	
+	free_polys(A, B, AmB, BmA, AmBmBmA, BmAmAmB, NULL);
 }
 
