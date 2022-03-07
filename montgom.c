@@ -234,7 +234,7 @@ inline void convert_string_to_poly(restrict poly* res, const char* string)
 		(*res)->t[tabsize - 1 - (i / 16)] = strtoul(store, NULL, 16);
 	}
 	
-	while((*res)->t[(*res)->deg - 1] == 0)
+	while((*res)->deg > 1 && (*res)->t[(*res)->deg - 1] == 0)
 		--(*res)->deg;
 }
 
@@ -297,15 +297,16 @@ static inline void mp_add(restrict poly* res, restrict const poly op1, restrict 
 {
 	// Puts the result of op1 + op2 in res.
 
-	const uint16_t maxdeg = op1->deg < op2->deg ? op2->deg : op1->deg;
+	const uint16_t MAXDEG = op1->deg < op2->deg ? op2->deg : op1->deg + 1 -
+		((op1->t[op1->deg - 1] < 0) || (op2->t[op2->deg - 1] < 0));
 	register uint16_t i, j;
 	uint64_t stok;
 
 	// We check if the degree is high enough. If it isn't we fix the problem.
-	if((*res)->deg < maxdeg + 1)
+	if((*res)->deg < MAXDEG)
 	{
 		free_poly(*res);
-		init_poly(maxdeg + 1, res);
+		init_poly(MAXDEG, res);
 	}
 	
 	for(i = 0; i < op1->deg; i++)
@@ -317,7 +318,7 @@ static inline void mp_add(restrict poly* res, restrict const poly op1, restrict 
 		(*res)->t[i] += op2->t[i];
 		
 		j = i;
-		while(stok > ((uint64_t) (*res)->t[j]) && j < maxdeg)
+		while(stok > ((uint64_t) (*res)->t[j]) && j < MAXDEG - 1)
 		{
 			++j;
 			stok = ((uint64_t) (*res)->t[j]);
@@ -325,7 +326,7 @@ static inline void mp_add(restrict poly* res, restrict const poly op1, restrict 
 		}
 	}
 	
-	while((*res)->t[(*res)->deg - 1] == 0)
+	while((*res)->deg > 1 && (*res)->t[(*res)->deg - 1] == 0)
 		--(*res)->deg;
 }
 
@@ -333,15 +334,15 @@ static inline void mp_sub(restrict poly* res, restrict const poly op1, restrict 
 {
 	// Puts the result of op1 - op2 in res.
 
-	const uint16_t maxdeg = op1->deg < op2->deg ? op2->deg : op1->deg;
+	const uint16_t MAXDEG = op1->deg < op2->deg ? op2->deg : op1->deg;
 	register uint16_t i, j;
 	uint64_t stok;
 
 	// We check if the degree is high enough. If it isn't we fix the problem.
-	if((*res)->deg < maxdeg)
+	if((*res)->deg < MAXDEG)
 	{
 		free_poly(*res);
-		init_poly(maxdeg, res);
+		init_poly(MAXDEG, res);
 	}
 	
 	for(i = 0; i < op1->deg; i++)
@@ -353,7 +354,7 @@ static inline void mp_sub(restrict poly* res, restrict const poly op1, restrict 
 		(*res)->t[i] -= op2->t[i];
 		
 		j = i;
-		while(stok < ((uint64_t) (*res)->t[j]) && j < maxdeg - 1)
+		while(stok < ((uint64_t) (*res)->t[j]) && j < MAXDEG - 1)
 		{
 			++j;
 			stok = ((uint64_t) (*res)->t[j]);
@@ -361,7 +362,7 @@ static inline void mp_sub(restrict poly* res, restrict const poly op1, restrict 
 		}
 	}
 	
-	while((*res)->t[(*res)->deg - 1] == 0)
+	while((*res)->deg > 1 && (*res)->t[(*res)->deg - 1] == 0)
 		--(*res)->deg;
 }
 
@@ -414,7 +415,7 @@ static inline void mp_mult(restrict poly* res, restrict const poly op1, restrict
 		(*res)->t[i] = R[i];
 	}
 	
-	while((*res)->t[(*res)->deg - 1] == 0)
+	while((*res)->deg > 1 && (*res)->t[(*res)->deg - 1] == 0)
 		--(*res)->deg;
 }
 

@@ -1,0 +1,23 @@
+mod(&C, A, B)
+assert A > B
+returns A % B in C
+
+X = B[bmaxdeg]
+while A[amaxdeg] > X:
+	mp_leftshift(&X);
+elihw
+while A[amaxdeg] < X:
+	mp_rightshift(&X);
+elihw
+
+mp_sub(&C, A, X)
+
+while C > B:
+	copy(&R, C)
+	while X > C:
+		mp_rightshift(&X);
+	elihw
+	mp_sub(&C, R, X)
+elihw
+
+end
