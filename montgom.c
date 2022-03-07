@@ -202,6 +202,11 @@ inline void amns_montg_mult(restrict poly res, const restrict poly A,
 	mns_montg_int_red(res, R);
 }
 
+static inline void mp_reduce(restrict poly A)
+{
+	while(A->deg > 1 && A->t[A->deg - 1] == 0) --A->deg;
+}
+
 inline void convert_string_to_poly(restrict poly* res, const char* string)
 {
 	uint16_t tabsize = 0, j;
@@ -234,8 +239,7 @@ inline void convert_string_to_poly(restrict poly* res, const char* string)
 		(*res)->t[tabsize - 1 - (i / 16)] = strtoul(store, NULL, 16);
 	}
 	
-	while((*res)->deg > 1 && (*res)->t[(*res)->deg - 1] == 0)
-		--(*res)->deg;
+	mp_reduce(*res);
 }
 
 void convert_string_to_amns(restrict poly res, const char* string)
@@ -293,6 +297,78 @@ static inline void randpoly(poly P)
 		P->t[i] = __modrho(randomint64());
 }
 
+static inline void mp_copy(restrict poly* A, restrict const poly B)
+{
+	// Copy B into A.
+	if((*A)->deg < B->deg)
+	{
+		free_poly(*A);
+		init_poly(B->deg, A);
+	}
+	
+	(*A)->deg = B->deg;
+	for(register uint16_t i = 0; i < B->deg; i++)
+		(*A)->t[i] = B->t[i];
+}
+
+static inline int8_t mp_ucomp(restrict poly A, restrict poly B)
+{
+	// compares A and B. Returns 0 if equal, 1 if A > B and -1 if B < A.
+	// doesn't check sign.
+	
+	register int32_t i;
+	
+	mp_reduce(A);
+	mp_reduce(B);
+
+	if(A->deg > B->deg)
+		return 1;
+	else
+	{
+		if(B->deg > A->deg)
+			return -1;
+		else
+		{			
+			for(i = A->deg - 1; i > -1; i--)
+			{
+				if(A->t[i] > B->t[i])
+					return 1;
+				if(A->t[i] < B->t[i])
+					return -1;
+			}
+			return 0;			
+		}
+	}
+}
+
+static inline int8_t mp_comp(restrict poly A, restrict poly B)
+{
+	// compares A and B. Returns 0 if equal, 1 if A > B and -1 if B < A.
+	// checks sign.
+	
+	mp_reduce(A);
+	mp_reduce(B);
+
+	if((A->t[A->deg - 1] & 0x8000000000000000) &&
+			(!(B->t[B->deg - 1] & 0x8000000000000000)))
+		return -1;
+	if((!(A->t[A->deg - 1] & 0x8000000000000000)) &&
+			(B->t[B->deg - 1] & 0x8000000000000000))
+		return 1;
+
+	return mp_ucomp(A, B);
+}
+
+static inline void mp_leftshift(restrict poly* A)
+{
+	mp_reduce(*A);
+}
+
+static inline void mp_rightshift(restrict poly* A)
+{
+	mp_reduce(*A);
+}
+
 static inline void mp_add(restrict poly* res, restrict const poly op1, restrict const poly op2)
 {
 	// Puts the result of op1 + op2 in res.
@@ -326,8 +402,7 @@ static inline void mp_add(restrict poly* res, restrict const poly op1, restrict 
 		}
 	}
 	
-	while((*res)->deg > 1 && (*res)->t[(*res)->deg - 1] == 0)
-		--(*res)->deg;
+	mp_reduce(*res);
 }
 
 static inline void mp_sub(restrict poly* res, restrict const poly op1, restrict const poly op2)
@@ -362,15 +437,14 @@ static inline void mp_sub(restrict poly* res, restrict const poly op1, restrict 
 		}
 	}
 	
-	while((*res)->deg > 1 && (*res)->t[(*res)->deg - 1] == 0)
-		--(*res)->deg;
+	mp_reduce(*res);
 }
 
 static inline void mp_mult(restrict poly* res, restrict const poly op1, restrict const poly op2)
 {
 	// Puts the result of op1 * op2 into res.
 
-	register int16_t i, j, k;
+	register uint16_t i, j, k;
 	unsigned __int128 R[op1->deg + op2->deg], stok;
 
 	// We check if the degree is high enough. If it isn't we fix the problem.
@@ -399,7 +473,6 @@ static inline void mp_mult(restrict poly* res, restrict const poly op1, restrict
 		}
 	}
 	
-
 	(*res)->t[0] = R[0];
 	for(i = 1; i < op1->deg + op2->deg; i++)
 	{
@@ -415,8 +488,41 @@ static inline void mp_mult(restrict poly* res, restrict const poly op1, restrict
 		(*res)->t[i] = R[i];
 	}
 	
-	while((*res)->deg > 1 && (*res)->t[(*res)->deg - 1] == 0)
-		--(*res)->deg;
+	mp_reduce(*res);
+}
+
+static inline void mp_mod(restrict poly* res, restrict const poly op1, restrict const poly op2)
+{
+	// Puts the result of op1 % op2 into res.
+	
+	const uint16_t MAXDEG = op1->deg < op2->deg ? op2->deg : op1->deg;
+	poly X, R;
+	init_polys(MAXDEG, &X, &R, NULL);
+	
+	if((*res)->deg < MAXDEG)
+	{
+		free_poly(*res);
+		init_poly(MAXDEG, res);
+	}
+	
+	mp_copy(&X, op2);
+	while(mp_ucomp(op1, X) == 1)
+		mp_leftshift(&X);
+	while(mp_ucomp(op1, X) == -1)
+		mp_rightshift(&X);
+	
+	mp_sub(res, op1, X);
+	
+	while(mp_ucomp(*res, op2) == 1)
+	{
+		mp_copy(&R, *res);
+		while(mp_ucomp(X, *res) == 1)
+			mp_rightshift(&X);
+		mp_sub(res, R, X);
+	}
+	
+	mp_reduce(*res);
+	free_polys(X, R, NULL);
 }
 
 void __init_tests__(void)
@@ -527,7 +633,26 @@ void __sub_tests(void)
 	mp_print(BmApAmB);
 	mp_add(&AmBpBmA, AmB, BmA);
 	mp_print(AmBpBmA);
+	printf("%d %d %d %d\n", mp_comp(A, B), mp_comp(A, AmB), mp_comp(ApB, B),
+		mp_comp(AmBpBmA, BmApAmB));
+	printf("-1 1 1 0\n");
 	
-	free_polys(A, B, AmB, BmA, AmBmBmA, BmAmAmB, AmBpBmA, BmApAmB, NULL);
+	free_polys(A, B, AmB, BmA, AmBmBmA, BmAmAmB, ApB, AmBpBmA, BmApAmB, NULL);
+}
+
+void __mod_tests(void)
+{
+	poly A, B;
+	init_polys(0, &A, &B, NULL);
+	
+	const char a[] = "163dbed3b4fbeee3bb542bc62983a51f4ecb077c3af9a6d451e1c4b6cd0a99563d55",
+	b[] = "a84c8a29612d9545394797803178257e7e72af34d038e704ca1d0e2000ad0f01e8e03f441888cdbcf393542b3f896520e3f53e37e98e4e7dfe83645e74d239315d054901";
+	
+	convert_string_to_poly(&A, a);
+	mp_print(A);
+	convert_string_to_poly(&B, b);
+	mp_print(B);
+	
+	free_polys(A, B, NULL);
 }
 
