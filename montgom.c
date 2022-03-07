@@ -346,7 +346,43 @@ static inline void mp_mult(restrict poly* res, restrict const poly op1, restrict
 		--(*res)->deg;
 }
 
-void mp_sub(restrict poly* res, restrict const poly op1, restrict const poly op2)
+static inline void mp_add(restrict poly* res, restrict const poly op1, restrict const poly op2)
+{
+	// Puts the result of op1 + op2 in res.
+
+	const uint16_t maxdeg = op1->deg < op2->deg ? op2->deg : op1->deg;
+	register uint16_t i, j;
+	uint64_t stok;
+
+	// We check if the degree is high enough. If it isn't we fix the problem.
+	if((*res)->deg < maxdeg + 1)
+	{
+		free_poly(*res);
+		init_poly(maxdeg + 1, res);
+	}
+	
+	for(i = 0; i < op1->deg; i++)
+		(*res)->t[i] = op1->t[i];
+	
+	for(i = 0; i < op2->deg; i++)
+	{
+		stok = ((uint64_t) (*res)->t[i]);
+		(*res)->t[i] += op2->t[i];
+		
+		j = i;
+		while(stok < ((uint64_t) (*res)->t[j]) && j < maxdeg)
+		{
+			++j;
+			stok = ((uint64_t) (*res)->t[j]);
+			(*res)->t[j] = ((uint64_t) (*res)->t[j]) + 1;
+		}
+	}
+	
+	while((*res)->t[(*res)->deg - 1] == 0)
+		--(*res)->deg;
+}
+
+static inline void mp_sub(restrict poly* res, restrict const poly op1, restrict const poly op2)
 {
 	// Puts the result of op1 - op2 in res.
 
@@ -466,8 +502,9 @@ void __mult_tests(void)
 
 void __sub_tests(void)
 {
-	poly A, B, AmB, BmA, AmBmBmA, BmAmAmB;
+	poly A, B, AmB, BmA, AmBmBmA, BmAmAmB, ApB, AmBpBmA, BmApAmB;
 	init_polys(5, &A, &B, &AmB, &BmA, &AmBmBmA, &BmAmAmB, NULL);
+	init_polys(6, &ApB, &AmBpBmA, &BmApAmB, NULL);
 	
 	const char a[] = "163dbed3b4fbeee3bb542bc62983a51f4ecb077c3af9a6d451e1c4b6cd0a99563d55",
 		b[] = "c64be1b07fc889170737a3bbd0501940eb5cdffbb228d09f6c4527812aa64b8cde15";
@@ -483,7 +520,13 @@ void __sub_tests(void)
 	mp_print(AmBmBmA);
 	mp_sub(&BmAmAmB, BmA, AmB);
 	mp_print(BmAmAmB);
+	mp_add(&ApB, A, B);
+	mp_print(ApB);
+	mp_add(&BmApAmB, BmA, AmB);
+	mp_print(BmApAmB);
+	mp_add(&AmBpBmA, AmB, BmA);
+	mp_print(AmBpBmA);
 	
-	free_polys(A, B, AmB, BmA, AmBmBmA, BmAmAmB, NULL);
+	free_polys(A, B, AmB, BmA, AmBmBmA, BmAmAmB, AmBpBmA, BmApAmB, NULL);
 }
 
