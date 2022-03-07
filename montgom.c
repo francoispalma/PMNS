@@ -331,9 +331,9 @@ static inline int8_t mp_ucomp(restrict poly A, restrict poly B)
 		{			
 			for(i = A->deg - 1; i > -1; i--)
 			{
-				if(A->t[i] > B->t[i])
+				if(((uint64_t)A->t[i]) > ((uint64_t)B->t[i]))
 					return 1;
-				if(A->t[i] < B->t[i])
+				if(((uint64_t)A->t[i]) < ((uint64_t)B->t[i]))
 					return -1;
 			}
 			return 0;			
@@ -361,12 +361,41 @@ static inline int8_t mp_comp(restrict poly A, restrict poly B)
 
 static inline void mp_leftshift(restrict poly* A)
 {
+	// Shifts *A to the left once.
+	
+	poly aux;
+	init_poly(0, &aux);
+	
 	mp_reduce(*A);
+	mp_copy(&aux, *A);
+	
+	if((*A)->t[(*A)->deg - 1] & 0x8000000000000000)
+	{
+		free_poly(*A);
+		init_poly(aux->deg + 1, A);
+		(*A)->t[(*A)->deg - 1] = 1;
+	}
+	
+	for(register uint16_t i = 0; i < aux->deg - 1; i++)
+		(*A)->t[aux->deg - 1 - i] = (aux->t[aux->deg - 1 - i] << 1) +
+			((aux->t[aux->deg - 2 - i] & 0x8000000000000000) != 0);
+	
+	(*A)->t[0] = aux->t[0] << 1;
+	
+	free_poly(aux);
 }
 
-static inline void mp_rightshift(restrict poly* A)
+static inline void mp_rightshift(restrict poly A)
 {
-	mp_reduce(*A);
+	// Shifts A to the right once.
+	
+	mp_reduce(A);
+	
+	for(register uint16_t i = 0; i < A->deg - 1; i++)
+		A->t[i] = (((uint64_t)A->t[i]) >> 1) | ((A->t[i + 1] & 1) << 63);
+	A->t[A->deg - 1] = (((uint64_t)A->t[A->deg - 1]) >> 1);
+	
+	mp_reduce(A);
 }
 
 static inline void mp_add(restrict poly* res, restrict const poly op1, restrict const poly op2)
@@ -508,8 +537,10 @@ static inline void mp_mod(restrict poly* res, restrict const poly op1, restrict 
 	mp_copy(&X, op2);
 	while(mp_ucomp(op1, X) == 1)
 		mp_leftshift(&X);
+	mp_print(X);
 	while(mp_ucomp(op1, X) == -1)
-		mp_rightshift(&X);
+		mp_rightshift(X);
+	mp_print(X);
 	
 	mp_sub(res, op1, X);
 	
@@ -517,7 +548,9 @@ static inline void mp_mod(restrict poly* res, restrict const poly op1, restrict 
 	{
 		mp_copy(&R, *res);
 		while(mp_ucomp(X, *res) == 1)
-			mp_rightshift(&X);
+		{
+			mp_rightshift(X);
+		}
 		mp_sub(res, R, X);
 	}
 	
@@ -642,17 +675,29 @@ void __sub_tests(void)
 
 void __mod_tests(void)
 {
-	poly A, B;
-	init_polys(0, &A, &B, NULL);
+	poly A, B, C, ST;
+	init_polys(0, &A, &B, &C, &ST, NULL);
 	
 	const char a[] = "163dbed3b4fbeee3bb542bc62983a51f4ecb077c3af9a6d451e1c4b6cd0a99563d55",
-	b[] = "a84c8a29612d9545394797803178257e7e72af34d038e704ca1d0e2000ad0f01e8e03f441888cdbcf393542b3f896520e3f53e37e98e4e7dfe83645e74d239315d054901";
-	
+	b[] = "a84c8a29612d9545394797803178257e7e72af34d038e704ca1d0e2000ad0f01e8e03f441888cdbcf393542b3f896520e3f53e37e98e4e7dfe83645e74d239315d054901",
+	c[] = "be42745e4e6c627ae20e738fdf363efa5ad0c8cc844644528d71ac55ab9d69baa36";
 	convert_string_to_poly(&A, a);
 	mp_print(A);
 	convert_string_to_poly(&B, b);
 	mp_print(B);
+	convert_string_to_poly(&ST, "1");
+	for(int i = 0; i < 75; i++)
+	{
+		mp_leftshift(&ST);
+		ST->t[0] |= 1;
+	}
+	for(int i = 0; i < 75; i++)
+		mp_rightshift(ST);
 	
-	free_polys(A, B, NULL);
+	mp_mod(&C, B, A);
+	printf("%s\n", c);
+	mp_print(C);
+	
+	free_polys(A, B, C, ST, NULL);
 }
 
