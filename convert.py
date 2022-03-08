@@ -69,4 +69,19 @@ if __name__ == "__main__":
 	print(sum2)
 	print(sum3)
 #	print(sum4)
+	
+	a = 0x77f882926258fb5a293015e16fc961598939f9f328d4e316d02519d3f8d88412d787
+	b = 0xb4399ccbab87f4f053d75a9dcc1c1fa8d2f4edd7bdf5eebc78fb4ea16a6fb02eb96d
+	c = a * b
+	A = rho_div_convert_to_mns(a, *amns, phi, M, M1, Pi)
+	B = rho_div_convert_to_mns(b, *amns, phi, M, M1, Pi)
+	C = amns_montg_mult(A, B, *amns, phi, M, M1)
+	print([hex(elem) for elem in C])
+	C = montgomery_like_coefficient_reduction(C, *amns, phi, M, M1)
+	print([hex(elem) for elem in C])
+	G1 = gamma**1 % p
+	G2 = gamma**2 % p
+	G3 = gamma**3 % p
+	G4 = gamma**4 % p
+	
 		

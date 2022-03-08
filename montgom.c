@@ -609,6 +609,8 @@ void convert_amns_to_poly(restrict poly* res, const restrict poly P)
 	
 	mns_montg_int_red(a, Quite);
 	
+	mp_print(a);
+	
 	(*res)->t[0] = a->t[0];
 	for(i = 1; i < N; i++)
 	{
@@ -781,6 +783,8 @@ void __full_mult_demo(void)
 	convert_string_to_amns(A, a);
 	convert_string_to_amns(B, b);
 	amns_montg_mult(C, A, B);
+	
+	mp_print(C);
 	
 	convert_amns_to_poly(&aux, C);
 	
