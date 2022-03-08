@@ -16,6 +16,15 @@ const int64_t M[] = {9446094647596025, -89344859775265, 366378001529314, -455817
 	{13165649034348498, 26180244800938503, 13254993894123763, 25813866799409189, 17813169724332800}
 };
 
+int64_t __G1[] = {0, 0, 0, 0x200000000000},
+		__G2[] = {0xcd73565390388481, 0x3913c213bac0519a, 0xd08f7ada91d393e2, 0x72b8686becf02f43, 0xcf91},
+		__G3[] = {0, 0x80000000000000},
+		__G4[] = {0xbd73565390388481, 0x3913c213bac0519a, 0xd0937ada91d393e2, 0x72b8686becf02f43, 0xcf91},
+		____P____[] = {0xcd73565390388481, 0x3913c213bac0519a, 0xd0937ada91d393e2, 0x72b8686becf02f43, 0xcf91};
+const _poly G1 = { .deg = 4, .t = __G1 }, G2 = { .deg = 5, .t = __G2},
+	G3 = { .deg = 2, .t = __G3}, G4 = { .deg = 5, .t = __G4};
+_poly	__P__ = { .deg = 5, .t = ____P____},
+	Gi[] = {G1, G2, G3, G4};
 
 
 inline void init_poly(const uint16_t deg, restrict poly* P)
@@ -78,7 +87,7 @@ inline void print(const restrict poly P)
 	printf("%ld]\n", P->t[P->deg - 1]);
 }
 
-static inline void mp_print(poly P)
+static inline void mp_print(const restrict poly P)
 {
 /*	if(P->t[P->deg - 1] & 0x8000000000000000)*/
 /*	{*/
@@ -225,6 +234,7 @@ inline void convert_string_to_poly(restrict poly* res, const char* string)
 		free_poly(*res);
 		init_poly(tabsize, res);
 	}
+	(*res)->deg = tabsize;
 
 	// we keep i from the end of the last loop on purpose.
 	for(i=i; i > -1; i -= 16)
@@ -252,10 +262,10 @@ void convert_string_to_amns(restrict poly res, const char* string)
 	init_poly(N, &stok);
 	
 	convert_string_to_poly(&stok, string);
-	printf("%lx", stok->t[N - 1]);
-	for(i = 1; i < N; i++)
-		printf("%016lx", stok->t[N - 1 - i]);
-	printf("\n");
+/*	printf("%lx", stok->t[N - 1]);*/
+/*	for(i = 1; i < N; i++)*/
+/*		printf("%016lx", stok->t[N - 1 - i]);*/
+/*	printf("\n");*/
 	if(stok->deg != N)
 	{
 		printf("ERROR: polynomial degree too high in given number for conversion\n");
@@ -560,10 +570,8 @@ static inline void mp_mod(restrict poly* res, restrict const poly op1, restrict 
 	mp_alignleft(&X, op1->deg);
 	while(mp_ucomp(op1, X) == 1)
 		mp_leftshift(&X);
-	mp_print(X);
 	while(mp_ucomp(op1, X) == -1)
 		mp_rightshift(X);
-	mp_print(X);
 	
 	mp_sub(res, op1, X);
 	
@@ -577,6 +585,44 @@ static inline void mp_mod(restrict poly* res, restrict const poly op1, restrict 
 	
 	mp_reduce(*res);
 	free_polys(X, R, NULL);
+}
+
+void convert_amns_to_poly(restrict poly* res, const restrict poly P)
+{
+	register uint16_t i;
+	poly a, aux, ag, tmp;
+	__int128 Quite[N];
+	
+	init_polys(N, &a, &ag, &tmp, NULL);
+	init_poly(1, &aux);
+	if((*res)->deg < N)
+	{
+		free_poly(*res);
+		init_poly(N, res);
+	}
+	for(i = 1; i < N; i++)
+	{
+		(*res)->t[i] = 0;
+		Quite[i] = (__int128) P->t[i];
+	}
+	Quite[0] = (__int128) P->t[0];
+	
+	mns_montg_int_red(a, Quite);
+	
+	(*res)->t[0] = a->t[0];
+	for(i = 1; i < N; i++)
+	{
+		aux->t[0] = a->t[i];
+		mp_mult(&ag, aux, &Gi[i]);
+		
+		mp_copy(&tmp, *res);
+		mp_add(res, tmp, ag);
+	}
+	
+	mp_copy(&tmp, *res);
+	mp_mod(res, tmp, &__P__);
+	
+	free_polys(a, aux, ag, tmp, NULL);
 }
 
 void __init_tests__(void)
@@ -720,5 +766,27 @@ void __mod_tests(void)
 	mp_print(C);
 	
 	free_polys(A, B, C, ST, NULL);
+}
+
+void __full_mult_demo(void)
+{
+	const char a[] = "77f882926258fb5a293015e16fc961598939f9f328d4e316d02519d3f8d88412d787",
+		b[] = "b4399ccbab87f4f053d75a9dcc1c1fa8d2f4edd7bdf5eebc78fb4ea16a6fb02eb96d",
+		c[] = "199da60a1e7f5c5523c51230e885506efe15b08b191b981590b47c0567b3bb516da3";
+	
+	poly A, B, C, aux;
+	
+	init_polys(N, &A, &B, &C, &aux, NULL);
+	
+	convert_string_to_amns(A, a);
+	convert_string_to_amns(B, b);
+	amns_montg_mult(C, A, B);
+	
+	convert_amns_to_poly(&aux, C);
+	
+	mp_print(aux);
+	printf("%s\n", c);
+	
+	free_polys(A, B, C, aux, NULL);
 }
 
