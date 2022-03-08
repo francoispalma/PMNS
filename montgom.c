@@ -306,7 +306,10 @@ static inline void mp_copy(restrict poly* A, restrict const poly B)
 		init_poly(B->deg, A);
 	}
 	
+	// In case of deg(A) > deg(B)
 	(*A)->deg = B->deg;
+	
+	// Copy values in each limb.
 	for(register uint16_t i = 0; i < B->deg; i++)
 		(*A)->t[i] = B->t[i];
 }
@@ -336,7 +339,7 @@ static inline int8_t mp_ucomp(restrict poly A, restrict poly B)
 				if(((uint64_t)A->t[i]) < ((uint64_t)B->t[i]))
 					return -1;
 			}
-			return 0;			
+			return 0;
 		}
 	}
 }
@@ -396,6 +399,25 @@ static inline void mp_rightshift(restrict poly A)
 	A->t[A->deg - 1] = (((uint64_t)A->t[A->deg - 1]) >> 1);
 	
 	mp_reduce(A);
+}
+
+static inline void mp_alignleft(restrict poly* A, uint16_t deg)
+{
+	poly aux;
+	
+	mp_reduce(*A);
+	init_poly((*A)->deg, &aux);
+	
+	if((*A)->deg < deg)
+	{
+		mp_copy(&aux, *A);
+		free_poly(*A);
+		init_poly(deg, A);
+		for(register uint16_t i = 0; i < aux->deg; i++)
+			(*A)->t[i + deg - aux->deg] = aux->t[i];
+	}
+	
+	free_poly(aux);
 }
 
 static inline void mp_add(restrict poly* res, restrict const poly op1, restrict const poly op2)
@@ -535,6 +557,7 @@ static inline void mp_mod(restrict poly* res, restrict const poly op1, restrict 
 	}
 	
 	mp_copy(&X, op2);
+	mp_alignleft(&X, op1->deg);
 	while(mp_ucomp(op1, X) == 1)
 		mp_leftshift(&X);
 	mp_print(X);
@@ -548,9 +571,7 @@ static inline void mp_mod(restrict poly* res, restrict const poly op1, restrict 
 	{
 		mp_copy(&R, *res);
 		while(mp_ucomp(X, *res) == 1)
-		{
 			mp_rightshift(X);
-		}
 		mp_sub(res, R, X);
 	}
 	

@@ -9,7 +9,6 @@ def norme_infinie(L):
 
 def naive_convert_to_mns_and_red(a, p, n, gamma, rho, lam, phi, M, M1, phisquared):
 	A = naive_convert_to_mns(a, p, n, gamma, rho, lam)
-	#U = [A[i] * (phi**2) for i in range(n)]
 	U = amns_montg_mult(A, phisquared, p, n, gamma, rho, lam, phi, M, M1)
 	return U
 
@@ -22,10 +21,6 @@ def montgomery_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, tau):
 	return A
 
 def rho_div_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, Pi):
-#	t = [0] * n
-#	for i in range(n):
-#		t[n - 1 - i] = a // rho ** (n - 1 - i)
-#		a -= t[n - 1 - i] * rho ** (n - 1 - i)
 	t = convert_to_rho_base(a)
 	U = [0] * n
 	for i in range(n):
