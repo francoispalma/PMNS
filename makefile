@@ -2,7 +2,7 @@ FLAGS= -Wall -Wextra -g -O3
 
 all: main.exe
 
-main.exe: main.c montgom.o
+main.exe: main.c montgom.o mppmns.o
 	gcc -o $@ $^ $(FLAGS)
 
 montgom.o: montgom.c montgom.h
@@ -14,8 +14,8 @@ hardcode.exe: hardcode.o
 hardcode.o: hardcode/hardcode.c
 	gcc -c $< $(FLAGS)
 
-mult.exe: mult.c montgom.o
-	gcc -o $@ $^ $(FLAGS)
+mppmns.o: mppmns.c mppmns.h
+	gcc -c $< $(FLAGS)
 
 clean:
 	rm -rf *.o

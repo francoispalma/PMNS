@@ -90,18 +90,9 @@ inline void print(const restrict poly P)
 
 static inline void mp_print(const restrict poly P)
 {
-/*	if(P->t[P->deg - 1] & 0x8000000000000000)*/
-/*	{*/
-/*		printf("-%lx", -P->t[P->deg - 1]);*/
-/*		for(register uint16_t i = 1; i < P->deg; i++)*/
-/*			printf("%016lx", -P->t[P->deg - 1 - i]);*/
-/*	}*/
-/*	else*/
-/*	{*/
-		printf("%lx", P->t[P->deg - 1]);
-		for(register uint16_t i = 1; i < P->deg; i++)
-			printf("%016lx", P->t[P->deg - 1 - i]);
-	//}
+	printf("%lx", P->t[P->deg - 1]);
+	for(register uint16_t i = 1; i < P->deg; i++)
+		printf("%016lx", P->t[P->deg - 1 - i]);
 	printf("\n"); 
 }
 
@@ -435,7 +426,7 @@ static inline void mp_add(restrict poly* res, restrict const poly op1, restrict 
 {
 	// Puts the result of op1 + op2 in res.
 
-	const uint16_t MAXDEG = op1->deg < op2->deg ? op2->deg : op1->deg + 1 -
+	const uint16_t MAXDEG = (op1->deg < op2->deg ? op2->deg : op1->deg) + 1 -
 		((op1->t[op1->deg - 1] < 0) || (op2->t[op2->deg - 1] < 0));
 	register uint16_t i, j;
 	uint64_t stok;
