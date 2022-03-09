@@ -142,10 +142,10 @@ static inline void m_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			R[i] += (__int128) A->t[i + j] * MLambda[N - j];
+			R[i] += (__int128) ((uint64_t)A->t[i + j]) * MLambda[N - j];
 		
 		for(j = 0; j < i + 1; j++)
-			R[i] += (__int128) A->t[j] * M[i - j];
+			R[i] += (__int128) ((uint64_t)A->t[j]) * M[i - j];
 	}
 }
 
@@ -159,10 +159,10 @@ static inline void m1_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			R[i] += (__int128) A->t[i + j] * M1Lambda[N - j];
+			R[i] += (__int128) ((uint64_t)A->t[i + j]) * M1Lambda[N - j];
 		
 		for(j = 0; j < i + 1; j++)
-			R[i] += (__int128) A->t[j] * M1[i - j];
+			R[i] += (__int128) ((uint64_t)A->t[j]) * M1[i - j];
 	}
 }
 
@@ -446,6 +446,7 @@ static inline void mp_add(restrict poly* res, restrict const poly op1, restrict 
 		free_poly(*res);
 		init_poly(MAXDEG, res);
 	}
+	(*res)->deg = MAXDEG;
 	
 	for(i = 0; i < op1->deg; i++)
 		(*res)->t[i] = op1->t[i];
@@ -481,6 +482,7 @@ static inline void mp_sub(restrict poly* res, restrict const poly op1, restrict 
 		free_poly(*res);
 		init_poly(MAXDEG, res);
 	}
+	(*res)->deg = MAXDEG;
 	
 	for(i = 0; i < op1->deg; i++)
 		(*res)->t[i] = op1->t[i];
@@ -515,6 +517,7 @@ static inline void mp_mult(restrict poly* res, restrict const poly op1, restrict
 		free_poly(*res);
 		init_poly(op1->deg + op2->deg, res);
 	}
+	(*res)->deg = op1->deg + op2->deg;
 	
 	for(i = 0; i < op1->deg + op2->deg; i++)
 		R[i] = 0;
@@ -601,6 +604,7 @@ void convert_amns_to_poly(restrict poly* res, const restrict poly P)
 		free_poly(*res);
 		init_poly(N, res);
 	}
+	(*res)->deg = N;
 	for(i = 1; i < N; i++)
 	{
 		(*res)->t[i] = 0;
@@ -610,13 +614,12 @@ void convert_amns_to_poly(restrict poly* res, const restrict poly P)
 	
 	mns_montg_int_red(a, Quite);
 	
-	mp_print(a);
 	
 	(*res)->t[0] = a->t[0];
 	for(i = 1; i < N; i++)
 	{
 		aux->t[0] = a->t[i];
-		mp_mult(&ag, aux, &Gi[i]);
+		mp_mult(&ag, aux, &Gi[i - 1]);
 		
 		mp_copy(&tmp, *res);
 		mp_add(res, tmp, ag);
@@ -784,8 +787,6 @@ void __full_mult_demo(void)
 	convert_string_to_amns(A, a);
 	convert_string_to_amns(B, b);
 	amns_montg_mult(C, A, B);
-	
-	mp_print(C);
 	
 	convert_amns_to_poly(&aux, C);
 	

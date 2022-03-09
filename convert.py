@@ -70,6 +70,7 @@ if __name__ == "__main__":
 	print(sum3)
 #	print(sum4)
 	
+	# Convert from amns to binary
 	a = 0x77f882926258fb5a293015e16fc961598939f9f328d4e316d02519d3f8d88412d787
 	b = 0xb4399ccbab87f4f053d75a9dcc1c1fa8d2f4edd7bdf5eebc78fb4ea16a6fb02eb96d
 	c = a * b
@@ -83,5 +84,13 @@ if __name__ == "__main__":
 	G2 = gamma**2 % p
 	G3 = gamma**3 % p
 	G4 = gamma**4 % p
+	Gi = [1, G1, G2, G3, G4]
+	cc = C[0]
+	for i in range(1, n - 1):
+		print(hex(cc))
+		cc += C[i] * Gi[i]
+	print(hex(cc))
+	cc = cc % p
+	print(hex(cc))
 	
 		
