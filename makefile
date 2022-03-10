@@ -5,7 +5,7 @@ all: main.exe
 main.exe: main.c montgom.o mppmns.o
 	gcc -o $@ $^ $(FLAGS)
 
-montgom.o: montgom.c montgom.h
+montgom.o: montgom.c montgom.h params.h
 	gcc -c $< $(FLAGS)
 
 hardcode.exe: hardcode.o	

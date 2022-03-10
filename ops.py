@@ -496,7 +496,7 @@ if __name__ == "__main__":
 			break
 
 	# Babai rounding method for coefficient reduction
-	B = [[pow(-gamma, i, p) if j == 0 else 1 if i == j else 0 for j in range(n)] for i in range(n)]
+	B = [[-pow(gamma, i, p) if j == 0 else 1 if i == j else 0 for j in range(n)] for i in range(n)]
 	B[0][0] = p
 	Betoile = [[int(sum([B[i][j] * B[k][j] for j in range(n)]) % p) for k in range(n)] for i in range(n)]
 	Betoile[0][0] = p
