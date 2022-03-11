@@ -2,8 +2,8 @@ from sage.all import matrix, ZZ, PolynomialRing, xgcd
 from sage.modules.free_module_integer import IntegerLattice
 from math import ceil
 
-from ops import list_to_poly
-from convert import montgomery_convert_to_mns
+from ops import list_to_poly, montgomery_like_coefficient_reduction, horner_modulo, amns_montg_mult
+from convert import montgomery_convert_to_mns, rho_div_convert_to_mns
 from proof import p, n, gamma, lam, phi
 
 def convert_to_int_tabs(num):
@@ -58,12 +58,14 @@ def do_precalcs(p, n, gamma, lam, phi):
 			if ((M * M1) % E) % phi == 1 and M(gamma) % p == 0:
 				break
 
-	# We convert out of the polynomialRing
+	# We convert out of the polynomial Ring
 	M = list(M)
 	M1 = list(M1)
 
-	# We switch M1 from M^-1 to -M^-1 and make sure the coefficients < phi
+	# We switch M1 from M^-1 to -M^-1
 	M1 = [(int(M1[i]) * -1) % phi for i in range(n)]
+
+	# We then reduce M1's coefficients
 	M1 = [int(M1[i]) - phi if M1[i] >= (phi >> 1) else M1[i] for i in range(n)]
 
 	# We print
@@ -74,7 +76,7 @@ def do_precalcs(p, n, gamma, lam, phi):
 	M1L = [M1L[i] - phi if M1L[i] >= (phi >> 1) else M1L[i] for i in range(n)]
 	print("\tM1Lambda[] = {" + str(M1L)[1:-1] + "},")
 
-	# We then get the Pi
+	# We then get the Pi and print it
 	phinmoinsun = pow(phi, n - 1, p)
 	Pi = [montgomery_convert_to_mns((rho**i) * (phi**2), p, n, gamma, rho, lam, phi, M, M1, phinmoinsun) for i in range(n)]
 	print("\t__Pi__[N][N] = {")
@@ -92,7 +94,9 @@ def do_precalcs(p, n, gamma, lam, phi):
 		if i != 1:
 			print("\t", end="")
 		print("G" + str(i) + " = { .deg = " + str(len(tmp)) + ",")
-		print("\t\t.t = (int64_t[]) {" + str(tmp)[1:-1] + "} }", end="")
+		print("\t\t.t = (int64_t[]) {", end="")
+		tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
+		print(tmp + "} }", end="")
 		if i != n - 1:
 			print(",")
 		else:
@@ -100,7 +104,9 @@ def do_precalcs(p, n, gamma, lam, phi):
 		g = g * gamma % p
 	
 	print("_poly __P__ = { .deg = " + str(n) + ",")
-	print("\t\t.t = (int64_t[]) {" + str(convert_to_int_tabs(p))[1:-1] + "} },")
+	tmp = convert_to_int_tabs(p)
+	tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
+	print("\t\t.t = (int64_t[]) {" + tmp + "} },")
 	print("\tGi[] = {" + string[:-3] + "};\n")
 
 	print("#endif")
@@ -109,6 +115,6 @@ if __name__ == "__main__":
 #	p = 5524969863260095610495186344939419738027465949850580467176395575832917506871951737255621939342449907372936940924410124929668828406973361712220148691590192943
 #	n = 12
 #	gamma = 4636652768285458569062878611317602841499088282530798143147640460012527948722544350531006403703239417663454147165839392083945105225074778235517366830265723868
-#	lam = -3
+#	lam = 3
 #	phi = 2**64
 	do_precalcs(p, n, gamma, lam, phi)

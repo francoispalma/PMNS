@@ -3,6 +3,7 @@
 
 #include "montgom.h"
 #include "params.h"
+//#include "tmp.txt"
 
 inline void init_poly(const uint16_t deg, restrict poly* P)
 {
@@ -234,7 +235,7 @@ void convert_string_to_amns(restrict poly res, const char* string)
 /*	for(i = 1; i < N; i++)*/
 /*		printf("%016lx", stok->t[N - 1 - i]);*/
 /*	printf("\n");*/
-	if(stok->deg != N)
+	if(stok->deg > N)
 	{
 		printf("ERROR: polynomial degree too high in given number for conversion\n");
 		goto end;
