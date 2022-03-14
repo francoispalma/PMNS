@@ -417,6 +417,39 @@ void convert_amns_to_poly(restrict poly* res, const restrict poly P)
 	free_polys(a, aux, ag, tmp, NULL);
 }
 
+void __sub_tests(void)
+{
+	poly A, B, AmB, BmA, AmBmBmA, BmAmAmB, ApB, AmBpBmA, BmApAmB;
+	init_polys(5, &A, &B, &AmB, &BmA, &AmBmBmA, &BmAmAmB, NULL);
+	init_polys(6, &ApB, &AmBpBmA, &BmApAmB, NULL);
+
+	const char a[] = "163dbed3b4fbeee3bb542bc62983a51f4ecb077c3af9a6d451e1c4b6cd0a99563d55",
+		b[] = "c64be1b07fc889170737a3bbd0501940eb5cdffbb228d09f6c4527812aa64b8cde15";
+	convert_string_to_poly(&A, a);
+	mp_print(A);
+	convert_string_to_poly(&B, b);
+	mp_print(B);
+	mp_sub(&AmB, A, B);
+	mp_print(AmB);
+	mp_sub(&BmA, B, A);
+	mp_print(BmA);
+	mp_sub(&AmBmBmA, AmB, BmA);
+	mp_print(AmBmBmA);
+	mp_sub(&BmAmAmB, BmA, AmB);
+	mp_print(BmAmAmB);
+	mp_add(&ApB, A, B);
+	mp_print(ApB);
+	mp_add(&BmApAmB, BmA, AmB);
+	mp_print(BmApAmB);
+	mp_add(&AmBpBmA, AmB, BmA);
+	mp_print(AmBpBmA);
+	printf("%d %d %d %d\n", mp_comp(A, B), mp_comp(A, AmB), mp_comp(ApB, B),
+		mp_comp(AmBpBmA, BmApAmB));
+	printf("-1 1 1 0\n");
+
+	free_polys(A, B, AmB, BmA, AmBmBmA, BmAmAmB, ApB, AmBpBmA, BmApAmB, NULL);
+}
+
 void __mult_tests(void)
 {
 	poly A, B, C, C_test;
