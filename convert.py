@@ -21,7 +21,7 @@ def montgomery_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, tau):
 	return A
 
 def rho_div_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, Pi):
-	t = convert_to_rho_base(a)
+	t = convert_to_rho_base(a, n, rho)
 	U = [0] * n
 	for i in range(n):
 		for j in range(n):
@@ -29,13 +29,14 @@ def rho_div_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, Pi):
 	A = montgomery_like_coefficient_reduction(U, p, n, gamma, rho, lam, phi, M, M1)
 	return A
 
-def convert_to_rho_base(a):
-     t = [0] * n
-     a1 = a
-     for i in range(n):
-             t[i] = a1 & (rho - 1)
-             a1 >>= 61
-     return t
+def convert_to_rho_base(a, n, rho):
+	t = [0] * n
+	a1 = a
+	RHO = rho.bit_length() - 1
+	for i in range(n):
+		t[i] = a1 & (rho - 1)
+		a1 >>= RHO
+	return t
 
 if __name__ == "__main__":
 	phisquared = [0, 0, 0, 512, 0]

@@ -4,7 +4,7 @@ from math import ceil
 
 from ops import list_to_poly, montgomery_like_coefficient_reduction, horner_modulo, amns_montg_mult
 from convert import montgomery_convert_to_mns, rho_div_convert_to_mns
-from proof import p, n, gamma, lam, phi
+#from proof import p, n, gamma, lam, phi
 
 def convert_to_int_tabs(num):
 	L = []
@@ -69,10 +69,10 @@ def do_precalcs(p, n, gamma, lam, phi):
 	M1 = [int(M1[i]) - phi if M1[i] >= (phi >> 1) else M1[i] for i in range(n)]
 
 	# We print
-	print("const int64_t M[] = {" + str(M)[1:-1] + "},")
+	print("static const int64_t M[] = {" + str(M)[1:-1] + "},")
 	print("\tM1[] = {" + str(M1)[1:-1] + "},")
 	print("\tMLambda[] = {" + str([elem * lam for elem in M])[1:-1] + "},")
-	M1L = [elem * lam for elem in M1]
+	M1L = [(elem * lam) % phi for elem in M1]
 	M1L = [M1L[i] - phi if M1L[i] >= (phi >> 1) else M1L[i] for i in range(n)]
 	print("\tM1Lambda[] = {" + str(M1L)[1:-1] + "},")
 
@@ -86,7 +86,7 @@ def do_precalcs(p, n, gamma, lam, phi):
 
 	# Powers of gamma next
 	string = "G"
-	print("const _poly ", end="")
+	print("static const _poly ", end="")
 	g = gamma
 	for i in range(1, n):
 		string = string + str(i) + ", G"
@@ -103,18 +103,30 @@ def do_precalcs(p, n, gamma, lam, phi):
 			print(";")
 		g = g * gamma % p
 	
-	print("_poly __P__ = { .deg = " + str(n) + ",")
+	print("static _poly __P__ = { .deg = " + str(n) + ",")
 	tmp = convert_to_int_tabs(p)
 	tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
 	print("\t\t.t = (int64_t[]) {" + tmp + "} },")
 	print("\tGi[] = {" + string[:-3] + "};\n")
 
 	print("#endif")
+	
+	print("/*")
+	a = 0x77f882926258fb5a293015e16fc961598939f9f328d4e316d02519d3f8d88412d787
+	b = 0xb4399ccbab87f4f053d75a9dcc1c1fa8d2f4edd7bdf5eebc78fb4ea16a6fb02eb96d
+	A = rho_div_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, Pi)
+	print(A)
+	B = rho_div_convert_to_mns(b, p, n, gamma, rho, lam, phi, M, M1, Pi)
+	print(B)
+	B = montgomery_convert_to_mns(b, p, n, gamma, rho, lam, phi, M, M1, phinmoinsun)
+	print(B)
+	print(hex(horner_modulo(amns_montg_mult(A, B, p, n, gamma, rho, lam, phi, M, M1), gamma, p)))
+	print("*/")
 
 if __name__ == "__main__":
-#	p = 5524969863260095610495186344939419738027465949850580467176395575832917506871951737255621939342449907372936940924410124929668828406973361712220148691590192943
-#	n = 12
-#	gamma = 4636652768285458569062878611317602841499088282530798143147640460012527948722544350531006403703239417663454147165839392083945105225074778235517366830265723868
-#	lam = 3
-#	phi = 2**64
+	p = 5524969863260095610495186344939419738027465949850580467176395575832917506871951737255621939342449907372936940924410124929668828406973361712220148691590192943
+	n = 12
+	gamma = 4636652768285458569062878611317602841499088282530798143147640460012527948722544350531006403703239417663454147165839392083945105225074778235517366830265723868
+	lam = -3
+	phi = 2**64
 	do_precalcs(p, n, gamma, lam, phi)

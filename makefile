@@ -2,7 +2,7 @@ FLAGS= -Wall -Wextra -g -O3
 
 all: main.exe
 
-main.exe: main.c montgom.o mppmns.o
+main.exe: main.c montgom.o mppmns.o utilitymp.o
 	gcc -o $@ $^ $(FLAGS)
 
 montgom.o: montgom.c montgom.h params.h
@@ -12,6 +12,9 @@ hardcode.exe: hardcode.o
 	gcc -o $@ $^ $(FLAGS)
 
 hardcode.o: hardcode/hardcode.c
+	gcc -c $< $(FLAGS)
+
+utilitymp.o: utilitymp.c utilitymp.h
 	gcc -c $< $(FLAGS)
 
 mppmns.o: mppmns.c mppmns.h
@@ -29,6 +32,13 @@ check: main.exe
 	valgrind -s --leak-check=full --track-origins=yes ./main.exe
 
 demo: main.exe
+	./main.exe
+
+tmp.txt: precalcs.py
+	python3 precalcs.py > tmp.txt
+
+tmp: tmp.txt
+	make -B
 	./main.exe
 
 proof: main.exe
