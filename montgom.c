@@ -250,8 +250,6 @@ void __full_mult_demo(void)
 	
 	convert_string_to_amns(A, a);
 	convert_string_to_amns(B, b);
-	print(A);
-	print(B);
 	amns_montg_mult(C, A, B);
 	
 	convert_amns_to_poly(&aux, C);

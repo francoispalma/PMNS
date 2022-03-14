@@ -110,18 +110,6 @@ def do_precalcs(p, n, gamma, lam, phi):
 	print("\tGi[] = {" + string[:-3] + "};\n")
 
 	print("#endif")
-	
-	print("/*")
-	a = 0x77f882926258fb5a293015e16fc961598939f9f328d4e316d02519d3f8d88412d787
-	b = 0xb4399ccbab87f4f053d75a9dcc1c1fa8d2f4edd7bdf5eebc78fb4ea16a6fb02eb96d
-	A = rho_div_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, Pi)
-	print(A)
-	B = rho_div_convert_to_mns(b, p, n, gamma, rho, lam, phi, M, M1, Pi)
-	print(B)
-	B = montgomery_convert_to_mns(b, p, n, gamma, rho, lam, phi, M, M1, phinmoinsun)
-	print(B)
-	print(hex(horner_modulo(amns_montg_mult(A, B, p, n, gamma, rho, lam, phi, M, M1), gamma, p)))
-	print("*/")
 
 if __name__ == "__main__":
 	p = 5524969863260095610495186344939419738027465949850580467176395575832917506871951737255621939342449907372936940924410124929668828406973361712220148691590192943

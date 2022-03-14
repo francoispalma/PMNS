@@ -75,13 +75,20 @@ void convert_string_to_amns(restrict poly res, const char* string)
 		goto end;
 	}
 	
+	for(i = 1; i < N; i++)
+		res->t[i] = 0;
 	
 	res->t[0] = ((uint64_t) stok->t[0]) & (rho - 1);
 	counter = 0;
 	for(i = 1; i < N; i++)
 	{
-		counter = (counter + 64 - RHO) % RHO;
-		res->t[i] = ((((uint64_t) stok->t[i]) << counter) | (((uint64_t) stok->t[i - 1]) >> (64 - counter))) & (rho - 1);
+		counter = (counter + 64 - RHO);
+		res->t[i] += ((((uint64_t) stok->t[i]) << counter) | (((uint64_t) stok->t[i - 1]) >> (64 - counter))) & (rho - 1);
+		if(counter > RHO && i < N + 1)
+		{
+			counter = counter - RHO;
+			res->t[i + 1] = ((((uint64_t) stok->t[i]) << counter) | (((uint64_t) stok->t[i - 1]) >> (64 - counter))) & (rho - 1);
+		}
 	}
 	
 	for(i = 0; i < N; i++)
