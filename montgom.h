@@ -11,8 +11,7 @@ typedef struct
 	int64_t* t;
 } _poly, *poly;
 
-//#include "params.h"
-#include "tmp.txt"
+#include "params.h"
 
 extern void init_poly(const uint16_t deg, restrict poly* P);
 void init_polys(const uint16_t deg, restrict poly* P, ...);

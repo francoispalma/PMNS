@@ -8,7 +8,10 @@ main.exe: main.c montgom.o mppmns.o utilitymp.o
 montgom.o: montgom.c montgom.h params.h
 	gcc -c $< $(FLAGS)
 
-hardcode.exe: hardcode.o	
+params.h: precalcs.py
+	python3 $< > $@
+
+hardcode.exe: hardcode.o
 	gcc -o $@ $^ $(FLAGS)
 
 hardcode.o: hardcode/hardcode.c
@@ -32,13 +35,6 @@ check: main.exe
 	valgrind -s --leak-check=full --track-origins=yes ./main.exe
 
 demo: main.exe
-	./main.exe
-
-tmp.txt: precalcs.py
-	python3 precalcs.py > tmp.txt
-
-tmp: tmp.txt
-	make -B
 	./main.exe
 
 proof: main.exe
