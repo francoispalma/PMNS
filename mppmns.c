@@ -65,3 +65,8 @@ inline void print(const restrict poly128 P)
 	printf("%ld%lu]\n", P->hi[P->deg - 1], P->lo[P->deg - 1]);
 }
 
+
+int main(void)
+{
+	return 0;
+}

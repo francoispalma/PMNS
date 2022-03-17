@@ -59,3 +59,4 @@ tmp = awc(S0h + S1) | 0?1 + S2
 res = awc(tmp0h + tmp1l) | 0?1 + tmp1h
 note: carries might be impossible, try to speed it all up?
 tests.
+note2: apparently carries do happen but we might be able to be smart about it.

@@ -5,12 +5,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-typedef struct
-{
-	uint16_t deg;
-	int64_t* t;
-} _poly, *poly;
-
+#include "structs.h"
 #include "params.h"
 
 extern void init_poly(const uint16_t deg, restrict poly* P);

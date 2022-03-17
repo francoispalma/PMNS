@@ -5,12 +5,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-typedef struct
-{
-	uint16_t deg;
-	int64_t* hi;
-	uint64_t* lo;
-} _poly128, *poly128;
+#include "structs.h"
+#include "params128.h"
 
 #endif
 
