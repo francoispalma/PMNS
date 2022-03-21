@@ -2,7 +2,6 @@
 #define MPPMNS_H
 
 #include <stdint.h>
-#include <stdarg.h>
 #include <stdlib.h>
 
 #include "structs.h"
