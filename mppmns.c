@@ -1,7 +1,10 @@
 #include <stdio.h>
 
 #include "mppmns.h"
-#include "utilitymp_core.h"
+#include "utilitymp.h"
+
+#define LOW(X) ((uint64_t)X)
+#define HIGH(X) ((uint64_t)(X>>64))
 
 static inline void mns128_montg_int_red(poly128 res, const __int128* R)
 {
@@ -13,6 +16,7 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 	uint8_t counter;
 	register uint16_t i, j;
 	const unsigned __int128 rho = ((__int128)1) << RHO;
+	unsigned __int128 limb;
 	__int128 R[N] = {0}, tmp[N] = {0};
 	poly stok;
 	init_poly(2 * N, &stok);
@@ -21,38 +25,18 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 	printf("%s\n", string);
 	mp_print(stok);
 	
-	
 	if(stok->deg > 2 * N)
 	{
 		printf("ERROR: polynomial degree too high in given number for conversion\n");
 		goto end;
 	}
 	
-	/*tmp->t[0] = ((uint64_t) stok->t[0]) & (rho - 1);
-	counter = 0;
-	for(i = 1; i < N; i++)
-	{
-		counter = (counter + 64 - RHO);
-		tmp->t[i] += ((((uint64_t) stok->t[i]) << counter) | (((uint64_t) stok->t[i - 1]) >> (64 - counter))) & (rho - 1);
-		if(counter > RHO && i < N + 1)
-		{
-			counter = counter - RHO;
-			tmp->t[i + 1] = ((((uint64_t) stok->t[i]) << counter) | (((uint64_t) stok->t[i - 1]) >> (64 - counter))) & (rho - 1);
-		}
-	}*/
-	
-	unsigned __int128 limb = 0;
 	counter = 0;
 	for(i = 0; i < N - 1; i++)
 	{
 		limb = (((unsigned __int128) stok->t[2 * i + 1]) << 64)
 		 | ((uint64_t) stok->t[2 * i]);
-		//__print128((((unsigned __int128) stok->t[2 * i + 1]) << 64));
-		//__print128(limb);
-		/*tmp[i] += (__int128) (((unsigned __int128)stok[2 * i]) >> counter) |
-			(((unsigned __int128)stok[2 * i + 1]) << (64 - counter));*/
 		tmp[i] |= (limb << counter) & (rho - 1);
-/*	for(j = 0; j < N; j++)*/
 		__print128(tmp[i]);
 		tmp[i + 1] |= (limb >> (RHO - counter));
 		counter = (counter + 128 - RHO) % RHO;
@@ -61,7 +45,6 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 			(((unsigned __int128) stok->t[2 * i + 1]) << 64);
 	tmp[i] |= (limb << counter) & (rho - 1);
 	__print128(tmp[i]);
-	
 	
 	
 	for(i = 0; i < N; i++)
