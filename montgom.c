@@ -44,7 +44,7 @@ static inline void m_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
 
 static inline void m1_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
 {
-	// Same as above but with some pre calculations done in the case of M being
+	// Same as above but with some pre calculations done in the case of M1 being
 	// the second operand.
 	
 	register uint16_t i, j;
