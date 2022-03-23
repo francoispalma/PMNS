@@ -16,8 +16,8 @@ factor(P)
 lone factor => nth root of lambda.
 */
 
-void multadd128( __int128* Rhi, __int128* Rlo, const int64_t Ahi,
-	const int64_t Alo, const int64_t Bhi, const int64_t Blo)
+void multadd128( __int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
+	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
 	__int128 aux1, aux2, aux3;
 	
@@ -28,24 +28,16 @@ void multadd128( __int128* Rhi, __int128* Rlo, const int64_t Ahi,
 	
 	// karatsuba
 	aux1 = (__int128) Ahi * Bhi;
-	aux2 = (__int128) LOW(Alo) * LOW(Blo);
-	aux3 = (__int128) ((Ahi + Alo) + (((__int128)((Ahi + Alo) < Ahi)) << 64)) *
-		((Bhi + Blo) + (((__int128)((Bhi + Blo) < Bhi)) << 64));
-	
-	//TODO: make it work
-	//aux3 = (__int128) (LOW(Ahi) + LOW(Alo)) * (LOW(Bhi) + LOW(Blo));
-	__print128(aux3);
-	__print128(aux2);
-	__print128(aux1);
-	aux3 -= aux1 + aux2;
-	__print128(aux3);
+	aux2 = (__int128) Alo * Blo;
+	aux3 = (__int128) ((__int128) Ahi + Alo) * ((__int128) Bhi + Blo)
+		- aux1 - aux2;
 	
 	*Rlo += aux2 + (((__int128) LOW(aux3)) << 64);
 	*Rhi += (*Rlo < aux2) + aux1 + ((__int128) HIGH(aux3));
 	
 	/*
 Ahi = -0x5c096e6b558ba549
-Alo = -0xf9dadbd740482391
+Alo = 0xf9dadbd740482391
 Bhi = 0x5918460d4a05af9c
 Blo = 0xc4703ac88b18e4c3
 aux1 = Ahi * Bhi
@@ -232,13 +224,14 @@ end:
 
 int main(void)
 {
-	int64_t Ahi = -0x5c096e6b558ba549, Alo = -0xf9dadbd740482391,
-		Bhi = 0x5918460d4a05af9c, Blo = 0xc4703ac88b18e4c3;
+	int64_t Ahi = 0x5c096e6b558ba549, Bhi = 0x5918460d4a05af9c;
+	uint64_t  Alo = 0xf9dadbd740482391, Blo = 0xc4703ac88b18e4c3;
 	
 	const char RES[] = 
 	"0x2008017506164ba2bbc36636e65b8f4caca8fc6b0e76b6a3dd70ff9147383b73";
 	
-	__int128 R1 = 0, R2 = 0;
+	__int128 R1 = 0;
+	unsigned __int128 R2 = 0;
 	
 	multadd128(&R1, &R2, Ahi, Alo, Bhi, Blo);
 	
