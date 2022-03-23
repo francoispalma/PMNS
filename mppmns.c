@@ -28,11 +28,32 @@ void multadd128( __int128* Rhi, __int128* Rlo, const int64_t Ahi,
 	
 	// karatsuba
 	aux1 = (__int128) Ahi * Bhi;
-	aux2 = (__int128) Alo * Blo;
-	aux3 = (__int128) ((__int128) Ahi + Alo) * ((__int128) Bhi + Blo);
-	aux3 = aux3 - aux1 - aux2;
+	aux2 = (__int128) LOW(Alo) * LOW(Blo);
+	aux3 = (__int128) ((Ahi + Alo) + (((__int128)((Ahi + Alo) < Ahi)) << 64)) *
+		((Bhi + Blo) + (((__int128)((Bhi + Blo) < Bhi)) << 64));
 	
-	//Rlo = 
+	//TODO: make it work
+	//aux3 = (__int128) (LOW(Ahi) + LOW(Alo)) * (LOW(Bhi) + LOW(Blo));
+	__print128(aux3);
+	__print128(aux2);
+	__print128(aux1);
+	aux3 -= aux1 + aux2;
+	__print128(aux3);
+	
+	*Rlo += aux2 + (((__int128) LOW(aux3)) << 64);
+	*Rhi += (*Rlo < aux2) + aux1 + ((__int128) HIGH(aux3));
+	
+	/*
+Ahi = -0x5c096e6b558ba549
+Alo = -0xf9dadbd740482391
+Bhi = 0x5918460d4a05af9c
+Blo = 0xc4703ac88b18e4c3
+aux1 = Ahi * Bhi
+aux2 = Alo * Blo
+aux3 = (Ahi + Alo) * (Bhi + Blo)
+aux3 = aux3 - aux1 - aux2
+hex((aux1<<128) + (aux3<<64) + aux2)
+	*/
 	
 	/**Rlo += (__int128) Alo * Blo;
 	aux = (__int128) Alo * Bhi;
@@ -166,8 +187,6 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 	init_poly(2 * N, &stok);
 	
 	convert_string_to_poly(&stok, string);
-	printf("%s\n", string);
-	mp_print(stok);
 	
 	if(stok->deg > 2 * N)
 	{
@@ -181,14 +200,12 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 		limb = (((unsigned __int128) stok->t[2 * i + 1]) << 64)
 		 | ((uint64_t) stok->t[2 * i]);
 		tmp[i] |= (limb << counter) & (rho - 1);
-		__print128(tmp[i]);
 		tmp[i + 1] |= (limb >> (RHO - counter));
 		counter = (counter + 128 - RHO) % RHO;
 	}
 	limb = (unsigned __int128) ((unsigned __int128) stok->t[2 * i]) |
 			(((unsigned __int128) stok->t[2 * i + 1]) << 64);
 	tmp[i] |= (limb << counter) & (rho - 1);
-	__print128(tmp[i]);
 	
 	
 	for(i = 0; i < N; i++)
@@ -215,13 +232,7 @@ end:
 
 int main(void)
 {
-	const char a[] = "74ff560400d0105e6381e4f7cf22ba4a3d949bbe3b03e7ec1c8aebfb02a4dedf230eef099cd1ae78adf8f142cd70ed93122a5c48c5edcba658615fa2316994dce0c84e9e54c5ae9482acdc0ed6fae84eb7e83d94016d12452ad41369e33a53a676d539439488bdc8b3462c5579a432e8b579e8af9d5b2b0b8f37856fe2de7f30";
-	
-	convert_string_to_amns128(NULL, a);
-	
-	printf("\n\n");
-	
-	int64_t Ahi = 0x5c096e6b558ba549, Alo = 0xf9dadbd740482391,
+	int64_t Ahi = -0x5c096e6b558ba549, Alo = -0xf9dadbd740482391,
 		Bhi = 0x5918460d4a05af9c, Blo = 0xc4703ac88b18e4c3;
 	
 	const char RES[] = 
@@ -233,14 +244,13 @@ int main(void)
 	
 	printf("%s\n", RES);
 	
-	printf("0x%lx%016x%016x%016x\n", HIGH(R1), LOW(R1), HIGH(R2), LOW(R2));
-	//__print128(R1);
-	//__print128(R2);
+	printf("0x%lx%016lx%016lx%016lx\n", HIGH(R1), LOW(R1), HIGH(R2), LOW(R2));
+	
+	printf("\n\n");
+	
+	const char a[] = "74ff560400d0105e6381e4f7cf22ba4a3d949bbe3b03e7ec1c8aebfb02a4dedf230eef099cd1ae78adf8f142cd70ed93122a5c48c5edcba658615fa2316994dce0c84e9e54c5ae9482acdc0ed6fae84eb7e83d94016d12452ad41369e33a53a676d539439488bdc8b3462c5579a432e8b579e8af9d5b2b0b8f37856fe2de7f30";
+	
+	convert_string_to_amns128(NULL, a);
 	
 	return 0;
 }
-
-
-/*
-['0x39e8af9d5b2b0b8f37856fe2de7f30', '0x250e5222f722cd18b155e690cba2d5', '0x16d12452ad41369e33a53a676d53', '0x316ba520ab3703b5beba13adfa0f65', '0xba658615fa2316994dce0c84e9e54', '0x22b7e3c50b35c3b64c48a9712317b7', '0x8aebfb02a4dedf230eef099cd1ae7', '0x393df3c8ae928f6526ef8ec0f9fb07', '0x74ff560400d0105e6381']
-*/

@@ -5,8 +5,9 @@ void __print128(register const __int128 Val)
 {
 	int64_t hi = Val >> 64;
 	uint64_t lo = Val;
-	if (hi & 0x8000000000000000) printf("-");
-	printf("0x%lx%016lx\n", hi & 0x8000000000000000 ? -hi : hi, lo);
+	//if (hi & 0x8000000000000000) printf("-");
+/*	printf("0x%lx%016lx\n", hi & 0x8000000000000000 ? -hi : hi, hi & 0x8000000000000000 ? -lo : lo);*/
+	printf("0x%lx%016lx\n", hi, lo);
 }
 
 void mp_print(const restrict poly P)
