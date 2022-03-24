@@ -22,7 +22,7 @@ def montgomery_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, tau):
 
 def rho_div_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, Pi):
 	t = convert_to_rho_base(a, n, rho)
-	print(t)
+	#print(t)
 	U = [0] * n
 	for i in range(n):
 		for j in range(n):

@@ -62,8 +62,9 @@ static inline void m1_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
 inline void mns_montg_int_red(restrict poly res, __int128* R)
 {
 	uint64_t V[N], V2[N], T[N], T2[N];
+	register uint16_t i;
 	
-	for(int i = 0; i < N; i++)
+	for(i = 0; i < N; i++)
 	{
 		V[i] = R[i];
 		res->t[i] = R[i];
@@ -73,7 +74,7 @@ inline void mns_montg_int_red(restrict poly res, __int128* R)
 	
 	m1_mns_mod_mult_ext_red(R, res);
 	
-	for(int i = 0; i < N; i++)
+	for(i = 0; i < N; i++)
 	{
 		res->t[i] = R[i];
 		R[i] = 0;
@@ -81,12 +82,12 @@ inline void mns_montg_int_red(restrict poly res, __int128* R)
 	
 	m_mns_mod_mult_ext_red(R, res);
 	
-	for(int i = 0; i < N; i++)
+	for(i = 0; i < N; i++)
 	{
 		T[i] = R[i];
 		T2[i] = (R[i] >> 64);
 		
-		T[i] = V[i] + T[i];
+		T[i] += V[i];
 		res->t[i] = V2[i] + T2[i] + (T[i] < V[i]);
 	}
 }
