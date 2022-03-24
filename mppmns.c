@@ -16,15 +16,11 @@ factor(P)
 lone factor => nth root of lambda.
 */
 
-void multadd128( __int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
+void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
-	__int128 aux1, aux2, aux3;
-	
-	//(Ahi * Bhi) 2**64 + 2**32 ((Ahi + Alo)(Bhi + Blo) - Ahi * Bhi - Alo * Blo) + AloBlo
-	// ac + bd - (a - b)(c - d) = ac + bd - (ac - ad - bc + bd)
-	// = ac + bd - ac + ad + bc - bd = ad + bc
-	// (
+	__int128 aux1, aux3;
+	unsigned __int128 aux2;
 	
 	// karatsuba
 	aux1 = (__int128) Ahi * Bhi;
@@ -34,71 +30,27 @@ void multadd128( __int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	
 	*Rlo += aux2 + (((__int128) LOW(aux3)) << 64);
 	*Rhi += (*Rlo < aux2) + aux1 + ((__int128) HIGH(aux3));
-	
-	/*
-Ahi = -0x5c096e6b558ba549
-Alo = 0xf9dadbd740482391
-Bhi = 0x5918460d4a05af9c
-Blo = 0xc4703ac88b18e4c3
-aux1 = Ahi * Bhi
-aux2 = Alo * Blo
-aux3 = (Ahi + Alo) * (Bhi + Blo)
-aux3 = aux3 - aux1 - aux2
-hex((aux1<<128) + (aux3<<64) + aux2)
-	*/
-	
-	/**Rlo += (__int128) Alo * Blo;
-	aux = (__int128) Alo * Bhi;
-	tmp = *Rlo + ((__int128) LOW(aux) << 64);
-	// We propagate the carry;
-	*Rhi += (tmp < *Rlo) + HIGH(aux);
-	aux = (__int128) Ahi * Blo;
-	*Rlo = tmp + ((__int128) LOW(aux) << 64);
-	// Same logic here
-	*Rhi += (tmp > *Rlo) + HIGH(aux);
-	*Rhi += (__int128) Ahi * Bhi;*/
 }
 
-static inline void mns128_mod_mult_ext_red(__int128* Rhi, __int128* Rlo,
-	const restrict poly128 A, const restrict poly128 B)
+static inline void mns128_mod_mult_ext_red(__int128* Rhi,
+	unsigned __int128* Rlo, const restrict poly128 A, const restrict poly128 B)
 {
 	// Function that multiplies A by B and applies external reduction using
 	// E(X) = X^n - lambda as a polynomial used for reduction.
 	register uint16_t i, j;
-	__int128 aux, tmp;
 	
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-		{
-			Rlo[i] += (__int128) A->lo[i + j] * B->lo[N - j];
-			aux = (__int128) A->lo[i + j] * B->hi[N - j];
-			tmp = Rlo[i] + ((__int128) LOW(aux) << 64);
-			// We propagate the carry;
-			Rhi[i] += (tmp < Rlo[i]) + HIGH(aux);
-			aux = (__int128) A->hi[i + j] * B->lo[N - j];
-			Rlo[i] = tmp + ((__int128) LOW(aux) << 64);
-			// Same logic here
-			Rhi[i] += (tmp > Rlo[i]) + HIGH(aux);
-			Rhi[i] += (__int128) A->hi[i + j] * B->hi[N - j];
-		}
+			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
+				B->hi[N - j], B->lo[N - j]);
 		
 		Rlo[i] *= LAMBDA;
 		Rhi[i] *= LAMBDA;
 		
 		for(j = 0; j < i + 1; j++)
-		{
-			Rlo[i] += (__int128) A->lo[j] * B->lo[i - j];
-			aux = (__int128) A->lo[j] * B->hi[i - j];
-			tmp = Rlo[i] + ((__int128) LOW(aux) << 64);
-			// We propagate the carry;
-			Rhi[i] += (tmp < Rlo[i]) + HIGH(aux);
-			aux = (__int128) A->hi[j] * B->lo[i - j];
-			Rlo[i] = tmp + ((__int128) LOW(aux) << 64);
-			// Same logic here
-			Rhi[i] += (tmp > Rlo[i]) + HIGH(aux);
-			Rhi[i] += (__int128) A->hi[j] * B->hi[i - j];
-		}
+			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
+				B->hi[i - j], B->lo[i - j]);
 	}
 }
 
@@ -173,8 +125,8 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 	uint8_t counter;
 	register uint16_t i, j;
 	const unsigned __int128 rho = ((__int128)1) << RHO;
-	unsigned __int128 limb;
-	__int128 Rlo[N] = {0}, Rhi[N] = {0}, tmp[N] = {0}, aux, aux2;
+	unsigned __int128 limb, Rlo[N] = {0};
+	__int128 Rhi[N] = {0}, tmp[N] = {0};
 	poly stok;
 	init_poly(2 * N, &stok);
 	
@@ -202,20 +154,10 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 	
 	for(i = 0; i < N; i++)
 		for(j = 0; j < N; j++)
-		{
-			Rlo[j] += LOW(tmp[i]) * __Pilo__[i][j];
-			aux = (__int128) LOW(tmp[i]) * __Pihi__[i][j];
-			aux2 = Rlo[j] + ((__int128) LOW(aux) << 64);
-			// We propagate the carry;
-			Rhi[i] += (aux2 < Rlo[j]) + HIGH(aux);
-			aux = (__int128) HIGH(tmp[i]) * __Pilo__[i][j];
-			Rlo[i] = aux2 + ((__int128) LOW(aux) << 64);
-			// Same logic here
-			Rhi[i] += (aux2 > Rlo[i]) + HIGH(aux);
-			Rhi[i] += (__int128) HIGH(tmp[i]) * __Pihi__[i][j];
-		}
+			multadd128(Rhi + i, Rlo + i, HIGH(tmp[i]), LOW(tmp[i]),
+				__Pihi__[i][j], __Pilo__[i][j]);
 	
-	mns128_montg_int_red(res, Rlo);
+	mns128_montg_int_red(res, Rhi);
 	
 end:
 	free_poly(stok);
