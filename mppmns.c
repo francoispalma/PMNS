@@ -20,7 +20,7 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
 	__int128 aux1, aux3;
-	unsigned __int128 aux2;
+	unsigned __int128 aux2, tmp;
 	
 	// karatsuba
 	aux1 = (__int128) Ahi * Bhi;
@@ -28,8 +28,9 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	aux3 = (__int128) ((__int128) Ahi + Alo) * ((__int128) Bhi + Blo)
 		- aux1 - aux2;
 	
-	*Rlo += aux2 + (((__int128) LOW(aux3)) << 64);
-	*Rhi += (*Rlo < aux2) + aux1 + ((__int128) HIGH(aux3));
+	tmp = aux2 + (((__int128) LOW(aux3)) << 64);
+	*Rlo += tmp;
+	*Rhi += (tmp < aux2) + (tmp > *Rlo) + aux1 + ((__int128) HIGH(aux3));
 }
 
 static inline void mns128_mod_mult_ext_red(__int128* Rhi,
@@ -137,10 +138,10 @@ static inline void mns128_montg_int_red(poly128 res, __int128* Rhi,
 void convert_string_to_amns128(restrict poly128 res, const char* string)
 {
 	uint8_t counter;
-	register uint16_t i, j;
+	register uint16_t i, j, k;
 	const unsigned __int128 rho = ((__int128)1) << RHO;
-	unsigned __int128 limb, Rlo[N] = {0};
-	__int128 Rhi[N] = {0}, tmp[N] = {0};
+	unsigned __int128 limb, Rlo[N] = {0}, aux2;
+	__int128 Rhi[N] = {0}, tmp[N] = {0}, aux;
 	poly stok;
 	init_poly(2 * N, &stok);
 	
@@ -165,11 +166,41 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 			(((unsigned __int128) stok->t[2 * i + 1]) << 64);
 	tmp[i] |= (limb << counter) & (rho - 1);
 	
+/*	printf("[");*/
+/*	for(i = 0; i < N; i++)*/
+/*		printf("0x%lx%016lx, ", HIGH(tmp[i]), LOW(tmp[i]));*/
+/*	printf("]\n\n");*/
 	
 	for(i = 0; i < N; i++)
 		for(j = 0; j < N; j++)
-			multadd128(Rhi + i, Rlo + i, HIGH(tmp[i]), LOW(tmp[i]),
+		{
+			aux = Rhi[j];
+			aux2 = Rlo[j];
+			multadd128(Rhi + j, Rlo + j, HIGH(tmp[i]), LOW(tmp[i]),
 				__Pihi__[i][j], __Pilo__[i][j]);
+			printf("[");
+			for(k = 0; k < N; k++)
+				printf("0x%lx%016lx%016lx%016lx, ", HIGH(Rhi[k]), LOW(Rhi[k]), HIGH(Rlo[k]), LOW(Rlo[k]));
+			printf("]\n\n");
+/*			k = j;*/
+/*			while(aux > Rhi[k] && k < N - 1)*/
+/*			{*/
+/*				printf("ha\n");*/
+/*				++k;*/
+/*				aux = Rhi[k];*/
+/*				aux2 = Rlo[k];*/
+/*				++Rlo[k];*/
+/*				if(aux2 > Rlo[k])*/
+/*				{*/
+/*					++Rhi[k];*/
+/*				}*/
+/*			}*/
+		}
+	
+	printf("[");
+	for(i = 0; i < N; i++)
+		printf("0x%lx%lx%lx%lx, ", HIGH(Rhi[i]), LOW(Rhi[i]), HIGH(Rlo[i]), LOW(Rlo[i]));
+	printf("]\n\n");
 	
 	mns128_montg_int_red(res, Rhi, Rlo);
 	
@@ -185,6 +216,12 @@ int main(void)
 	
 	const char RES[] = 
 	"0x2008017506164ba2bbc36636e65b8f4caca8fc6b0e76b6a3dd70ff9147383b73";
+	
+/*	int64_t Ahi = 0x7e4deecd7fb21228, Bhi = -0x11fb30a7f4f269dd;*/
+/*	uint64_t  Alo = 0xbe23c803cef47a1, Blo = 0xc97d66ba9ffee37;*/
+/*	*/
+/*	const char RES[] = */
+/*	"0xf720e4b9bc91c7b14365a9592434dee8edbb60fd615d17fd17ab67202e5f1197";*/
 	
 	__int128 R1 = 0;
 	unsigned __int128 R2 = 0;
