@@ -4,7 +4,7 @@
 #include "utilitymp.h"
 
 #define LOW(X) ((uint64_t)X)
-#define HIGH(X) ((uint64_t)(X>>64))
+#define HIGH(X) ((X>>64))
 
 
 /*
@@ -32,6 +32,12 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	*Rlo += tmp;
 	*Rhi += (tmp < aux2) + (tmp > *Rlo) + aux1 + ((__int128) HIGH(aux3));
 }
+
+/*
+[0x2ea08e40bd11d9d3c96d2ce4826d1d5e0a81bcaed926d19382859d1b03, 0xffffffbcf6df4bb36b369fffe316f8696ab08260c7591b1af116bc8892ca5204, 0xffffff0724f4abc1e98b32c320b35cd67e8e240d249ecb1131b75dd8281ff784, 0xfffffe67b5661a66a0812963a5a5519279a72201aebfdd67142c85f21a223aa8, 0xfffffe88001bd5b8b97f498924dcf9aeead7e6d770b694afcd3ad86ad0c870de, 0xfffffee4b668383da9fac815e8ba4f8d647dd593c5d2a3dffc5a4566354522d7, 0xfffffed8aed58cc87a63b6201dde0a8f2bdb073cfc4a3529462f89b9d0d1e8, 0xffffff689899ae5d90103380dd80e7df788fd4f5a1f4d8ac819f93ad25096a2f, 0xffffff384ecf64a3c9e4388f5f6e1bc260c853305eca2d1a8219bd12dcfde09c, ] 
+
+['0x2ea08e40bc11d9d3c96d2ce4826d1d5e0a81bcaed926d19382859d1b03', '0xffffffbcf6df4bb16b369fffe316f8696ab08260c7591b1af116bc8892ca5204', '0xffffff0724f4abbee98b32c320b35cd67e8e240d249ecb1131b75dd8281ff784', '0xfffffe67b5661a63a0812963a5a5519279a72201aebfdd67142c85f21a223aa8', '0xfffffe88001bd5b5b97f498924dcf9aeead7e6d770b694afcd3ad86ad0c870de', '0xfffffee4b668383ca9fac815e8ba4f8d647dd593c5d2a3dffc5a4566354522d7', '0xfffffed8aed58cc8007a63b6201dde0a8f2bdb073cfc4a3529462f89b9d0d1e8', '0xffffff689899ae5c90103380dd80e7df788fd4f5a1f4d8ac819f93ad25096a2f', '0xffffff384ecf64a2c9e4388f5f6e1bc260c853305eca2d1a8219bd12dcfde09c'] 
+*/
 
 static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 	unsigned __int128* Rlo, const restrict poly128 A, const restrict poly128 B)
