@@ -16,21 +16,51 @@ factor(P)
 lone factor => nth root of lambda.
 */
 
+
 void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
-	__int128 aux1, aux3;
-	unsigned __int128 aux2, tmp;
+	// multiplies A and B and adds the result to R;
+	__int128 aux1;
+	unsigned __int128 aux2, aux3, aux4, tmp, tmp2;
 	
-	// karatsuba
+	aux1 = (__int128) Ahi * Bhi;
+	aux2 = (__int128) Ahi * Blo;
+	aux3 = (__int128) Alo * Bhi;
+	aux4 = (__int128) Alo * Blo;
+	
+	aux2 = (__int128) aux2 + aux3;
+	tmp = (__int128) aux4 + ((__int128) LOW(aux2) << 64);
+	tmp2 = (__int128) (tmp < aux4) + aux1 + (HIGH(aux2)) + ((__int128) (aux2 < aux3) << 64);
+	*Rlo = (__int128) *Rlo + tmp;
+	*Rhi = (__int128) *Rhi + (tmp > *Rlo) + tmp2;
+}
+
+void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
+	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
+{
+	// karatsuba variant
+	__int128 aux1, aux3, tmp = 0, carry = 0;
+	unsigned __int128 aux2, tmp2;
+	
 	aux1 = (__int128) Ahi * Bhi;
 	aux2 = (__int128) Alo * Blo;
-	aux3 = (__int128) ((__int128) Ahi + Alo) * ((__int128) Bhi + Blo)
-		- aux1 - aux2;
+	aux3 = (__int128) ((__int128) Ahi + Alo) * ((__int128) Bhi + Blo) - aux2 - aux1;
+	aux3 = ((__int128) Ahi + Alo);
+	tmp = ((__int128) Bhi + Blo);
+	carry = (aux3 >> 62) * (tmp >> 62) >> 4;
+	aux3 = (__int128) aux3 * tmp;
+	tmp = aux3;
+	aux3 = (__int128) aux3 - aux1;
+	carry -= aux3 > tmp;
+	tmp = aux3;
+	aux3 = (__int128) aux3 - aux2;
+	carry -= aux3 > tmp;
 	
-	tmp = aux2 + (((__int128) LOW(aux3)) << 64);
-	*Rlo += tmp;
-	*Rhi += (tmp < aux2) + (tmp > *Rlo) + aux1 + ((__int128) HIGH(aux3));
+	
+	tmp2 = aux2 + (((__int128) LOW(aux3)) << 64);
+	*Rlo += tmp2;
+	*Rhi += (tmp2 < aux2) + (tmp2 > *Rlo) + aux1 + ((__int128) HIGH(aux3)) + (carry << 64);
 }
 
 /*
@@ -244,7 +274,7 @@ int main(void)
 	init_poly128(N, &A);
 	const char a[] = "74ff560400d0105e6381e4f7cf22ba4a3d949bbe3b03e7ec1c8aebfb02a4dedf230eef099cd1ae78adf8f142cd70ed93122a5c48c5edcba658615fa2316994dce0c84e9e54c5ae9482acdc0ed6fae84eb7e83d94016d12452ad41369e33a53a676d539439488bdc8b3462c5579a432e8b579e8af9d5b2b0b8f37856fe2de7f30";
 	
-	convert_string_to_amns128(A, a);
+	//convert_string_to_amns128(A, a);
 	
 	p128_print(A);
 	
