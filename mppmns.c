@@ -17,6 +17,23 @@ lone factor => nth root of lambda.
 */
 
 
+/*void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,*/
+/*	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)*/
+/*{*/
+/*	__int128 aux1, aux3;*/
+/*	unsigned __int128 aux2, tmp;*/
+
+/*	// karatsuba*/
+/*	aux1 = (__int128) Ahi * Bhi;*/
+/*	aux2 = (__int128) Alo * Blo;*/
+/*	aux3 = (__int128) ((__int128) Ahi + Alo) * ((__int128) Bhi + Blo)*/
+/*		- aux1 - aux2;*/
+
+/*	tmp = aux2 + (((__int128) LOW(aux3)) << 64);*/
+/*	*Rlo += tmp;*/
+/*	*Rhi += (tmp < aux2) + (tmp > *Rlo) + aux1 + ((__int128) HIGH(aux3));*/
+/*}*/
+
 void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
