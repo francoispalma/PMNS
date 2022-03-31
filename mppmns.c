@@ -72,6 +72,8 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 	// Function that multiplies A by B and applies external reduction using
 	// E(X) = X^n - lambda as a polynomial used for reduction.
 	register uint16_t i, j;
+	unsigned __int128 aux4;
+	__int128 aux3, aux2, aux1;
 	
 	for(i = 0; i < N; i++)
 	{
@@ -79,8 +81,16 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
 				B->hi[N - j], B->lo[N - j]);
 		
-		Rlo[i] *= LAMBDA;
-		Rhi[i] *= LAMBDA;
+		aux4 = (__int128) LOW(Rlo[i]) * LAMBDA;
+		aux3 = (__int128) HIGH(aux4) + HIGH(Rlo[i]) * LAMBDA;
+		aux2 = (__int128) HIGH(aux3) + LOW(Rhi[i]) * LAMBDA;
+		aux1 = (__int128) HIGH(Rhi[i]) * LAMBDA;
+		
+		Rlo[i] = (__int128) LOW(aux4) + (aux3 << 64);
+		Rhi[i] = (__int128) aux2 + (aux1 << 64);
+		
+/*		Rlo[i] = (__int128) Rlo[i] * LAMBDA;*/
+/*		Rhi[i] = (__int128) Rhi[i] * LAMBDA;*/
 		
 		for(j = 0; j < i + 1; j++)
 			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
@@ -122,6 +132,8 @@ static inline void m1_mns128_mod_mult_ext_red(__int128* Rhi,
 			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
 				M1Lambdahi[N - j], M1Lambdalo[N - j]);
 		
+		printf("0x%lx%016lx%016lx%016lx, ", HIGH(Rhi[i]), LOW(Rhi[i]), HIGH(Rlo[i]), LOW(Rlo[i]));
+		
 		for(j = 0; j < i + 1; j++)
 			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
 				M1hi[i - j], M1lo[i - j]);
@@ -145,6 +157,16 @@ static inline void mns128_montg_int_red(poly128 res, __int128* Rhi,
 	}
 	
 	m1_mns128_mod_mult_ext_red(Rhi, Rlo, res);
+	
+	
+	printf("[");
+	for(i = 0; i < N; i++)
+		printf("0x%lx%016lx%016lx%016lx, ", HIGH(Rhi[i]), LOW(Rhi[i]), HIGH(Rlo[i]), LOW(Rlo[i]));
+	printf("]\n\n");
+	
+	/*
+	[0xd32010affc4dab3afc8442132ca50e3e2b62780170f395faacb67ce577b44525, 0xaa7bc42e366f4995960637406ad30445ec0619ad3e898320efdb5a561746129, 0xfe3444472410d50c0538b49086c756139659109b21a64ce2d92b94e591e0ced9, 0x60082c43317965ae18f3bd652447ef5c4dabfd55c54afc0e35054645682ec194, 0x4d4d30e40489b1d453095e65c4290d870c86845ff2eba0f2f246e4b7c6a1c458, 0x7ffd7a904c1602f0a648204e902b0b3d4a46652bb2325e2082b392298c0a2e21, 0x4bbc2aef433c6413eca6c3e6b3b8f0e4d49fd726a9cb659f102fd0fdc0cc58ce, 0x50d7de45d96f38fde92f70f864da20f9596a4371dfb6ae48e5867b09a2ddeefa, 0xe197da8e28cffb508666fd078ec4458faa8e680d77ccf9a27f938a9009aee666, ]
+	*/
 	
 	for(i = 0; i < N; i++)
 	{
@@ -171,10 +193,10 @@ static inline void mns128_montg_int_red(poly128 res, __int128* Rhi,
 void convert_string_to_amns128(restrict poly128 res, const char* string)
 {
 	uint8_t counter;
-	register uint16_t i, j, k;
+	register uint16_t i, j;
 	const unsigned __int128 rho = ((__int128)1) << RHO;
-	unsigned __int128 limb, Rlo[N] = {0}, aux2;
-	__int128 Rhi[N] = {0}, tmp[N] = {0}, aux;
+	unsigned __int128 limb, Rlo[N] = {0};
+	__int128 Rhi[N] = {0}, tmp[N] = {0};
 	poly stok;
 	init_poly(2 * N, &stok);
 	
@@ -199,23 +221,11 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 			(((unsigned __int128) stok->t[2 * i + 1]) << 64);
 	tmp[i] |= (limb << counter) & (rho - 1);
 	
-/*	printf("[");*/
-/*	for(i = 0; i < N; i++)*/
-/*		printf("0x%lx%016lx, ", HIGH(tmp[i]), LOW(tmp[i]));*/
-/*	printf("]\n\n");*/
 	
 	for(i = 0; i < N; i++)
 		for(j = 0; j < N; j++)
-		{
-			aux = Rhi[j];
-			aux2 = Rlo[j];
 			multadd128(Rhi + j, Rlo + j, HIGH(tmp[i]), LOW(tmp[i]),
 				__Pihi__[i][j], __Pilo__[i][j]);
-/*			printf("[");*/
-/*			for(k = 0; k < N; k++)*/
-/*				printf("0x%lx%016lx%016lx%016lx, ", HIGH(Rhi[k]), LOW(Rhi[k]), HIGH(Rlo[k]), LOW(Rlo[k]));*/
-/*			printf("]\n\n");*/
-		}
 	
 	printf("[");
 	for(i = 0; i < N; i++)

@@ -59,8 +59,8 @@ print(tmp)
 print()
 
 tmp = horner_modulo(tmp, gamma, p)
-print(tmp)
+#print(tmp)
 
 print()
-print(a * phi % p)
+print(tmp == a * phi % p)
 

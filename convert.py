@@ -32,6 +32,13 @@ def rho_div_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, Pi):
 #	print("after Pi")
 #	print([hex(elem) if elem >= 0 else hex(2**256 + elem) for elem in U])
 #	print()
+#	print("HAAAAAAAAAA")
+#	print("M:")
+#	print([hex(elem) for elem in M])
+#	print("M1:")
+#	print([hex(elem) for elem in M1])
+#	print("Pi:")
+#	print([[hex(Pi[i][j]) for j in range(n)] for i in range(n)])
 	A = montgomery_like_coefficient_reduction(U, p, n, gamma, rho, lam, phi, M, M1)
 	return A
 
