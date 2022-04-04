@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 
 #include "mppmns.h"
 #include "utilitymp.h"
@@ -15,6 +16,31 @@ P = X^n - lambda
 factor(P)
 lone factor => nth root of lambda.
 */
+
+static inline void mult128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi, const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
+{
+	unsigned __int128 aux, tmp;
+	*Rhi = (__int128) LOW(Ahi) * LOW(Bhi);
+	*Rlo = (__int128) Alo * Blo;
+	aux = (__int128) Alo * LOW(Bhi);
+	tmp = (__int128) *Rlo + (aux << 64);
+	*Rhi = (__int128) *Rhi + HI(aux) + (*Rlo > tmp);
+	aux = (__int128) LOW(Ahi) * Blo;
+	*Rlo = (__int128) tmp + (aux << 64);
+	*Rhi = (__int128) *Rhi + HI(aux) + (*Rlo < tmp);
+}
+
+void multadd128x(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
+	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
+{
+	unsigned __int128 auxlo;
+	__int128 auxhi;
+	
+	mult128(&auxhi, &auxlo, Ahi, Alo, Bhi, Blo);
+	
+	*Rlo = (__int128) *Rlo + auxlo;
+	*Rhi = (__int128) *Rhi + auxhi + (*Rlo < auxlo);
+}
 
 void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
@@ -117,8 +143,7 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 	// Function that multiplies A by B and applies external reduction using
 	// E(X) = X^n - lambda as a polynomial used for reduction.
 	register uint16_t i, j;
-	unsigned __int128 aux4;
-	__int128 aux3, aux2, aux1;
+	unsigned __int128 aux;
 	
 	for(i = 0; i < N; i++)
 	{
@@ -126,13 +151,10 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
 				B->hi[N - j], B->lo[N - j]);
 		
-		aux4 = (__int128) LOW(Rlo[i]) * LAMBDA;
-		aux3 = (__int128) HIGH(aux4) + HIGH(Rlo[i]) * LAMBDA;
-		aux2 = (__int128) HIGH(aux3) + LOW(Rhi[i]) * LAMBDA;
-		aux1 = (__int128) HIGH(Rhi[i]) * LAMBDA;
-		
-		Rlo[i] = (__int128) LOW(aux4) + (aux3 << 64);
-		Rhi[i] = (__int128) aux2 + (aux1 << 64);
+		aux = (__int128) LOW(Rlo[i]) * LOW(LAMBDA);
+		aux = (__int128) HI(aux) + HIGH(Rlo[i]) * LOW(LAMBDA);
+		Rlo[i] = (__int128) Rlo[i] * LOW(LAMBDA);
+		Rhi[i] = (__int128) HI(aux) + Rhi[i] * LOW(LAMBDA);
 		
 /*		Rlo[i] = (__int128) Rlo[i] * LAMBDA;*/
 /*		Rhi[i] = (__int128) Rhi[i] * LAMBDA;*/
@@ -292,7 +314,7 @@ end:
 }
 
 
-int main(void)
+void __main__(void)
 {
 /*	int64_t Ahi = 0x5c096e6b558ba549, Bhi = 0x5918460d4a05af9c;*/
 /*	uint64_t  Alo = 0xf9dadbd740482391, Blo = 0xc4703ac88b18e4c3;*/
@@ -322,7 +344,7 @@ int main(void)
 	uint64_t  Alo = 0xcd3ad86ad0c870de, Blo = 0x83ed23c6860ab850;
 	
 	const char RES[] =
-		"0x23fbe09528a6b4ad a3fa9544c0b0b34f51d40d5578d6c57b14af738e2a3c5388";
+		"0x23fbe09528a6b4ada3fa9544c0b0b34f51d40d5578d6c57b14af738e2a3c5388";
 	
 /*	__int128 R1 = 0;*/
 /*	unsigned __int128 R2 = 0;*/
@@ -337,7 +359,7 @@ int main(void)
 	
 	printf("%s\n", RES);
 	
-	printf("0x%lx %016lx%016lx%016lx\n", HIGH(R1), LOW(R1), HIGH(R2), LOW(R2));
+	printf("0x%lx%016lx%016lx%016lx\n", HIGH(R1), LOW(R1), HIGH(R2), LOW(R2));
 	
 	printf("\n\n");
 	
@@ -350,6 +372,49 @@ int main(void)
 	p128_print(A);
 	
 	free_poly128(A);
+}
+
+static inline int64_t randomint64(void)
+{
+	return (((int64_t)rand() + rand()) << 32) ^ ((int64_t)rand() + rand());
+}
+
+void __benchmult__(void)
+{
+	uint64_t sum1, sum2, c = clock(), lo1, lo2;
+	int64_t hi1, hi2;
+	__int128 dummy11 = 0, dummy21 = 0;
+	unsigned __int128 dummy12 = 0, dummy22 = 0;
+	
+	//srand((unsigned) (time(&hi1)));
+	
+	sum1 = 0;
+	sum2 = 0;
+	for(int i = 0; i < 100; i++)
+	{
+		hi1 = randomint64();
+		hi2 = randomint64();
+		lo1 = randomint64();
+		lo2 = randomint64();
+		c = clock();
+		multadd128x(&dummy11, &dummy12, hi1, lo1, hi2, lo2);
+		sum1 += clock() - c;
+		c = clock();
+		multadd128(&dummy21, &dummy22, hi1, lo1, hi2, lo2);
+		sum2 += clock() - c;
+	}
+	printf("1: %ld\n2: %ld\n", sum1, sum2);
+	__print128(dummy11);
+	__print128(dummy21);
+	__print128(dummy12);
+	__print128(dummy22);
+}
+
+int main(void)
+{
+	//__benchmult__();
+	
+	__main__();
 	
 	return 0;
 }
