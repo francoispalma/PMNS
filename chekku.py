@@ -51,7 +51,7 @@ phinmoinsun = pow(phi, n - 1, p)
 Pi = [montgomery_convert_to_mns((rho**i) * (phi**2), p, n, gamma, rho, lam, phi, M, M1, phinmoinsun) for i in range(n)]
 
 a = 0x74ff560400d0105e6381e4f7cf22ba4a3d949bbe3b03e7ec1c8aebfb02a4dedf230eef099cd1ae78adf8f142cd70ed93122a5c48c5edcba658615fa2316994dce0c84e9e54c5ae9482acdc0ed6fae84eb7e83d94016d12452ad41369e33a53a676d539439488bdc8b3462c5579a432e8b579e8af9d5b2b0b8f37856fe2de7f30
-
+print("HAAAAAAAAAA")
 tmp = conv(a, p, n, gamma, rho, lam, phi, M, M1, Pi)
 
 print(tmp)

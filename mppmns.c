@@ -52,9 +52,9 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	//printf("0x%lx%016lx%016lx%016lx\n", HIGH(*Rhi), LOW(*Rhi), HIGH(*Rlo), LOW(*Rlo));
 	
 	//printf("%lx %lx %lx %lx\n", Ahi, Alo, Bhi, Blo);
-	A1B1 = (__int128) LOW(Ahi) * LOW(Bhi);
-	A1B0 = (__int128) LOW(Ahi) * Blo;
-	A0B1 = (__int128) Alo * LOW(Bhi);
+	A1B1 = (__int128) Ahi * Bhi;
+	A1B0 = (__int128) Ahi * Blo;
+	A0B1 = (__int128) Alo * Bhi;
 	A0B0 = (__int128) Alo * Blo;
 	
 	/*__print128(A1B1);
@@ -198,7 +198,7 @@ static inline void m1_mns128_mod_mult_ext_red(__int128* Rhi,
 		for(j = 1; j < N - i; j++)
 		{
 			//printf("(0x%lx%016lx%016lx%016lx + ", HIGH(Rhi[i]), LOW(Rhi[i]), HIGH(Rlo[i]), LOW(Rlo[i]));
-			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
+			multadd128x(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
 				M1Lambdahi[N - j], M1Lambdalo[N - j]);
 			
 			//printf("%d\n", i + j);
@@ -210,7 +210,7 @@ static inline void m1_mns128_mod_mult_ext_red(__int128* Rhi,
 /*		printf("0x%lx%016lx%016lx%016lx, ", HIGH(Rhi[i]), LOW(Rhi[i]), HIGH(Rlo[i]), LOW(Rlo[i]));*/
 		
 		for(j = 0; j < i + 1; j++)
-			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
+			multadd128x(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
 				M1hi[i - j], M1lo[i - j]);
 	}
 }
@@ -221,23 +221,32 @@ static inline void mns128_montg_int_red(poly128 res, __int128* Rhi,
 	unsigned __int128 V[N], V2[N], T[N], T2[N];
 	register uint16_t i;
 	
+/*	printf("[");*/
+/*	for(i = 0; i < N; i++)*/
+/*		printf("0x%lx%016lx%016lx%016lx, ", HIGH(Rhi[i]), LOW(Rhi[i]), HIGH(Rlo[i]), LOW(Rlo[i]));*/
+/*	printf("]\n\n");*/
+	
 	for(i = 0; i < N; i++)
 	{
 		V[i] = Rlo[i];
 		res->lo[i] = LOW(Rlo[i]);
-		res->hi[i] = HIGH(Rlo[i]);
+		res->hi[i] = HI(Rlo[i]);
 		V2[i] = Rhi[i];
 		Rhi[i] = 0;
 		Rlo[i] = 0;
 	}
 	
-	m1_mns128_mod_mult_ext_red(Rhi, Rlo, res);
-	
-	
 /*	printf("[");*/
 /*	for(i = 0; i < N; i++)*/
-/*		printf("0x%lx%016lx%016lx%016lx, ", HIGH(Rhi[i]), LOW(Rhi[i]), HIGH(Rlo[i]), LOW(Rlo[i]));*/
+/*		printf("0x%lx%016lx, ", res->hi[i], res->lo[i]);*/
 /*	printf("]\n\n");*/
+	
+	m1_mns128_mod_mult_ext_red(Rhi, Rlo, res);
+	
+	printf("[");
+	for(i = 0; i < N; i++)
+		printf("0x%lx%016lx%016lx%016lx, ", HIGH(Rhi[i]), LOW(Rhi[i]), HIGH(Rlo[i]), LOW(Rlo[i]));
+	printf("]\n\n");
 	
 	/*
 	[0xd32010affc4dab3afc8442132ca50e3e2b62780170f395faacb67ce577b44525, 0xaa7bc42e366f4995960637406ad30445ec0619ad3e898320efdb5a561746129, 0xfe3444472410d50c0538b49086c756139659109b21a64ce2d92b94e591e0ced9, 0x60082c43317965ae18f3bd652447ef5c4dabfd55c54afc0e35054645682ec194, 0x4d4d30e40489b1d453095e65c4290d870c86845ff2eba0f2f246e4b7c6a1c458, 0x7ffd7a904c1602f0a648204e902b0b3d4a46652bb2325e2082b392298c0a2e21, 0x4bbc2aef433c6413eca6c3e6b3b8f0e4d49fd726a9cb659f102fd0fdc0cc58ce, 0x50d7de45d96f38fde92f70f864da20f9596a4371dfb6ae48e5867b09a2ddeefa, 0xe197da8e28cffb508666fd078ec4458faa8e680d77ccf9a27f938a9009aee666, ]
@@ -251,7 +260,17 @@ static inline void mns128_montg_int_red(poly128 res, __int128* Rhi,
 		Rlo[i] = 0;
 	}
 	
+/*	printf("[");*/
+/*	for(i = 0; i < N; i++)*/
+/*		printf("0x%lx%016lx, ", res->hi[i], res->lo[i]);*/
+/*	printf("]\n\n");*/
+	
 	m_mns128_mod_mult_ext_red(Rhi, Rlo, res);
+	
+		printf("[");
+	for(i = 0; i < N; i++)
+		printf("0x%lx%016lx%016lx%016lx, ", HIGH(Rhi[i]), LOW(Rhi[i]), HIGH(Rlo[i]), LOW(Rlo[i]));
+	printf("]\n\n");
 	
 	for(i = 0; i < N; i++)
 	{
@@ -259,9 +278,9 @@ static inline void mns128_montg_int_red(poly128 res, __int128* Rhi,
 		T2[i] = Rhi[i];
 		
 		T[i] += V[i];
-		Rlo[i] = V2[i] + T2[i] + (T[i] < V[i]);
-		res->lo[i] = LOW(Rlo[i]);
-		res->hi[i] = HIGH(Rlo[i]);
+		Rhi[i] = (__int128) V2[i] + T2[i] + (T[i] < V[i]);
+		res->lo[i] = LOW(Rhi[i]);
+		res->hi[i] = HIGH(Rhi[i]);
 	}
 }
 
