@@ -51,8 +51,8 @@ hardproof: hardcode.exe
 	./hardcode.exe > log
 	python3 proof.py
 
-params128.h: genamns128.py
-	python3 genamns128.py > params128.h
+params128.h: precalcs128.py
+	python3 precalcs128.py > params128.h
 
 p128.exe: pmns128.o structs.o utilitymp.o
 	gcc -o $@ $^ $(FLAGS)

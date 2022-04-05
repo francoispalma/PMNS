@@ -121,8 +121,8 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			multadd128(Rhi + i, Rlo + i, LOW(A->hi[i + j]), A->lo[i + j],
-				LOW(B->hi[N - j]), B->lo[N - j]);
+			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
+				B->hi[N - j], B->lo[N - j]);
 		
 		aux = (unsigned __int128) LOW(Rlo[i]) * LOW(LAMBDA);
 		aux = (unsigned __int128) HI(Rlo[i]) * LOW(LAMBDA) + HI(aux);
@@ -142,18 +142,12 @@ static inline void m_mns128_mod_mult_ext_red(__int128* Rhi,
 	// the second operand.
 	
 	register uint16_t i, j;
-	unsigned __int128 aux;
 	
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
 			mm1_multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
-				Mhi[N - j], Mlo[N - j]);
-		
-		aux = (unsigned __int128) LOW(Rlo[i]) * LOW(LAMBDA);
-		aux = (unsigned __int128) HI(Rlo[i]) * LOW(LAMBDA) + HI(aux);
-		Rlo[i] = (__int128) Rlo[i] * LOW(LAMBDA);
-		Rhi[i] = (__int128) HI(aux) + Rhi[i] * LOW(LAMBDA);
+				MLambdahi[N - j], MLambdalo[N - j]);
 		
 		for(j = 0; j < i + 1; j++)
 			mm1_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
@@ -168,18 +162,12 @@ static inline void m1_mns128_mod_mult_ext_red(__int128* Rhi,
 	// the second operand.
 	
 	register uint16_t i, j;
-	unsigned __int128 aux;
 	
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
 			mm1_multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
-				M1hi[N - j], M1lo[N - j]);
-		
-		aux = (unsigned __int128) LOW(Rlo[i]) * LOW(LAMBDA);
-		aux = (unsigned __int128) HI(Rlo[i]) * LOW(LAMBDA) + HI(aux);
-		Rlo[i] = (__int128) Rlo[i] * LOW(LAMBDA);
-		Rhi[i] = (__int128) HI(aux) + Rhi[i] * LOW(LAMBDA);
+				M1Lambdahi[N - j], M1Lambdalo[N - j]);
 		
 		for(j = 0; j < i + 1; j++)
 			mm1_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
@@ -271,6 +259,34 @@ end:
 	free_poly(stok);
 }
 
+static inline void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
+	const restrict poly128 B)
+{
+	// Function that multiplies A by B using the montgomery approach in an
+	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
+	// of the set of polynomials of that amns who have gamma as a root such that
+	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
+	
+	__int128 Rhi[N] = {0};
+	unsigned __int128 Rlo[N] = {0};
+	
+	mns128_mod_mult_ext_red(Rhi, Rlo, A, B);
+	
+	printf("\n[");
+	for(int i = 0; i < N; i++)
+		printf("%lx%016lx%016lx%016lx, ", HIGH(Rhi[i]), LOW(Rhi[i]), HIGH(Rlo[i]), LOW(Rlo[i]));
+	printf("]\n\n");
+	
+/*
+['0x42b6ca3a72a6ad77324182965e29be2404f86ab151c5e062661a64ee4c04', '0x415b8bd6dd7bce02652eab3027b44c32183e999e8b410ca522c0234a7d23', '0x38139538b6b367efb0851f95791ee67a12654e4a8e126cf177650d07d626', '0x47b2c93328b4faa28fecc53efaa56becf914be9bf08b115f361ae2aff6b9', '0x2deee92b859f9cd610a30259f1929095f520b785357050ac4e6d1dccb21f', '0x34f63d675fdbab133707cec205b0e85cf68552c50da053ee56d9387bd297', '0x29ae87b52d874cfc0de173e03daab45baf4b02feb14bcd7fcdb4625d93c7', '0x2a76d476138a2f3a9780c8c4dcb88b2c5aec04e99f22401690d4cbb2772c', '0x249190e360e98bee3124fbe071fbf922df7558a20573a7ee9d4e21d21ed7']
+
+[47f9daac47367fc9491dbf202d5f210786729ce7abafe062661a64ee4c04, 50e7b149342f6004a1fd8324f25026ab35ad64e10b22aca522c0234a7d23, 3c01220325e3a747c4bbcd7d8612bbfe8ae154fb35a3ccf177650d07d626, 4bf978998b659a0d90aef97d9ba058245d48e4d82785715f361ae2aff6b9, 48646cca223e44d003b61373fdbf469a77277a0b851ad0ac4e6d1dccb21f, 4074adb94bc2e6c6bb8ce6373248ccab874b8b230ab9b3ee56d9387bd297, 3b65678f5db6e2ab656ec3b77875ffd3968413f944afad7fcdb4625d93c7, 3468e675d547a75f4a3cfae6cc567b006d5de80eb72f501690d4cbb2772c, 2e7402672ff64a667ed4f6a8476b1500ba5c2a62a9a887ee9d4e21d21ed7, ]
+
+*/
+	
+	
+	mns128_montg_int_red(res, Rhi, Rlo);
+}
 
 void __main__(void)
 {
@@ -323,7 +339,7 @@ void __main__(void)
 	
 	poly128 A;
 	init_poly128(N, &A);
-	const char a[] = "74ff560400d0105e6381e4f7cf22ba4a3d949bbe3b03e7ec1c8aebfb02a4dedf230eef099cd1ae78adf8f142cd70ed93122a5c48c5edcba658615fa2316994dce0c84e9e54c5ae9482acdc0ed6fae84eb7e83d94016d12452ad41369e33a53a676d539439488bdc8b3462c5579a432e8b579e8af9d5b2b0b8f37856fe2de7f30";
+	const char a[] = "bf6dc9f34905d4ccea18b34313d7f22412795efa0161f7ebcd5912a900ea7d255661bb894729e4fd85a477d3c575f3e97fcd1e6e2fd01d5317724f38def3c7f944162bb4ae4dcd5b1522efca1f3713a927c91f1113096ced7585edf7fef8cc9334dc56e8483a3c49f4a0fb9bb73c00b8b00e3d11435184eacbd45dd38fcbcadd";
 	
 	convert_string_to_amns128(A, a);
 	
@@ -335,6 +351,20 @@ void __main__(void)
 static inline int64_t randomint64(void)
 {
 	return (((int64_t)rand() + rand()) << 32) ^ ((int64_t)rand() + rand());
+}
+
+static inline int64_t __modrhohi(int64_t param)
+{
+	return param & ((1ULL<<(RHO - 64)) - 1);
+}
+
+static inline void randpoly128(poly128 P)
+{
+	for(register uint16_t i = 0; i < P->deg; i++)
+	{
+		P->lo[i] = randomint64();
+		if(RHO > 64) P->hi[i] = __modrhohi(randomint64());
+	}
 }
 
 void __benchmult__(void)
@@ -383,11 +413,26 @@ void __benchmult__(void)
 	__print128(dummy22);
 }
 
+void __multchecks__(void)
+{
+	poly128 a, b, c;
+	init_poly128s(N, &a, &b, &c, NULL);
+	
+	randpoly128(a);
+	randpoly128(b);
+	p128_print(a);
+	p128_print(b);
+	amns128_montg_mult(c, a, b);
+	p128_print(c);
+	
+	free_poly128s(a, b, c, NULL);
+}
+
 int main(void)
 {
 	//__benchmult__();
-	
-	__main__();
+	__multchecks__();
+	//__main__();
 	
 	return 0;
 }
