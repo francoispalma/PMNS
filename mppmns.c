@@ -125,7 +125,7 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 				LOW(B->hi[N - j]), B->lo[N - j]);
 		
 		aux = (unsigned __int128) LOW(Rlo[i]) * LOW(LAMBDA);
-		aux = (unsigned __int128) HI(Rlo[i]) * LOW(LAMBDA) ;
+		aux = (unsigned __int128) HI(Rlo[i]) * LOW(LAMBDA) + HI(aux);
 		Rlo[i] = (__int128) Rlo[i] * LOW(LAMBDA);
 		Rhi[i] = (__int128) HI(aux) + Rhi[i] * LOW(LAMBDA);
 		
@@ -151,7 +151,7 @@ static inline void m_mns128_mod_mult_ext_red(__int128* Rhi,
 				Mhi[N - j], Mlo[N - j]);
 		
 		aux = (unsigned __int128) LOW(Rlo[i]) * LOW(LAMBDA);
-		aux = (unsigned __int128) HI(Rlo[i]) * LOW(LAMBDA);
+		aux = (unsigned __int128) HI(Rlo[i]) * LOW(LAMBDA) + HI(aux);
 		Rlo[i] = (__int128) Rlo[i] * LOW(LAMBDA);
 		Rhi[i] = (__int128) HI(aux) + Rhi[i] * LOW(LAMBDA);
 		
@@ -177,7 +177,7 @@ static inline void m1_mns128_mod_mult_ext_red(__int128* Rhi,
 				M1hi[N - j], M1lo[N - j]);
 		
 		aux = (unsigned __int128) LOW(Rlo[i]) * LOW(LAMBDA);
-		aux = (unsigned __int128) HI(Rlo[i]) * LOW(LAMBDA);
+		aux = (unsigned __int128) HI(Rlo[i]) * LOW(LAMBDA) + HI(aux);
 		Rlo[i] = (__int128) Rlo[i] * LOW(LAMBDA);
 		Rhi[i] = (__int128) HI(aux) + Rhi[i] * LOW(LAMBDA);
 		
@@ -348,7 +348,22 @@ void __benchmult__(void)
 	
 	sum1 = 0;
 	sum2 = 0;
-	for(int i = 0; i < 100; i++)
+	for(int i = 0; i < 100000; i++)
+	{
+		hi1 = randomint64();
+		hi2 = randomint64();
+		lo1 = randomint64();
+		lo2 = randomint64();
+		c = clock();
+		multadd128x(&dummy11, &dummy12, hi1, lo1, hi2, lo2);
+		sum1 += clock() - c;
+		c = clock();
+		multadd128(&dummy21, &dummy22, hi1, lo1, hi2, lo2);
+		sum2 += clock() - c;
+	}
+	sum1 = 0;
+	sum2 = 0;
+	for(int i = 0; i < 100000; i++)
 	{
 		hi1 = randomint64();
 		hi2 = randomint64();
