@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "montgom.h"
+#include "pmns.h"
 #include "utilitymp.h"
 
 

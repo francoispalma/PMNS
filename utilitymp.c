@@ -1,5 +1,7 @@
 #include <stdio.h>
-#include "montgom.h"
+#include <stdlib.h>
+#include <stdint.h>
+#include "structs.h"
 
 void __print128(register const __int128 Val)
 {

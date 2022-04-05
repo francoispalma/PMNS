@@ -2,13 +2,13 @@ FLAGS= -Wall -Wextra -g -O3
 
 all: main.exe
 
-main.exe: main.c montgom.o structs.o utilitymp.o
+main.exe: main.c pmns.o structs.o utilitymp.o
 	gcc -o $@ $^ $(FLAGS)
 
 structs.o: structs.c structs.h
 	gcc -c $< $(FLAGS)
 
-montgom.o: montgom.c montgom.h params.h
+pmns.o: pmns.c pmns.h params.h
 	gcc -c $< $(FLAGS)
 
 params.h: precalcs.py
@@ -23,7 +23,7 @@ hardcode.o: hardcode/hardcode.c
 utilitymp.o: utilitymp.c utilitymp.h
 	gcc -c $< $(FLAGS)
 
-mppmns.o: mppmns.c mppmns.h
+pmns128.o: pmns128.c pmns128.h
 	gcc -c $< $(FLAGS)
 
 clean:
@@ -54,7 +54,7 @@ hardproof: hardcode.exe
 params128.h: genamns128.py
 	python3 genamns128.py > params128.h
 
-p128.exe: mppmns.o structs.o utilitymp.o
+p128.exe: pmns128.o structs.o utilitymp.o
 	gcc -o $@ $^ $(FLAGS)
 
 p128: p128.exe
