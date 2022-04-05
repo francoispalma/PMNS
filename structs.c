@@ -124,6 +124,6 @@ inline void p128_print(const restrict poly128 P)
 {
 	printf("[");
 	for(int16_t i = 0; i < P->deg - 1; i++)
-		printf("%ld%lu, ", P->hi[i], P->lo[i]);
-	printf("%ld%lu]\n", P->hi[P->deg - 1], P->lo[P->deg - 1]);
+		printf("%lx%lx, ", P->hi[i], P->lo[i]);
+	printf("%lx%lx]\n", P->hi[P->deg - 1], P->lo[P->deg - 1]);
 }

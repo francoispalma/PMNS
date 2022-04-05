@@ -54,7 +54,7 @@ a = 0x74ff560400d0105e6381e4f7cf22ba4a3d949bbe3b03e7ec1c8aebfb02a4dedf230eef099c
 print("HAAAAAAAAAA")
 tmp = conv(a, p, n, gamma, rho, lam, phi, M, M1, Pi)
 
-print(tmp)
+print([hex(elem) if elem >= 0 else hex(2**128 + elem) for elem in tmp])
 
 print()
 
@@ -63,4 +63,5 @@ tmp = horner_modulo(tmp, gamma, p)
 
 print()
 print(tmp == a * phi % p)
+print([hex(elem) if elem >= 0 else hex(2**128 + elem) for elem in M1])
 
