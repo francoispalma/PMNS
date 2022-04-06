@@ -5,7 +5,9 @@ from math import ceil
 from ops import list_to_poly, montgomery_like_coefficient_reduction, horner_modulo, amns_montg_mult
 from convert import montgomery_convert_to_mns, rho_div_convert_to_mns
 #from proof import p, n, gamma, lam, phi
-from pyparams import p, n, gamma, lam, phi
+from pyparams import p, n, gamma, lam
+
+phi = 2**128
 
 def convert_to_int_tabs(num):
 	L = []
@@ -15,7 +17,7 @@ def convert_to_int_tabs(num):
 		string = string[:-16]
 	return L
 
-def do_precalcs(p, n, gamma, lam, phi):
+def do_precalcs(p, n, gamma, lam):
 	print("#ifndef PMNS_PARAMS128_H_INCLUDED\n#define PMNS_PARAMS128_H_INCLUDED\n")
 
 	# We calculate the base matrix
@@ -129,4 +131,4 @@ if __name__ == "__main__":
 #	gamma = 31655366034728588078624438514615301544129522139330836045091327852751402305472801538659044715201150659916554681038263189819329423658063171106562974285532277781484292697032498794895427121795477802587356170442668003146237461337340801098373462588444085927763403266750253334246732747899661111138239398839213291694
 #	lam = 2
 #	phi = 2**128
-	do_precalcs(p, n, gamma, lam, phi)
+	do_precalcs(p, n, gamma, lam)

@@ -8,14 +8,6 @@
 #define HIGH(X) ((int64_t)(X>>64))
 #define HI(X) ((uint64_t)(X>>64))
 
-/*
-generate P
-K = GF(P)
-polK.<X> = K[]
-P = X^n - lambda
-factor(P)
-lone factor => nth root of lambda.
-*/
 
 static inline void mult128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi, const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
@@ -272,19 +264,6 @@ static inline void amns128_montg_mult(restrict poly128 res, const restrict poly1
 	
 	mns128_mod_mult_ext_red(Rhi, Rlo, A, B);
 	
-	printf("\n[");
-	for(int i = 0; i < N; i++)
-		printf("%lx%016lx%016lx%016lx, ", HIGH(Rhi[i]), LOW(Rhi[i]), HIGH(Rlo[i]), LOW(Rlo[i]));
-	printf("]\n\n");
-	
-/*
-['0x42b6ca3a72a6ad77324182965e29be2404f86ab151c5e062661a64ee4c04', '0x415b8bd6dd7bce02652eab3027b44c32183e999e8b410ca522c0234a7d23', '0x38139538b6b367efb0851f95791ee67a12654e4a8e126cf177650d07d626', '0x47b2c93328b4faa28fecc53efaa56becf914be9bf08b115f361ae2aff6b9', '0x2deee92b859f9cd610a30259f1929095f520b785357050ac4e6d1dccb21f', '0x34f63d675fdbab133707cec205b0e85cf68552c50da053ee56d9387bd297', '0x29ae87b52d874cfc0de173e03daab45baf4b02feb14bcd7fcdb4625d93c7', '0x2a76d476138a2f3a9780c8c4dcb88b2c5aec04e99f22401690d4cbb2772c', '0x249190e360e98bee3124fbe071fbf922df7558a20573a7ee9d4e21d21ed7']
-
-[47f9daac47367fc9491dbf202d5f210786729ce7abafe062661a64ee4c04, 50e7b149342f6004a1fd8324f25026ab35ad64e10b22aca522c0234a7d23, 3c01220325e3a747c4bbcd7d8612bbfe8ae154fb35a3ccf177650d07d626, 4bf978998b659a0d90aef97d9ba058245d48e4d82785715f361ae2aff6b9, 48646cca223e44d003b61373fdbf469a77277a0b851ad0ac4e6d1dccb21f, 4074adb94bc2e6c6bb8ce6373248ccab874b8b230ab9b3ee56d9387bd297, 3b65678f5db6e2ab656ec3b77875ffd3968413f944afad7fcdb4625d93c7, 3468e675d547a75f4a3cfae6cc567b006d5de80eb72f501690d4cbb2772c, 2e7402672ff64a667ed4f6a8476b1500ba5c2a62a9a887ee9d4e21d21ed7, ]
-
-*/
-	
-	
 	mns128_montg_int_red(res, Rhi, Rlo);
 }
 
@@ -374,7 +353,7 @@ void __benchmult__(void)
 	__int128 dummy11 = 0, dummy21 = 0;
 	unsigned __int128 dummy12 = 0, dummy22 = 0;
 	
-	//srand((unsigned) (time(&hi1)));
+	srand((unsigned) (time(&hi1)));
 	
 	sum1 = 0;
 	sum2 = 0;
@@ -418,12 +397,15 @@ void __multchecks__(void)
 	poly128 a, b, c;
 	init_poly128s(N, &a, &b, &c, NULL);
 	
-	randpoly128(a);
-	randpoly128(b);
-	p128_print(a);
-	p128_print(b);
-	amns128_montg_mult(c, a, b);
-	p128_print(c);
+	for(int i = 0; i < 100000; i++)
+	{
+		randpoly128(a);
+		randpoly128(b);
+		p128_print(a);
+		p128_print(b);
+		amns128_montg_mult(c, a, b);
+		p128_print(c);
+	}
 	
 	free_poly128s(a, b, c, NULL);
 }

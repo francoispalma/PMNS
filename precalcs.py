@@ -6,6 +6,8 @@ from ops import list_to_poly, montgomery_like_coefficient_reduction, horner_modu
 from convert import montgomery_convert_to_mns, rho_div_convert_to_mns
 #from proof import p, n, gamma, lam, phi
 
+phi = 2**64
+
 def convert_to_int_tabs(num):
 	L = []
 	string = hex(num)[2:]
@@ -14,7 +16,7 @@ def convert_to_int_tabs(num):
 		string = string[:-16]
 	return L
 
-def do_precalcs(p, n, gamma, lam, phi):
+def do_precalcs(p, n, gamma, lam):
 	print("#ifndef PMNS_PARAMS_H_INCLUDED\n#define PMNS_PARAMS_H_INCLUDED\n")
 
 	# We calculate the base matrix
@@ -116,5 +118,4 @@ if __name__ == "__main__":
 	n = 12
 	gamma = 4636652768285458569062878611317602841499088282530798143147640460012527948722544350531006403703239417663454147165839392083945105225074778235517366830265723868
 	lam = -3
-	phi = 2**64
-	do_precalcs(p, n, gamma, lam, phi)
+	do_precalcs(p, n, gamma, lam)

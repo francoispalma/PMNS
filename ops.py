@@ -292,9 +292,6 @@ def mns_mod_mult(A, B, p, n, gamma, rho, lam):
 			R[i] += A[i + j] * B[n - j]
 		R[i] *= lam
 		
-#		print("AFTER LAMBDA")
-#		print(hex(R[i]))
-		
 		for j in range(i + 1):
 			R[i] += A[j] * B[i - j]
 	return R
@@ -309,7 +306,6 @@ def montgomery_like_coefficient_reduction(V, p, n, gamma, rho, lam, phi, M, M1):
 
 def amns_montg_mult(A, B, p, n, gamma, rho, lam, phi, M, M1):
 	amns = (p, n, gamma, rho, lam)
-	print([hex(elem) for elem in mns_mod_mult(A, B, *amns)])
 	return montgomery_like_coefficient_reduction(mns_mod_mult(A, B, *amns),
 		*amns, phi, M, M1)
 
