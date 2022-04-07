@@ -291,7 +291,6 @@ def mns_mod_mult(A, B, p, n, gamma, rho, lam):
 		for j in range(1, n - i):
 			R[i] += A[i + j] * B[n - j]
 		R[i] *= lam
-		
 		for j in range(i + 1):
 			R[i] += A[j] * B[i - j]
 	return R

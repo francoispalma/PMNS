@@ -5,14 +5,17 @@ all: main.exe
 main.exe: main.c pmns.o structs.o utilitymp.o
 	gcc -o $@ $^ $(FLAGS)
 
-structs.o: structs.c structs.h
-	gcc -c $< $(FLAGS)
-
 pmns.o: pmns.c pmns.h params.h
 	gcc -c $< $(FLAGS)
 
 params.h: precalcs.py
 	python3 $< > $@
+
+structs.o: structs.c structs.h
+	gcc -c $< $(FLAGS)
+
+utilitymp.o: utilitymp.c utilitymp.h
+	gcc -c $< $(FLAGS)
 
 hardcode.exe: hardcode.o
 	gcc -o $@ $^ $(FLAGS)
@@ -20,11 +23,14 @@ hardcode.exe: hardcode.o
 hardcode.o: hardcode/hardcode.c
 	gcc -c $< $(FLAGS)
 
-utilitymp.o: utilitymp.c utilitymp.h
+p128.exe: pmns128.o structs.o utilitymp.o
+	gcc -o $@ $^ $(FLAGS)
+
+pmns128.o: pmns128.c pmns128.h params128.h
 	gcc -c $< $(FLAGS)
 
-pmns128.o: pmns128.c pmns128.h
-	gcc -c $< $(FLAGS)
+params128.h: precalcs128.py pyparams.py
+	python3 $< > $@
 
 clean:
 	rm -rf *.o
@@ -50,12 +56,6 @@ hard: hardcode.exe
 hardproof: hardcode.exe
 	./hardcode.exe > log
 	python3 proof.py
-
-params128.h: precalcs128.py
-	python3 precalcs128.py > params128.h
-
-p128.exe: pmns128.o structs.o utilitymp.o
-	gcc -o $@ $^ $(FLAGS)
 
 p128: p128.exe
 	./p128.exe
