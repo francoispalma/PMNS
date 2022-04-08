@@ -22,7 +22,7 @@ if __name__ == "__main__":
 #	print("]")
 	print("pmnsdict = {}")
 	print("pmns128dict = {}")
-	for i in range(10):
+	for i in range(1000):
 		p = PRIMES1024[i]
 		K = GF(p)
 		polK = PolynomialRing(K, 'X')
