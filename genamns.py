@@ -6,12 +6,12 @@ from precalcs import do_precalcs
 from primes1024 import PRIMES1024
 
 if __name__ == "__main__":
-	print("pmns128dict = {}")
+	print("pmnsdict = {}")
 	for i in range(1000):
 		p = PRIMES1024[i]
 		K = GF(p)
 		polK = PolynomialRing(K, 'X')
-		n = 9
+		n = 17
 		flag = False
 		while True:
 			for lam in range(2, 8):
@@ -31,4 +31,4 @@ if __name__ == "__main__":
 			if flag == True:
 				break
 			n += 2
-		print("pmns128dict[" + str(p) + "] = (" + str(p) + ", " + str(n) + ", " + str(fs[0][0][0]) + ", " + str(lamb) + ")")
+		print("pmnsdict[" + str(p) + "] = (" + str(p) + ", " + str(n) + ", " + str(fs[0][0][0]) + ", " + str(lamb) + ")")
