@@ -17,12 +17,6 @@ structs.o: structs.c structs.h
 utilitymp.o: utilitymp.c utilitymp.h
 	gcc -c $< $(FLAGS)
 
-hardcode.exe: hardcode.o
-	gcc -o $@ $^ $(FLAGS)
-
-hardcode.o: hardcode/hardcode.c
-	gcc -c $< $(FLAGS)
-
 p128.exe: pmns128.o structs.o utilitymp.o
 	gcc -o $@ $^ $(FLAGS)
 
@@ -48,13 +42,6 @@ demo: main.exe
 
 proof: main.exe
 	./main.exe > log
-	python3 proof.py
-
-hard: hardcode.exe
-	./hardcode.exe
-
-hardproof: hardcode.exe
-	./hardcode.exe > log
 	python3 proof.py
 
 p128: p128.exe
