@@ -410,11 +410,52 @@ void __multchecks__(void)
 	free_poly128s(a, b, c, NULL);
 }
 
+void __multbench__(void)
+{
+	uint64_t c1 = 0, sum;
+	poly128 a, b, c, soak1, soak2;
+	init_poly128s(N, &a, &b, &c, &soak1, &soak2, NULL);
+	
+	srand((unsigned) (time(((int64_t*)(&c1)))));
+	
+	c1 = clock();
+	
+	randpoly128(soak2);
+	soak2->lo[0] += Gi[0].t[0];
+	soak2->lo[0] += __P__.t[0];
+	
+	for(int i = 0; i < 1000; i++)
+	{
+		randpoly128(a);
+		randpoly128(b);
+		amns128_montg_mult(c, a, b);
+		amns128_montg_mult(soak1, c, soak2);
+		amns128_montg_mult(soak2, c, soak1);
+	}
+	
+	sum = 0;
+	for(int i = 0; i < 10000; i++)
+	{
+		randpoly128(a);
+		randpoly128(b);
+		c1 = clock();
+		amns128_montg_mult(c, a, b);
+		sum += clock() - c1;
+		amns128_montg_mult(soak1, c, soak2);
+		amns128_montg_mult(soak2, c, soak1);
+	}
+	
+	printf("%ld\n", sum);
+	
+	free_poly128s(a, b, c, soak1, soak2, NULL);
+}
+
 int main(void)
 {
 	//__benchmult__();
-	__multchecks__();
+	//__multchecks__();
 	//__main__();
+	__multbench__();
 	
 	return 0;
 }

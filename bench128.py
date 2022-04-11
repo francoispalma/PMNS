@@ -1,3 +1,6 @@
+import os
+
+from contextlib import redirect_stdout
 from sage.all import matrix, ZZ
 from sage.modules.free_module_integer import IntegerLattice
 from math import ceil
@@ -8,15 +11,12 @@ from primes1024 import PRIMES1024 as primes
 from precalcs128 import do_precalcs as do_precalcs128
 from precalcs import do_precalcs
 
+with open("results128", "w+") as f:
+	pass
 for i in range(1000):
 	(p, n, gamma, lam) = pmns128dict[primes[i]]
-	#do_precalcs(p, n, gamma, lam)
-	B = [[p if (i, j) == (0, 0) else -pow(gamma, i, p) if i != 0 and j == 0 else 1 if i == j else 0 for j in range(n)] for i in range(n)]
-	B = list(IntegerLattice(matrix(ZZ, B)).LLL())
-	w = 1 + (n - 1) * abs(lam)
-	__tmp = int(2 * w * max(max(B)))
-	rho = ceil(__tmp.bit_length())
-	if rho < 128:
-		print(i, rho)
-	else:
-		print(">>>>", i, rho)
+	with open("params128.h", "w+") as f:
+		with redirect_stdout(f):
+			do_precalcs128(p, n, gamma, lam)
+	os.system("make p128.exe")
+	os.system("./p128.exe >> results128")
