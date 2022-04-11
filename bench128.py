@@ -1,15 +1,10 @@
 import os
 
 from contextlib import redirect_stdout
-from sage.all import matrix, ZZ
-from sage.modules.free_module_integer import IntegerLattice
-from math import ceil
 
-#from generatedpmns import pmnsdict, pmns128dict
 from generatedpmns128 import pmns128dict
 from primes1024 import PRIMES1024 as primes
 from precalcs128 import do_precalcs as do_precalcs128
-from precalcs import do_precalcs
 
 with open("results128", "w+") as f:
 	pass

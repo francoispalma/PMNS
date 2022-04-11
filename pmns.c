@@ -371,3 +371,42 @@ void __full_mult_demo(void)
 	free_polys(A, B, C, aux, NULL);
 }
 
+void __multbench__(void)
+{
+	uint64_t c1 = 0, sum;
+	poly a, b, c, soak1, soak2;
+	init_polys(N, &a, &b, &c, &soak1, &soak2, NULL);
+	
+	srand((unsigned) (time(((int64_t*)(&c1)))));
+	
+	c1 = clock();
+	
+	randpoly(soak2);
+	soak2->t[0] += Gi[0].t[0];
+	soak2->t[0] += __P__.t[0];
+	
+	for(int i = 0; i < 1000; i++)
+	{
+		randpoly(a);
+		randpoly(b);
+		amns_montg_mult(c, a, b);
+		amns_montg_mult(soak1, c, soak2);
+		amns_montg_mult(soak2, c, soak1);
+	}
+	
+	sum = 0;
+	for(int i = 0; i < 10000; i++)
+	{
+		randpoly(a);
+		randpoly(b);
+		c1 = clock();
+		amns_montg_mult(c, a, b);
+		sum += clock() - c1;
+		amns_montg_mult(soak1, c, soak2);
+		amns_montg_mult(soak2, c, soak1);
+	}
+	
+	printf("%ld\n", sum);
+	
+	free_polys(a, b, c, soak1, soak2, NULL);
+}
