@@ -45,7 +45,7 @@ if __name__ == "__main__":
 					break
 			if flag == True:
 				break
-			n += 1
+			n += 2
 		#assert pow(fs[0][0][0], n, p) == (p - lamb) % p
 		print("pmns128dict[" + str(p) + "] = (" + str(p) + ", " + str(n) + ", " + str(fs[0][0][0]) + ", " + str(lamb) + ")")
 		n = 17
@@ -67,6 +67,6 @@ if __name__ == "__main__":
 					break
 			if flag == True:
 				break
-			n += 1
+			n += 2
 		#assert pow(fs[0][0][0], n, p) == (p - lamb) % p
 		print("pmnsdict[" + str(p) + "] = (" + str(p) + ", " + str(n) + ", " + str(fs[0][0][0]) + ", " + str(lamb) + ")")
