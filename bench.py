@@ -8,7 +8,7 @@ from precalcs import do_precalcs
 
 with open("results", "w+") as f:
 	pass
-for i in range(100):
+for i in range(1000):
 	(p, n, gamma, lam) = pmnsdict[primes[i]]
 	with open("params.h", "w+") as f:
 		with redirect_stdout(f):

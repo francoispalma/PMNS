@@ -44,6 +44,10 @@ proof: main.exe
 	./main.exe > log
 	python3 proof.py
 
+proof128: p128.exe
+	./p128.exe > log
+	python3 check128.py
+
 p128: p128.exe
 	./p128.exe
 
