@@ -6,11 +6,11 @@ from primes1024 import PRIMES1024
 
 if __name__ == "__main__":
 	print("pmnsdict = {}")
-	for i in range(1000):
+	for i in range(10):
 		p = PRIMES1024[i]
 		K = GF(p)
 		polK = PolynomialRing(K, 'X')
-		n = 17
+		n = 9
 		flag = False
 		while True:
 			for lam in range(2, 8):
@@ -35,7 +35,7 @@ if __name__ == "__main__":
 				w = 1 + (n - 1) * abs(lam)
 				__tmp = int(2 * w * max(max(B)))
 				rho = ceil(__tmp.bit_length())
-				if rho <= 64:
+				if rho <= 104:
 					break
 			n += 2
 		print("pmnsdict[" + str(p) + "] = (" + str(p) + ", " + str(n) + ", " + str(fs[0][0][0]) + ", " + str(lamb) + ")")

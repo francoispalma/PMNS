@@ -1,8 +1,6 @@
 from sage.all import next_prime, previous_prime, GF, PolynomialRing, factor
 from math import ceil
 
-from precalcs128 import do_precalcs as do_precalcs128
-from precalcs import do_precalcs
 from primes1024 import PRIMES1024
 
 if __name__ == "__main__":

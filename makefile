@@ -17,7 +17,10 @@ structs.o: structs.c structs.h
 utilitymp.o: utilitymp.c utilitymp.h
 	gcc -c $< $(FLAGS)
 
-p128.exe: pmns128.o structs.o utilitymp.o
+hardcode.exe: hardcode.c
+	gcc -o $@ $^ $(FLAGS)
+
+p128.exe: main128.c pmns128.o structs.o utilitymp.o
 	gcc -o $@ $^ $(FLAGS)
 
 pmns128.o: pmns128.c pmns128.h params128.h
