@@ -83,15 +83,14 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
-	// multiplies A and B and adds the result to R;
+	// multiplies A and B and adds the result to R using karatsuba;
 	unsigned __int128 A0B0, tmplo;
 	__int128 A1B1, A1B0_A0B1, aux1, aux2, aux3;
 	
 	A1B1 = (__int128) Ahi * Bhi;
 	A0B0 = (__int128) Alo * Blo;
 	aux3 = (__int128) (Alo - Ahi) * (Blo - Bhi);
-	aux1 = (__int128) A0B0 + A1B1 - aux3;
-	A1B0_A0B1 = (__int128) aux1;
+	A1B0_A0B1 = (__int128) A0B0 + A1B1 - aux3;
 	
 	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);
 	aux2 = (__int128) HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1);
@@ -105,32 +104,37 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 void m_multadd128(__int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
-	// multiplies A and B and adds the result to R;
-	unsigned __int128 A0B0, aux4, tmplo;
-	__int128 A1B1, aux1, aux2, aux3, A1B0_A0B1;
+	// multiplies A and B and adds the result to R for mult by M use;
+	unsigned __int128 A0B0, tmplo;
+	__int128 A1B1, A1B0_A0B1, aux1, aux2, aux3;
 	
 	A1B1 = (__int128) Ahi * Bhi;
 	A0B0 = (__int128) Alo * Blo;
-	aux1 = (__int128) (Alo - Ahi);
-	aux2 = (__int128) (Blo - Bhi);
-	aux3 = (__int128) aux1 * aux2;
-	aux1 = (__int128) A0B0 - aux3;
-	A1B0_A0B1 = (__int128) aux1 + A1B1;
+	aux3 = (__int128) (Alo - Ahi) * (Blo - Bhi);
+	A1B0_A0B1 = (__int128) A0B0 + A1B1 - aux3;
 	
-	aux4 = (__int128) LOW(A0B0);
-	aux3 = (__int128) HIGH(aux4) + HIGH(A0B0) + LOW(A1B0_A0B1);
+	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);
 	aux2 = (__int128) HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1);
 	aux1 = (__int128) HIGH(A1B1);
 	
 	tmplo = *Rlo;
-	*Rlo += (__int128) LOW(aux4) + (aux3 << 64);
+	*Rlo += (__int128) LOW(A0B0) + (aux3 << 64);
 	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);
 }
+/*
+*/
+
+/*
+[0x210b194dfc96c5b156255cd2d0854, 0xffff33ffb01743179e28e2d9a774c260, 0xfffc0950c6748e66a89acbbce7ae48a1, 0xfffcffe1e347dd0b6b2f82bed7e28e21, 0xfffe6cf237cb9ea689411647682a9426, 0xfffdd446e49416cd805f050793fa04a4, 0xdf34ff1644cb21678b4a2125cb3e, 0x8a6b6e88cca53e0ceeb80902be8c, 0xeb53c35088802a8e0137fc5d4f54]
+
+[0x210b194dfc96c5b156255cd2d0854, 0xffff33ffb01743174eb3dc6bde71e272, 0xfffc0950c6748e6647ff0502daa273ba, 0xfffcffe1e347dd0ad02fa2cbea40784f, 0xfffe6cf237cb9ea5924b7b097578166f, 0xfffdd446e49416cc96a355ba9baf354f, 0xdf34ff1644ca314ef07fb5605eea, 0x8a6b6e88cca475d6017f919c9bbb, 0xeb53c350887ec75657c533c30a7b]
+
+*/
 
 void mm1_multadd128(__int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
-	// multiplies A and B and adds the result to R;
+	// multiplies A and B and adds the result to R for mult by M or M1 use (slow);
 	unsigned __int128 A0B0, A1B0, A0B1, aux4, tmplo;
 	__int128 A1B1, aux1, aux2, aux3;
 	
@@ -152,7 +156,7 @@ void mm1_multadd128(__int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,
 void m1_multadd128(unsigned __int128* Rlo, const uint64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
-	// multiplies A and B and adds the result to R;
+	// multiplies A and B and adds the result to R for mult by M1 use;
 	unsigned __int128 A1B0, A0B1;
 	__int128 aux3;
 	
@@ -200,27 +204,21 @@ static inline void m_mns128_mod_mult_ext_red(__int128* Rhi,
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			mm1_multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
+			m_multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
 				MLambdahi[N - j], MLambdalo[N - j]);
 		
 		for(j = 0; j < i + 1; j++)
-			mm1_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
+			m_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
 				Mhi[i - j], Mlo[i - j]);
 	}
 }
-
-/*
-[0x210b194dfc96c5b156255cd2d0854, 0xffff33ffb01743179e28e2d9a774c260, 0xfffc0950c6748e66a89acbbce7ae48a1, 0xfffcffe1e347dd0b6b2f82bed7e28e21, 0xfffe6cf237cb9ea689411647682a9426, 0xfffdd446e49416cd805f050793fa04a4, 0xdf34ff1644cb21678b4a2125cb3e, 0x8a6b6e88cca53e0ceeb80902be8c, 0xeb53c35088802a8e0137fc5d4f54]
-
-[0x210b194dfc96c5b156255cd2d0854, 0xffff33ffb01743174eb3dc6bde71e272, 0xfffc0950c6748e6647ff0502daa273ba, 0xfffcffe1e347dd0ad02fa2cbea40784f, 0xfffe6cf237cb9ea5924b7b097578166f, 0xfffdd446e49416cc96a355ba9baf354f, 0xdf34ff1644ca314ef07fb5605eea, 0x8a6b6e88cca475d6017f919c9bbb, 0xeb53c350887ec75657c533c30a7b]
-
-*/
 
 static inline void m1_mns128_mod_mult_ext_red(unsigned __int128* Rlo,
 	const restrict poly128 A)
 {
 	// Same as above but with some pre calculations done in the case of M1 being
-	// the second operand.
+	// the second operand (in pmns128 we only care about the lower 128 bits for
+	// this operation).
 	
 	register uint16_t i, j;
 	
@@ -239,7 +237,9 @@ static inline void m1_mns128_mod_mult_ext_red(unsigned __int128* Rlo,
 static inline void mns128_montg_int_red(poly128 res, __int128* Rhi,
 	unsigned __int128* Rlo)
 {
-	unsigned __int128 V[N], V2[N], T2[N];
+	// Function that reduces the internal coefficient contained in R to be lower
+	// than the chosen Rho.
+	unsigned __int128 V[N], V2[N];
 	register uint16_t i;
 	
 	for(i = 0; i < N; i++)
@@ -266,9 +266,7 @@ static inline void mns128_montg_int_red(poly128 res, __int128* Rhi,
 	
 	for(i = 0; i < N; i++)
 	{
-		T2[i] = Rhi[i];
-		
-		Rhi[i] = (__int128) V2[i] + T2[i] + (V[i] != 0);
+		Rhi[i] = (__int128) V2[i] + Rhi[i] + (V[i] != 0);
 		res->lo[i] = LOW(Rhi[i]);
 		res->hi[i] = HIGH(Rhi[i]);
 	}

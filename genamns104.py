@@ -5,8 +5,8 @@ from math import ceil
 from primes1024 import PRIMES1024
 
 if __name__ == "__main__":
-	print("pmnsdict = {}")
-	for i in range(10):
+	print("pmns104dict = {}")
+	for i in range(1000):
 		p = PRIMES1024[i]
 		K = GF(p)
 		polK = PolynomialRing(K, 'X')
@@ -38,4 +38,4 @@ if __name__ == "__main__":
 				if rho <= 104:
 					break
 			n += 2
-		print("pmnsdict[" + str(p) + "] = (" + str(p) + ", " + str(n) + ", " + str(fs[0][0][0]) + ", " + str(lamb) + ")")
+		print("pmns104dict[" + str(p) + "] = (" + str(p) + ", " + str(n) + ", " + str(fs[0][0][0]) + ", " + str(lamb) + ")")
