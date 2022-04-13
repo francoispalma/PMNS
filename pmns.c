@@ -117,7 +117,7 @@ static inline int64_t __modrho(int64_t param)
 	return param & ((1ULL<<RHO) - 1);
 }
 
-static inline void randpoly(poly P)
+void randpoly(poly P)
 {
 	for(register uint16_t i = 0; i < P->deg; i++)
 		P->t[i] = __modrho(randomint64());

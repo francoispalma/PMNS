@@ -204,11 +204,11 @@ static inline void m_mns128_mod_mult_ext_red(__int128* Rhi,
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			m_multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
+			mm1_multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
 				MLambdahi[N - j], MLambdalo[N - j]);
 		
 		for(j = 0; j < i + 1; j++)
-			m_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
+			mm1_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
 				Mhi[i - j], Mlo[i - j]);
 	}
 }
@@ -315,7 +315,7 @@ end:
 	free_poly(stok);
 }
 
-static inline void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
+inline void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B)
 {
 	// Function that multiplies A by B using the montgomery approach in an
@@ -401,7 +401,7 @@ static inline int64_t __modrhohi(int64_t param)
 	return param & ((1ULL<<(RHO - 64)) - 1);
 }
 
-static inline void randpoly128(poly128 P)
+void randpoly128(poly128 P)
 {
 	for(register uint16_t i = 0; i < P->deg; i++)
 	{

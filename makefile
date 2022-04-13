@@ -29,6 +29,12 @@ pmns128.o: pmns128.c pmns128.h params128.h
 params128.h: precalcs128.py pyparams.py
 	python3 $< > $@
 
+bench.exe: intel-measurement.c pmns.o structs.o utilitymp.o
+	gcc -o $@ $^ $(FLAGS)
+
+bench128.exe: intel-measurement128.c pmns128.o structs.o utilitymp.o
+	gcc -o $@ $^ $(FLAGS)
+
 clean:
 	rm -rf *.o
 	rm -rf *.exe

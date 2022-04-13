@@ -7,13 +7,7 @@
 #include "structs.h"
 #include "params128.h"
 
+extern void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
+	const restrict poly128 B);
+
 #endif
-
-/*
-0|A1|0|A2
-0|B1|0|B2
-A1B1h|A1B1l + A1B2h + A2B1h|A1B2l + A2B1l + A2B2h|A2B2l
-
-A1B2l + A2B1l + A2B2h|A2B2l
-Q1|Q2
-*/

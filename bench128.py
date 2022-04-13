@@ -13,5 +13,5 @@ for i in range(1000):
 	with open("params128.h", "w+") as f:
 		with redirect_stdout(f):
 			do_precalcs128(p, n, gamma, lam)
-	os.system("make p128.exe")
-	os.system("./p128.exe >> results128")
+	os.system("make bench128.exe")
+	os.system("./bench128.exe >> results128")

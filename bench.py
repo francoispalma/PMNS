@@ -13,5 +13,5 @@ for i in range(1000):
 	with open("params.h", "w+") as f:
 		with redirect_stdout(f):
 			do_precalcs(p, n, gamma, lam)
-	os.system("make")
-	os.system("./main.exe >> results")
+	os.system("make bench.exe")
+	os.system("./bench.exe >> results")
