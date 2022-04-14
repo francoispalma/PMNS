@@ -35,8 +35,9 @@ static inline void umult128(unsigned __int128* Rhi, unsigned __int128* Rlo, cons
 	*Rhi = (__int128) *Rhi + HI(aux) + (*Rlo < tmp);
 }
 
-void umultadd128(unsigned __int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,
-	const uint64_t Alo, const uint64_t Bhi, const uint64_t Blo)
+static inline void umultadd128(unsigned __int128* Rhi, unsigned __int128* Rlo,
+	const uint64_t Ahi, const uint64_t Alo, const uint64_t Bhi,
+	const uint64_t Blo)
 {
 	unsigned __int128 auxlo, auxhi;
 	
@@ -46,8 +47,8 @@ void umultadd128(unsigned __int128* Rhi, unsigned __int128* Rlo, const uint64_t 
 	*Rhi = (__int128) *Rhi + auxhi + (*Rlo < auxlo);
 }
 
-void multadd128x(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
-	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
+static inline void multadd128x(__int128* Rhi, unsigned __int128* Rlo,
+	const int64_t Ahi, const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
 	unsigned __int128 auxlo;
 	__int128 auxhi;
@@ -331,6 +332,28 @@ inline void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	mns128_montg_int_red(res, Rhi, Rlo);
 }
 
+static inline int64_t randomint64(void)
+{
+	// Function to generate a random 64 bit number.
+	return (((int64_t)rand() + rand()) << 32) ^ ((int64_t)rand() + rand());
+}
+
+static inline int64_t __modrhohi(int64_t param)
+{
+	// Utility function to get a high part for a random poly128.
+	return param & ((1ULL<<(RHO - 64)) - 1);
+}
+
+void randpoly128(poly128 P)
+{
+	// Generates a random poly128 with appropriate, lower than rho high part.
+	for(register uint16_t i = 0; i < P->deg; i++)
+	{
+		P->lo[i] = randomint64();
+		if(RHO > 64) P->hi[i] = __modrhohi(randomint64());
+	}
+}
+
 void __main__(void)
 {
 /*	int64_t Ahi = 0x5c096e6b558ba549, Bhi = 0x5918460d4a05af9c;*/
@@ -389,25 +412,6 @@ void __main__(void)
 	p128_print(A);
 	
 	free_poly128(A);
-}
-
-static inline int64_t randomint64(void)
-{
-	return (((int64_t)rand() + rand()) << 32) ^ ((int64_t)rand() + rand());
-}
-
-static inline int64_t __modrhohi(int64_t param)
-{
-	return param & ((1ULL<<(RHO - 64)) - 1);
-}
-
-void randpoly128(poly128 P)
-{
-	for(register uint16_t i = 0; i < P->deg; i++)
-	{
-		P->lo[i] = randomint64();
-		if(RHO > 64) P->hi[i] = __modrhohi(randomint64());
-	}
 }
 
 void __benchmult__(void)

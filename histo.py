@@ -25,6 +25,7 @@ if __name__ == "__main__":
 	LL = [eval(elem[:-1]) for elem in L]
 	mini, maxi, meani = ([elem[0] for elem in LL], [elem[1] for elem in LL],
 		[elem[2] for elem in LL])
+	mean64 = mean(meani)
 	plt.hist(mini)
 	plt.hist(maxi)
 	plt.hist(meani)
@@ -35,8 +36,10 @@ if __name__ == "__main__":
 	LL = [eval(elem[:-1]) for elem in L]
 	mini, maxi, meani = ([elem[0] for elem in LL], [elem[1] for elem in LL],
 		[elem[2] for elem in LL])
+	mean128 = mean(meani)
 	plt.hist(mini)
 	plt.hist(maxi)
 	plt.hist(meani)
 	plt.title("Min/Mean/Max 128")
+	print("Ratio without turbo:", mean128/mean64)
 	plt.show()
