@@ -115,15 +115,13 @@ void m_multadd128(__int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,
 	A1B0_A0B1 = (__int128) A0B0 + A1B1 - aux3;
 	
 	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1);
-	aux1 = (__int128) HIGH(A1B1);
+	aux2 = (__int128) HI(aux3) + HI(A1B0_A0B1) + LOW(A1B1);
+	aux1 = (__int128) HI(A1B1);
 	
 	tmplo = *Rlo;
-	*Rlo += (__int128) LOW(A0B0) + (aux3 << 64);
+	*Rlo += (__int128) LOW(A0B0) + ((__int128)(HI(A0B0) + LOW(A1B0_A0B1)) << 64);
 	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);
 }
-/*
-*/
 
 /*
 [0x210b194dfc96c5b156255cd2d0854, 0xffff33ffb01743179e28e2d9a774c260, 0xfffc0950c6748e66a89acbbce7ae48a1, 0xfffcffe1e347dd0b6b2f82bed7e28e21, 0xfffe6cf237cb9ea689411647682a9426, 0xfffdd446e49416cd805f050793fa04a4, 0xdf34ff1644cb21678b4a2125cb3e, 0x8a6b6e88cca53e0ceeb80902be8c, 0xeb53c35088802a8e0137fc5d4f54]
@@ -136,7 +134,7 @@ void mm1_multadd128(__int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
 	// multiplies A and B and adds the result to R for mult by M or M1 use (slow);
-	unsigned __int128 A0B0, A1B0, A0B1, aux4, tmplo;
+	unsigned __int128 A0B0, A1B0, A0B1, tmplo;
 	__int128 A1B1, aux1, aux2, aux3;
 	
 	A1B1 = (__int128) Ahi * Bhi;
@@ -144,13 +142,12 @@ void mm1_multadd128(__int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,
 	A0B1 = (__int128) Alo * Bhi;
 	A0B0 = (__int128) Alo * Blo;
 	
-	aux4 = (__int128) LOW(A0B0);
-	aux3 = (__int128) HIGH(aux4) + HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
+	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
 	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0) + LOW(A1B1);
 	aux1 = (__int128) HIGH(A1B1);
 	
 	tmplo = *Rlo;
-	*Rlo += (__int128) LOW(aux4) + (aux3 << 64);
+	*Rlo += (__int128) LOW(A0B0) + (aux3 << 64);
 	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);
 }
 
@@ -180,7 +177,7 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			multadd128k(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
+			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
 				B->hi[N - j], B->lo[N - j]);
 		
 		aux = (unsigned __int128) LOW(Rlo[i]) * (LAMBDA);
@@ -189,7 +186,7 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 		Rhi[i] = (__int128) Rhi[i] * (LAMBDA) + HIGH(aux);
 		
 		for(j = 0; j < i + 1; j++)
-			multadd128k(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
+			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
 				B->hi[i - j], B->lo[i - j]);
 	}
 }
@@ -468,7 +465,7 @@ void __multchecks__(void)
 	
 	srand((unsigned) (time(&seed)));
 	
-	for(int i = 0; i < 10000; i++)
+	for(int i = 0; i < 1000000; i++)
 	{
 		randpoly128(a);
 		randpoly128(b);

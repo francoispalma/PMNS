@@ -70,6 +70,7 @@ Pi = [montgomery_convert_to_mns((rho**i) * (phi**2), p, n, gamma, rho, lam, phi,
 ##print([hex(elem) if elem >= 0 else hex(2**128 + elem) for elem in M1])
 
 if __name__ == "__main__":
+	counter = 0
 	print("Starting")
 	with open("log", "r") as f:
 		while True:
@@ -82,11 +83,12 @@ if __name__ == "__main__":
 				c = [elem - 2**128 if elem > 2**127 else elem for elem in c]
 				c_check = amns_montg_mult(a, b, p, n, gamma, rho, lam, phi, M, M1)
 				if horner_modulo(c, gamma, p) != horner_modulo(c_check, gamma, p):
-					print("False")
+					counter += 1
 				for elem in c:
 					if abs(elem) >= rho:
 						print("More than Rho")
 			except SyntaxError:
 				break
 	print("Finished")
+	print("counter:", counter)
 
