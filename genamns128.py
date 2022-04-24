@@ -2,12 +2,12 @@ from sage.all import next_prime, previous_prime, GF, PolynomialRing, factor, mat
 from sage.modules.free_module_integer import IntegerLattice
 from math import ceil
 
-from primes1024 import PRIMES2048
+from primes2048 import PRIMES2048
 
 if __name__ == "__main__":
 	print("pmns128dict = {}")
 	for i in range(1000):
-		p = PRIMES1024[i]
+		p = PRIMES2048[i]
 		K = GF(p)
 		polK = PolynomialRing(K, 'X')
 		n = 17

@@ -2,11 +2,11 @@ import os
 
 from contextlib import redirect_stdout
 
-from generatedpmns128 import pmns128dict
-from primes1024 import PRIMES1024 as primes
+from generated2048pmns128 import pmns128dict
+from primes2048 import PRIMES2048 as primes
 from precalcs128 import do_precalcs as do_precalcs128
 
-with open("results128", "w+") as f:
+with open("results2048128", "w+") as f:
 	pass
 for i in range(1000):
 	(p, n, gamma, lam) = pmns128dict[primes[i]]
@@ -14,4 +14,4 @@ for i in range(1000):
 		with redirect_stdout(f):
 			do_precalcs128(p, n, gamma, lam)
 	os.system("make bench128.exe")
-	os.system("./bench128.exe >> results128")
+	os.system("./bench128.exe >> results2048128")
