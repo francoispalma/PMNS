@@ -86,15 +86,55 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 {
 	// multiplies A and B and adds the result to R using karatsuba;
 	unsigned __int128 A0B0, tmplo;
-	__int128 A1B1, A1B0_A0B1, aux1, aux2, aux3;
+	__int128 A1B1, A1B0_A0B1l, A1B0_A0B1h, aux1, aux2, aux3;
 	
 	A1B1 = (__int128) Ahi * Bhi;
 	A0B0 = (__int128) Alo * Blo;
 	aux3 = (__int128) (Alo - Ahi) * (Blo - Bhi);
-	A1B0_A0B1 = (__int128) A0B0 + A1B1 - aux3;
+	//A1B0_A0B1 = (__int128) A0B0 + A1B1 - aux3;
+/*	printf("aux3 = ");*/
+/*	__print128(aux3);*/
+/*	*/
+/*	printf("LOW = lambda x: x % 2**64\nHIGH = lambda x: x >> 64\nHI = lambda x: (x >> 64) % 2**64");*/
+/*	printf("Ahi = 0x%lx\nAlo = 0x%lx\nBhi = 0x%lx\nBlo = 0x%lx\nA0B0 = ", Ahi, Alo, Bhi, Blo);*/
+/*	*/
+/*	__print128(A0B0);*/
+/*	printf("A1B1 = ");*/
+/*	__print128(A1B1);*/
 	
-	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1);
+	A1B0_A0B1l = (__int128) LOW(A0B0) + LOW(A1B1) - LOW(aux3);
+	A1B0_A0B1h = (__int128) HI(A1B0_A0B1l) + HI(A0B0) + HIGH(A1B1) - HIGH(aux3);
+	
+	//__print128(A1B0_A0B1);
+	//A1B0_A0B1 = (__int128) ((__int128) (A1B0_A0B1h) << 64) | LOW(A1B0_A0B1l);
+/*	if(tmp != A1B0_A0B1)*/
+/*	{*/
+/*		__print128(tmp);*/
+/*		__print128(A1B0_A0B1);*/
+/*		printf("HAAAAAAAAAAA\n");*/
+/*	}*/
+	//__print128(A1B0_A0B1);
+	//exit(0);
+	
+/*	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);*/
+/*	aux2 = (__int128) HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1);*/
+/*	aux1 = (__int128) HIGH(A1B1);*/
+	
+/*	printf("A1B0_A0B1 = ");*/
+/*	__print128(A1B0_A0B1);*/
+/*	printf("A1B0_A0B1l = ");*/
+/*	__print128(A1B0_A0B1l);*/
+/*	printf("A1B0_A0B1h = ");*/
+/*	__print128(A1B0_A0B1h);*/
+/*	*/
+/*	printf("HI(A0B0) + LOW(A1B0_A0B1) == HI(A0B0) + LOW(A1B0_A0B1l)\n");*/
+/*	printf("HIGH(aux3) + LOW(A1B0_A0B1h) + LOW(A1B1) == HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1)\n");*/
+/*	printf("HIGH(A1B1) == HIGH(A1B1) + HIGH(A1B0_A0B1h)\n");*/
+/*	*/
+/*	exit(0);*/
+	
+	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1l);
+	aux2 = (__int128) HIGH(aux3) + LOW(A1B0_A0B1h) + LOW(A1B1);
 	aux1 = (__int128) HIGH(A1B1);
 	
 	tmplo = *Rlo;
@@ -122,13 +162,6 @@ void m_multadd128(__int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,
 	*Rlo += (__int128) LOW(A0B0) + ((__int128)(HI(A0B0) + LOW(A1B0_A0B1)) << 64);
 	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);
 }
-
-/*
-[0x210b194dfc96c5b156255cd2d0854, 0xffff33ffb01743179e28e2d9a774c260, 0xfffc0950c6748e66a89acbbce7ae48a1, 0xfffcffe1e347dd0b6b2f82bed7e28e21, 0xfffe6cf237cb9ea689411647682a9426, 0xfffdd446e49416cd805f050793fa04a4, 0xdf34ff1644cb21678b4a2125cb3e, 0x8a6b6e88cca53e0ceeb80902be8c, 0xeb53c35088802a8e0137fc5d4f54]
-
-[0x210b194dfc96c5b156255cd2d0854, 0xffff33ffb01743174eb3dc6bde71e272, 0xfffc0950c6748e6647ff0502daa273ba, 0xfffcffe1e347dd0ad02fa2cbea40784f, 0xfffe6cf237cb9ea5924b7b097578166f, 0xfffdd446e49416cc96a355ba9baf354f, 0xdf34ff1644ca314ef07fb5605eea, 0x8a6b6e88cca475d6017f919c9bbb, 0xeb53c350887ec75657c533c30a7b]
-
-*/
 
 void mm1_multadd128(__int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
@@ -177,7 +210,7 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
+			multadd128k(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
 				B->hi[N - j], B->lo[N - j]);
 		
 		aux = (unsigned __int128) LOW(Rlo[i]) * (LAMBDA);
@@ -186,7 +219,7 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 		Rhi[i] = (__int128) Rhi[i] * (LAMBDA) + HIGH(aux);
 		
 		for(j = 0; j < i + 1; j++)
-			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
+			multadd128k(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
 				B->hi[i - j], B->lo[i - j]);
 	}
 }
