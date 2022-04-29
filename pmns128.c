@@ -63,7 +63,7 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
 	// multiplies A and B and adds the result to R;
-	unsigned __int128 A0B0, A1B0, A0B1, aux4, tmplo;
+	unsigned __int128 A0B0, A1B0, A0B1, tmplo;
 	__int128 A1B1, aux1, aux2, aux3;
 	
 	A1B1 = (__int128) Ahi * Bhi;
@@ -71,13 +71,12 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	A0B1 = (__int128) Alo * Bhi;
 	A0B0 = (__int128) Alo * Blo;
 	
-	aux4 = (__int128) LOW(A0B0);
-	aux3 = (__int128) HIGH(aux4) + HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
+	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
 	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0) + LOW(A1B1);
 	aux1 = (__int128) HIGH(A1B1);
 	
 	tmplo = *Rlo;
-	*Rlo += (__int128) LOW(aux4) + (aux3 << 64);
+	*Rlo += (__int128) LOW(A0B0) + (aux3 << 64);
 	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);
 }
 
@@ -86,12 +85,12 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 {
 	// multiplies A and B and adds the result to R using karatsuba;
 	unsigned __int128 A0B0, tmplo;
-	__int128 A1B1, A1B0_A0B1l, A1B0_A0B1h, aux1, aux2, aux3;
+	__int128 A1B1, A1B0_A0B1, A1B0_A0B1l, A1B0_A0B1h, aux1, aux2, aux3;
 	
 	A1B1 = (__int128) Ahi * Bhi;
 	A0B0 = (__int128) Alo * Blo;
 	aux3 = (__int128) (Alo - Ahi) * (Blo - Bhi);
-	//A1B0_A0B1 = (__int128) A0B0 + A1B1 - aux3;
+	A1B0_A0B1 = (__int128) A0B0 + A1B1 - aux3;
 /*	printf("aux3 = ");*/
 /*	__print128(aux3);*/
 /*	*/
@@ -102,8 +101,8 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 /*	printf("A1B1 = ");*/
 /*	__print128(A1B1);*/
 	
-	A1B0_A0B1l = (__int128) LOW(A0B0) + LOW(A1B1) - LOW(aux3);
-	A1B0_A0B1h = (__int128) HI(A1B0_A0B1l) + HI(A0B0) + HIGH(A1B1) - HIGH(aux3);
+/*	A1B0_A0B1l = (__int128) LOW(A0B0) + LOW(A1B1) - LOW(aux3);*/
+/*	A1B0_A0B1h = (__int128) HI(A1B0_A0B1l) + HI(A0B0) + HIGH(A1B1) - HIGH(aux3);*/
 	
 	//__print128(A1B0_A0B1);
 	//A1B0_A0B1 = (__int128) ((__int128) (A1B0_A0B1h) << 64) | LOW(A1B0_A0B1l);
@@ -116,9 +115,9 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	//__print128(A1B0_A0B1);
 	//exit(0);
 	
-/*	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);*/
-/*	aux2 = (__int128) HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1);*/
-/*	aux1 = (__int128) HIGH(A1B1);*/
+	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);
+	aux2 = (__int128) HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1);
+	aux1 = (__int128) HIGH(A1B1);
 	
 /*	printf("A1B0_A0B1 = ");*/
 /*	__print128(A1B0_A0B1);*/
@@ -133,9 +132,9 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 /*	*/
 /*	exit(0);*/
 	
-	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1l);
-	aux2 = (__int128) HIGH(aux3) + LOW(A1B0_A0B1h) + LOW(A1B1);
-	aux1 = (__int128) HIGH(A1B1);
+/*	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1l);*/
+/*	aux2 = (__int128) HIGH(aux3) + LOW(A1B0_A0B1h) + LOW(A1B1);*/
+/*	aux1 = (__int128) HIGH(A1B1);*/
 	
 	tmplo = *Rlo;
 	*Rlo += (__int128) LOW(A0B0) + (aux3 << 64);
@@ -380,7 +379,7 @@ void randpoly128(poly128 P)
 	for(register uint16_t i = 0; i < P->deg; i++)
 	{
 		P->lo[i] = randomint64();
-		if(RHO > 64) P->hi[i] = __modrhohi(randomint64());
+		if(RHO > 64) P->hi[i] = __modrhohi(randomint64()) * (1 + (rand() & 1) * -2);
 	}
 }
 
@@ -498,7 +497,7 @@ void __multchecks__(void)
 	
 	srand((unsigned) (time(&seed)));
 	
-	for(int i = 0; i < 1000000; i++)
+	for(int i = 0; i < 10000000; i++)
 	{
 		randpoly128(a);
 		randpoly128(b);
