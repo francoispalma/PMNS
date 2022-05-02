@@ -1,17 +1,26 @@
-a = [0x64884ee595c1dadc, -0xe1e8a61679025c50287a740360135, -0x265ccb6674295a899e1656b4a09173, 0x88ac86335806cf70, 0x87d9a4f0b7f1ee81, 0x82bb49241031b052, -0x6532c7735219347090ad0aef8c421, -0x223442d5f8939db5fafbd8cd19fe1b, -0x7b5bc3d9ca09c65554d50cac701d3]
-b = [0xb0a6816366831db3, 0x42d5603f3d49c1a8, 0x77ef275ecea6d646, 0x7901b20c701159d6, -0x6001d462c34016d00cb7da144f7c7, 0x9bfe84fd5c686240, -0x3d2eef61d975d00032dc9fbb2de4d2, 0x466f4af2c7360af5, -0xb04c666bbbc3ba62a7acbb40816d9]
-c = [-0xbef18dd5036b8e3db3152ee3fc29, -0x12d2182dbc30a0feb6ac6fd0c6c1c, 0x68ab9b443b5b7c6edbe71aa542f5, 0xf5df8f8e83045ab46ea8fcb7ec08, 0x1289e021708c40fd2881494f265ec, 0x1c1ac63544c1bf9f7a8442d531a8, -0xd6ed079f339c8aa8f6727b3e25a9, -0x1c959dcd817177627feae60e2882a, -0x255258a96a728cbb032e700a69a5c]
-cc = [-0xbef18dd5036a9f96bf7bdef19b09, -0x12d2182dbc3091f9eb4a86cf0491e, 0x68ab9b443b5c76f8499efa41e251, 0xf5df8f8e8304e8b9ddf16c3f3122, 0x1289e021708c37b84174083353ae6, 0x1c1ac63544c28a3aa9ad5d29f414, -0xd6ed079f339cef31455811000085, -0x1c959dcd81717b13395918214171b, -0x255258a96a7294238795bb27a3244]
+a = [0x1ee7aa9b53fc36df4825109007c98e, 0x3b8a66f0255bd7c849a77f98b98286, -0x24ec71dc0a10f82cd775a39480cb41, 0x90f1b3b82e0ff68ba97b2524cbd7f, 0x187fa971c3c416a5ce5aea856d491, 0x2cf90f813012dad56da8867522691f, -0x35501d90b0b20b001f05a9834c02fb, 0x102e3caf4d3f2430041a7a99a1da70, 0x3cccbf6cb320df6611363e50fa55c0]
+b = [0x3eb80b8e806591760d4e7d901c64f2, 0x17791fb1d51d3dc6354ca14d7cd508, -0x2c5914274470d0519127d6afcccc37, -0x3d8031784b57b76e7ccabb40133064, -0x3f9af08f2bb796621d8ae90dd40e0b, 0x36d325944f54c8c1dbd52d3a24ad6c, -0x8944c793da129366e53346e56c5d5, -0x2553e15f3d65cd7577d1847d9f2b33, -0x1bc3370eb82d8d8e434997a3226436]
+c = [-0x37029ab909ae89129b3c81d2252d0, -0x10cd975f7155c26c28c32b3c95392, -0x13a7856540b1581e5309754b2aaec, 0x7a75b80e3425a635269da8bfc241, 0x1b4b7bcebe8bd5e2a06d1141774e5, 0x84e85502012a8bade07f4cd4846e, -0xbefbdc4a2f5627c5b8ccb36a9259, -0xd0f49ce41e0fcb1db2e3e3c946e4, -0x1d98072a7d1169e6e996c3dd7cff6]
+cc = [-0x37029ab909ae7b4ab1eb48d92a178, -0x10cd975f7155b6306ac41b678a6aa, -0x13a7856540b15052f34a6a05d5c34, 0x7a75b80e34261300a46d92f20b97, 0x1b4b7bcebe8be48cf021750daffaf, 0x84e855020129a7fced4075a8f1be, -0xbefbdc4a2f569d944f3eb50691ba, -0xd0f49ce41e0f913b86657f70feaf, -0x1d98072a7d1164d09caa9b54f7490]
+
 LOW = lambda x: x % 2**64
 HIGH = lambda x: x >> 64
 HI = lambda x: (x >> 64) % 2**64
 
-A0B0 = LOW(a[0]) * LOW(b[0])
-A1B1 = HIGH(a[0]) * HIGH(b[0])
-A1B0_A0B1 = A1B1 + A0B0 - ((LOW(a[0]) - HIGH(a[0])) * (LOW(b[0]) - HIGH(b[0])))
-aux3 = HI(A0B0) + LOW(A1B0_A0B1)
-aux2 = HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1)
-aux1 = HIGH(A1B1)
-Rlo = LOW(A0B0) + (aux3 << 64);
-Rhi = aux2 + (aux1 << 64) #+ (*Rlo < tmplo);
-print(a[0] * b[0] == Rlo + (Rhi << 128))
+def multadd128k(R, A, B):
+	A0B0 = LOW(A) * LOW(B)
+	A1B1 = HIGH(A) * HIGH(B)
+	A1B0_A0B1 = A1B1 + A0B0 - ((LOW(A) - HIGH(A)) * (LOW(B) - HIGH(B)))
+	aux3 = HI(A0B0) + LOW(A1B0_A0B1)
+	aux2 = (HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1)) % 2**128
+	aux1 = HIGH(A1B1)
+	tmplo = (R % 2**128)
+	Rlo = ((R % 2**128) + LOW(A0B0) + (aux3 << 64)) % 2**128
+	Rhi = ((R >> 128) + aux2 + (aux1 << 64) + (tmplo > Rlo)) % 2**128
+	
+	if (R + A * B) % 2**256 != Rlo + (Rhi << 128):
+		print(hex(A * B % 2**256))
+		print(hex(Rlo + (Rhi << 128)))
+
+for i in range(len(a)):
+	multadd128k(0, a[i], b[i])

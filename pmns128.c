@@ -5,6 +5,7 @@
 #include "utilitymp.h"
 
 #define LOW(X) ((uint64_t)X)
+#define LO(X) ((int64_t)X)
 #define HIGH(X) ((int64_t)(X>>64))
 #define HI(X) ((uint64_t)(X>>64))
 
@@ -63,8 +64,8 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
 	// multiplies A and B and adds the result to R;
-	unsigned __int128 A0B0, A1B0, A0B1, tmplo;
-	__int128 A1B1, aux1, aux2, aux3;
+	unsigned __int128 A0B0, A1B0, A0B1, tmplo, auxlo;
+	__int128 A1B1, aux1, aux2, aux3, auxhi;
 	
 	A1B1 = (__int128) Ahi * Bhi;
 	A1B0 = (__int128) Ahi * Blo;
@@ -76,7 +77,10 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	aux1 = (__int128) HIGH(A1B1);
 	
 	tmplo = *Rlo;
+	auxlo = (__int128) LOW(*Rlo) + LOW(A0B0);
+	auxhi = (__int128) HI(*Rlo) + LOW(HI(auxlo) + aux3);
 	*Rlo += (__int128) LOW(A0B0) + (aux3 << 64);
+	*Rlo = (__int128) LOW(auxlo) + (auxhi << 64);
 	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);
 }
 
@@ -84,13 +88,13 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
 	// multiplies A and B and adds the result to R using karatsuba;
-	unsigned __int128 A0B0, tmplo;
-	__int128 A1B1, A1B0_A0B1, A1B0_A0B1l, A1B0_A0B1h, aux1, aux2, aux3;
+	unsigned __int128 A0B0, tmplo, auxlo;
+	__int128 A1B1, A1B0_A0B1, A1B0_A0B1l, A1B0_A0B1h, aux1, aux2, aux3, auxhi;
 	
 	A1B1 = (__int128) Ahi * Bhi;
 	A0B0 = (__int128) Alo * Blo;
-	aux3 = (__int128) (Alo - Ahi) * (Blo - Bhi);
-	A1B0_A0B1 = (__int128) A0B0 + A1B1 - aux3;
+	tmplo = (__int128) (Alo - Ahi) * (Blo - Bhi);
+	A1B0_A0B1 = (__int128) A0B0 + A1B1 - tmplo;
 /*	printf("aux3 = ");*/
 /*	__print128(aux3);*/
 /*	*/
@@ -101,8 +105,8 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 /*	printf("A1B1 = ");*/
 /*	__print128(A1B1);*/
 	
-/*	A1B0_A0B1l = (__int128) LOW(A0B0) + LOW(A1B1) - LOW(aux3);*/
-/*	A1B0_A0B1h = (__int128) HI(A1B0_A0B1l) + HI(A0B0) + HIGH(A1B1) - HIGH(aux3);*/
+/*	A1B0_A0B1l = (__int128) LOW(A0B0) + LOW(A1B1) - LOW(tmplo);*/
+/*	A1B0_A0B1h = (__int128) HI(A1B0_A0B1l) + HI(A0B0) + HIGH(A1B1) - HIGH(tmplo);*/
 	
 	//__print128(A1B0_A0B1);
 	//A1B0_A0B1 = (__int128) ((__int128) (A1B0_A0B1h) << 64) | LOW(A1B0_A0B1l);
@@ -115,9 +119,9 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	//__print128(A1B0_A0B1);
 	//exit(0);
 	
-	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1);
-	aux1 = (__int128) HIGH(A1B1);
+	//aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);
+	aux2 = (__int128) HIGH(((__int128) HI(A0B0) + LOW(A1B0_A0B1))) + HIGH(A1B0_A0B1) + LOW(A1B1);
+	//aux1 = (__int128) HIGH(A1B1);
 	
 /*	printf("A1B0_A0B1 = ");*/
 /*	__print128(A1B0_A0B1);*/
@@ -133,13 +137,28 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 /*	exit(0);*/
 	
 /*	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1l);*/
-/*	aux2 = (__int128) HIGH(aux3) + LOW(A1B0_A0B1h) + LOW(A1B1);*/
-/*	aux1 = (__int128) HIGH(A1B1);*/
+/*	aux2 = (__int128) HIGH(aux3) + LO(A1B0_A0B1h) + LOW(A1B1);*/
+	/*aux1 = (__int128) HIGH(A1B1);*/
 	
 	tmplo = *Rlo;
-	*Rlo += (__int128) LOW(A0B0) + (aux3 << 64);
-	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);
+	auxlo = (__int128) LOW(A0B0) + LOW(*Rlo);
+	auxhi = (__int128) HI(auxlo) + HI(A0B0) + LOW(A1B0_A0B1) + HI(*Rlo);
+	*Rlo += (__int128) A0B0 + (((__int128) LOW(A1B0_A0B1)) << 64);
+	*Rlo = (__int128) LOW(auxlo) + (auxhi << 64);
+	*Rhi += (__int128) aux2 + ((__int128) A1B1 & (((__int128)-1) ^ (-1ULL))) /*+ HI(auxhi)*/ + (*Rlo < tmplo);
+	//printf("%lx\t%d\t%d\n", HI(auxhi), (*Rlo < tmplo), HI(auxhi) == (*Rlo < tmplo));
 }
+
+/*
+[0xfffc8fd6546f65176ed64c37e2ddad30, 0xfffef3268a08eaa3d93d73cd4c36ac6e, 0xfffec587a9abf4ea7e1acf68ab4d5514, 0x7a75b80e3425a635269da8bfc241, 0x1b4b7bcebe8bd5e2a06d1141774e5, 0x84e85502012a8bade07f4cd4846e, 0xffff410423b5d0a9d83a47334c956da7, 0xffff2f0b631be1f034e24d1c1c36b91c, 0xfffe267f8d582ee961916693c228300a]
+
+[0xfffc8fd6546f65184b54e14b726d5e88, 0xfffef3268a08eaa49cf953be49875956, 0xfffec587a9abf4eafad0cb595fa2a3cc, 0x7a75b80e34261300a46d92f20b97, 0x1b4b7bcebe8be48cf021750daffaf, 0x84e855020129a7fced4075a8f1be, 0xffff410423b5d0a9d83a47334c956da7, 0xffff2f0b631be1f034e24d1c1c36b91c, 0xfffe267f8d582ee961916693c228300a]
+
+[0xfffc8fd6546f65176ed64c37e2ddad30, 0xfffef3268a08eaa3d93d73cd4c36ac6e, 0xfffec587a9abf4ea7e1acf68ab4d5514, 0x7a75b80e3425a635269da8bfc241, 0x1b4b7bcebe8bd5e2a06d1141774e5, 0x84e85502012a8bade07f4cd4846e, 0xffff410423b5d0a9626bb0c14af96e46, 0xffff2f0b631be1f06ec4799a808f0151, 0xfffe267f8d582ee9b2f635564ab08b70]
+
+
+[0xfffc8fd6546f65184b54e14b726d5e88, 0xfffef3268a08eaa49cf953be49875956, 0xfffec587a9abf4eafad0cb595fa2a3cc, 0x7a75b80e34261300a46d92f20b97, 0x1b4b7bcebe8be48cf021750daffaf, 0x84e855020129a7fced4075a8f1be, 0xffff410423b5d0a9626bb0c14af96e46, 0xffff2f0b631be1f06ec4799a808f0151, 0xfffe267f8d582ee9b2f635564ab08b70]
+*/
 
 void m_multadd128(__int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
@@ -209,7 +228,7 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			multadd128k(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
+			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
 				B->hi[N - j], B->lo[N - j]);
 		
 		aux = (unsigned __int128) LOW(Rlo[i]) * (LAMBDA);
@@ -218,7 +237,7 @@ static inline void mns128_mod_mult_ext_red(__int128* Rhi,
 		Rhi[i] = (__int128) Rhi[i] * (LAMBDA) + HIGH(aux);
 		
 		for(j = 0; j < i + 1; j++)
-			multadd128k(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
+			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
 				B->hi[i - j], B->lo[i - j]);
 	}
 }
@@ -497,10 +516,46 @@ void __multchecks__(void)
 	
 	srand((unsigned) (time(&seed)));
 	
-	for(int i = 0; i < 10000000; i++)
+	for(int i = 0; i < 100; i++)
 	{
 		randpoly128(a);
 		randpoly128(b);
+/*		a->lo[0] = 0xdf4825109007c98e;*/
+/*		a->hi[0] = 0x1ee7aa9b53fc36;*/
+/*		b->lo[0] = 0x760d4e7d901c64f2;*/
+/*		b->hi[0] = 0x3eb80b8e806591;*/
+/*		a->lo[1] = 0xc849a77f98b98286;*/
+/*		a->hi[1] = 0x3b8a66f0255bd7;*/
+/*		b->lo[1] = 0xc6354ca14d7cd508;*/
+/*		b->hi[1] = 0x17791fb1d51d3d;*/
+/*		a->lo[2] = 0xd3288a5c6b7f34bf;*/
+/*		a->hi[2] = 0xffdb138e23f5ef07;*/
+/*		b->lo[2] = 0xae6ed829503333c9;*/
+/*		b->hi[2] = 0xffd3a6ebd8bb8f2f;*/
+/*		a->lo[3] = 0x68ba97b2524cbd7f;*/
+/*		a->hi[3] = 0x90f1b3b82e0ff;*/
+/*		b->lo[3] = 0x91833544bfeccf9c;*/
+/*		b->hi[3] = 0xffc27fce87b4a848;*/
+/*		a->lo[4] = 0x6a5ce5aea856d491;*/
+/*		a->hi[4] = 0x187fa971c3c41;*/
+/*		b->lo[4] = 0x9de27516f22bf1f5;*/
+/*		b->hi[4] = 0xffc0650f70d44869;*/
+/*		a->lo[5] = 0xd56da8867522691f;*/
+/*		a->hi[5] = 0x2cf90f813012da;*/
+/*		b->lo[5] = 0xc1dbd52d3a24ad6c;*/
+/*		b->hi[5] = 0x36d325944f54c8;*/
+/*		a->lo[6] = 0xffe0fa567cb3fd05;*/
+/*		a->hi[6] = 0xffcaafe26f4f4df4;*/
+/*		b->lo[6] = 0xc991accb91a93a2b;*/
+/*		b->hi[6] = 0xfff76bb386c25ed6;*/
+/*		a->lo[7] = 0x30041a7a99a1da70;*/
+/*		a->hi[7] = 0x102e3caf4d3f24;*/
+/*		b->lo[7] = 0x8a882e7b8260d4cd;*/
+/*		b->hi[7] = 0xffdaac1ea0c29a32;*/
+/*		a->lo[8] = 0x6611363e50fa55c0;*/
+/*		a->hi[8] = 0x3cccbf6cb320df;*/
+/*		b->lo[8] = 0x71bcb6685cdd9bca;*/
+/*		b->hi[8] = 0xffe43cc8f147d272;*/
 		p128_print(a);
 		p128_print(b);
 		amns128_montg_mult(c, a, b);

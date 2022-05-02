@@ -14,4 +14,4 @@ for i in range(1000):
 		with redirect_stdout(f):
 			do_precalcs128(p, n, gamma, lam)
 	os.system("make bench128.exe")
-	os.system("./bench128.exe >> results2048128")
+	os.system("./bench128.exe >> results2048128_k")

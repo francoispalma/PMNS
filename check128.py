@@ -88,12 +88,12 @@ if __name__ == "__main__":
 				c_check = amns_montg_mult(a, b, p, n, gamma, rho, lam, phi, M, M1)
 				if horner_modulo(c, gamma, p) != horner_modulo(c_check, gamma, p):
 					counter += 1
-					print("a:", [hex(elem) for elem in a])
-					print("b:", [hex(elem) for elem in b])
-					print("c:", [hex(elem) for elem in c])
-					print("cc:", [hex(elem) for elem in c_check])
-					print()
-					exit()
+#					print("a:", [hex(elem) for elem in a])
+#					print("b:", [hex(elem) for elem in b])
+#					print("c:", [hex(elem) for elem in c])
+#					print("cc:", [hex(elem) for elem in c_check])
+#					print()
+#					exit()
 				for elem in c:
 					if abs(elem) >= rho:
 						print("More than Rho")
