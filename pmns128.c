@@ -76,12 +76,15 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0) + LOW(A1B1);
 	aux1 = (__int128) HIGH(A1B1);
 	
-	tmplo = *Rlo;
+	//tmplo = *Rlo;
 	//auxlo = (__int128) LOW(*Rlo) + LOW(A0B0);
 	//auxhi = (__int128) HI(*Rlo) + LOW(HI(auxlo) + aux3);
-	*Rlo += (__int128) LOW(A0B0) + (aux3 << 64);
+	//*Rlo += (__int128) LOW(A0B0) + (aux3 << 64);
 	//*Rlo = (__int128) LOW(auxlo) + (auxhi << 64);
-	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);
+	//*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);
+	
+	tmplo = (__int128) LOW(A0B0) + (aux3 << 64);
+	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);
 }
 
 void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
