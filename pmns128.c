@@ -64,8 +64,8 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
 	// multiplies A and B and adds the result to R;
-	unsigned __int128 A0B0, A1B0, A0B1, tmplo, auxlo;
-	__int128 A1B1, aux1, aux2, aux3, auxhi;
+	unsigned __int128 A0B0, tmplo;
+	__int128 A1B1, A1B0, A0B1, aux1, aux2, aux3;
 	
 	A1B1 = (__int128) Ahi * Bhi;
 	A1B0 = (__int128) Ahi * Blo;
@@ -77,10 +77,10 @@ void multadd128(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	aux1 = (__int128) HIGH(A1B1);
 	
 	tmplo = *Rlo;
-	auxlo = (__int128) LOW(*Rlo) + LOW(A0B0);
-	auxhi = (__int128) HI(*Rlo) + LOW(HI(auxlo) + aux3);
+	//auxlo = (__int128) LOW(*Rlo) + LOW(A0B0);
+	//auxhi = (__int128) HI(*Rlo) + LOW(HI(auxlo) + aux3);
 	*Rlo += (__int128) LOW(A0B0) + (aux3 << 64);
-	*Rlo = (__int128) LOW(auxlo) + (auxhi << 64);
+	//*Rlo = (__int128) LOW(auxlo) + (auxhi << 64);
 	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);
 }
 
@@ -119,9 +119,11 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	//__print128(A1B0_A0B1);
 	//exit(0);
 	
-	//aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);
-	aux2 = (__int128) HIGH(((__int128) HI(A0B0) + LOW(A1B0_A0B1))) + HIGH(A1B0_A0B1) + LOW(A1B1);
-	//aux1 = (__int128) HIGH(A1B1);
+	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);
+	aux2 = (__int128) HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1);
+	aux1 = (__int128) HIGH(A1B1);
+	
+	//aux2 = (__int128) HIGH(((__int128) HI(A0B0) + LOW(A1B0_A0B1))) + HIGH(A1B0_A0B1) + LOW(A1B1);
 	
 /*	printf("A1B0_A0B1 = ");*/
 /*	__print128(A1B0_A0B1);*/
@@ -140,13 +142,19 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 /*	aux2 = (__int128) HIGH(aux3) + LO(A1B0_A0B1h) + LOW(A1B1);*/
 	/*aux1 = (__int128) HIGH(A1B1);*/
 	
-	tmplo = *Rlo;
-	auxlo = (__int128) LOW(A0B0) + LOW(*Rlo);
-	auxhi = (__int128) HI(auxlo) + HI(A0B0) + LOW(A1B0_A0B1) + HI(*Rlo);
-	*Rlo += (__int128) A0B0 + (((__int128) LOW(A1B0_A0B1)) << 64);
-	*Rlo = (__int128) LOW(auxlo) + (auxhi << 64);
-	*Rhi += (__int128) aux2 + ((__int128) A1B1 & (((__int128)-1) ^ (-1ULL))) /*+ HI(auxhi)*/ + (*Rlo < tmplo);
+/*	tmplo = *Rlo;*/
+/*	auxlo = (__int128) LOW(A0B0) + LOW(*Rlo);*/
+/*	auxhi = (__int128) HI(auxlo) + HI(A0B0) + LOW(A1B0_A0B1) + HI(*Rlo);*/
+/*	*Rlo += (__int128) A0B0 + (((__int128) LOW(A1B0_A0B1)) << 64);*/
+/*	*Rlo = (__int128) LOW(auxlo) + (auxhi << 64);*/
+/*	*Rhi += (__int128) aux2 + ((__int128) A1B1 & (((__int128)-1) ^ (-1ULL))) + HI(auxhi) + (*Rlo < tmplo);*/
 	//printf("%lx\t%d\t%d\n", HI(auxhi), (*Rlo < tmplo), HI(auxhi) == (*Rlo < tmplo));
+	
+	
+	
+	tmplo = *Rlo;
+	*Rlo += (__int128) LOW(A0B0) + (aux3 << 64);
+	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);
 }
 
 /*
