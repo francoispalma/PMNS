@@ -1,4 +1,4 @@
-FLAGS= -Wall -Wextra -g -O3
+FLAGS= -Wall -Wextra -g -O3 -funswitch-loops
 
 all: main.exe
 

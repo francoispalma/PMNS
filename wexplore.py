@@ -24,3 +24,42 @@ def multadd128k(R, A, B):
 
 for i in range(len(a)):
 	multadd128k(0, a[i], b[i])
+	
+
+
+/*		a->lo[0] = 0xdf4825109007c98e;*/
+/*		a->hi[0] = 0x1ee7aa9b53fc36;*/
+/*		b->lo[0] = 0x760d4e7d901c64f2;*/
+/*		b->hi[0] = 0x3eb80b8e806591;*/
+/*		a->lo[1] = 0xc849a77f98b98286;*/
+/*		a->hi[1] = 0x3b8a66f0255bd7;*/
+/*		b->lo[1] = 0xc6354ca14d7cd508;*/
+/*		b->hi[1] = 0x17791fb1d51d3d;*/
+/*		a->lo[2] = 0xd3288a5c6b7f34bf;*/
+/*		a->hi[2] = 0xffdb138e23f5ef07;*/
+/*		b->lo[2] = 0xae6ed829503333c9;*/
+/*		b->hi[2] = 0xffd3a6ebd8bb8f2f;*/
+/*		a->lo[3] = 0x68ba97b2524cbd7f;*/
+/*		a->hi[3] = 0x90f1b3b82e0ff;*/
+/*		b->lo[3] = 0x91833544bfeccf9c;*/
+/*		b->hi[3] = 0xffc27fce87b4a848;*/
+/*		a->lo[4] = 0x6a5ce5aea856d491;*/
+/*		a->hi[4] = 0x187fa971c3c41;*/
+/*		b->lo[4] = 0x9de27516f22bf1f5;*/
+/*		b->hi[4] = 0xffc0650f70d44869;*/
+/*		a->lo[5] = 0xd56da8867522691f;*/
+/*		a->hi[5] = 0x2cf90f813012da;*/
+/*		b->lo[5] = 0xc1dbd52d3a24ad6c;*/
+/*		b->hi[5] = 0x36d325944f54c8;*/
+/*		a->lo[6] = 0xffe0fa567cb3fd05;*/
+/*		a->hi[6] = 0xffcaafe26f4f4df4;*/
+/*		b->lo[6] = 0xc991accb91a93a2b;*/
+/*		b->hi[6] = 0xfff76bb386c25ed6;*/
+/*		a->lo[7] = 0x30041a7a99a1da70;*/
+/*		a->hi[7] = 0x102e3caf4d3f24;*/
+/*		b->lo[7] = 0x8a882e7b8260d4cd;*/
+/*		b->hi[7] = 0xffdaac1ea0c29a32;*/
+/*		a->lo[8] = 0x6611363e50fa55c0;*/
+/*		a->hi[8] = 0x3cccbf6cb320df;*/
+/*		b->lo[8] = 0x71bcb6685cdd9bca;*/
+/*		b->hi[8] = 0xffe43cc8f147d272;*/

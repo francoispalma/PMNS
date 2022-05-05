@@ -2,14 +2,14 @@ from sage.all import next_prime, previous_prime, GF, PolynomialRing, factor, mat
 from sage.modules.free_module_integer import IntegerLattice
 from math import ceil
 
-from primes1024 import PRIMES1024 as PRIMES
+from primes2048 import PRIMES2048 as PRIMES
 
 # ||M||inf <= phi/((lambda*n*2)**2)
 # min(||M||inf) = P^1/n
 
 if __name__ == "__main__":
 	print("pmns128dict = {}")
-	power = 1024
+	power = 2048
 	phi = 128
 	PHI = 2**phi
 	init_n = (power // phi) | 1
