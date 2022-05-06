@@ -9,11 +9,11 @@ void __multbench__(void);
 int main(void)
 {
 	//__init_tests__();
-	//__proof_of_accuracy();
+	__proof_of_accuracy();
 	//__mult_tests();
 	//__sub_tests();
 	//__mod_tests();
 	//__full_mult_demo();
-	__multbench__();
+	//__multbench__();
 	return 0;
 }
