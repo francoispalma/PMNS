@@ -24,7 +24,7 @@ def do_bench(Psize="1024", phi=""):
 			with redirect_stdout(f):
 				precalc(p, n, gamma, lam)
 		os.system("make bench" + phi + ".exe")
-		os.system("./bench" + phi + ".exe >> results" + phi + "1024")
+		os.system("./bench" + phi + ".exe >> results" + phi + Psize)
 
 if __name__ == "__main__":
 	if len(sys.argv) >= 2:
