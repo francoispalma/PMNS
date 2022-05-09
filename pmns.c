@@ -333,7 +333,7 @@ void __proof_of_accuracy(void)
 	set_val(Phisquared, 0, 0, 0, 512, 0);
 	srand((unsigned)time(&seed));
 	
-		for(register int64_t i = 0; i < 100000; i++)
+		for(register int64_t i = 0; i < 100; i++)
 	{
 		randpoly(a);
 		amns_montg_mult(aphi, a, Phisquared);

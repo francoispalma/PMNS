@@ -4,8 +4,7 @@ from math import ceil
 
 from ops import list_to_poly, montgomery_like_coefficient_reduction, horner_modulo, amns_montg_mult
 from convert import montgomery_convert_to_mns, rho_div_convert_to_mns
-#from proof import p, n, gamma, lam, phi
-#from pyparams import p, n, gamma, lam
+#from pyparams104 import p, n, gamma, lam
 
 phi = 2**104
 

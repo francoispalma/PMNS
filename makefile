@@ -8,7 +8,7 @@ main.exe: main.c pmns.o structs.o utilitymp.o
 pmns.o: pmns.c pmns.h params.h
 	gcc -c $< $(FLAGS)
 
-params.h: precalcs.py
+params.h: precalcs.py pyparams.py
 	python3 $< > $@
 
 structs.o: structs.c structs.h
@@ -26,7 +26,7 @@ p128.exe: main128.c pmns128.o structs.o utilitymp.o
 pmns128.o: pmns128.c pmns128.h params128.h
 	gcc -c $< $(FLAGS)
 
-params128.h: precalcs128.py pyparams.py
+params128.h: precalcs128.py pyparams128.py
 	python3 $< > $@
 
 bench.exe: intel-measurement.c pmns.o structs.o utilitymp.o
