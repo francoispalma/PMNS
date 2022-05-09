@@ -1,22 +1,26 @@
 from sage.all import next_prime, previous_prime, GF, PolynomialRing, factor, matrix, ZZ
 from sage.modules.free_module_integer import IntegerLattice
 from math import ceil
+import sys
 
-from primes4096 import PRIMES4096 as PRIMES
+from commonpmns import primesdict
 
 # ||M||inf <= phi/((lambda*n*2)**2)
 # min(||M||inf) = P^1/n
 
-if __name__ == "__main__":
-	print("pmnsdict = {}")
-	power = 4096
-	phi = 64
+def gen_amns(power, sphi):
+	primes = primesdict[power]
+	print("pmns" + sphi + "dict = {}")
+	if sphi == "":
+		phi = 64
+	else:
+		phi = int(sphi)
 	PHI = 2**phi
 	init_n = (power // phi) | 1
 	while 2**(power/init_n) >= PHI/((2*init_n*2)**2):
 		init_n += 2
-	for i in range(1000):
-		p = PRIMES[i]
+	for i in range(len(primes)):
+		p = primes[i]
 		K = GF(p)
 		polK = PolynomialRing(K, 'X')
 		n = init_n
@@ -50,4 +54,26 @@ if __name__ == "__main__":
 				if rho < 2 * w * phi:
 					break
 			n += 2
-		print("pmnsdict[" + str(p) + "] = (" + str(p) + ", " + str(n) + ", " + str(fs[0][0][0]) + ", " + str(lamb) + ")")
+		print("pmns" + sphi + "dict[" + str(p) + "] = (" + str(p) + ", " + str(n) + ", " + str(fs[0][0][0]) + ", " + str(lamb) + ")")
+
+if __name__ == "__main__":
+	if len(sys.argv) >= 2:
+		try:
+			psize = int(sys.argv[1])
+			if psize not in list(primesdict.keys()):
+				print("Prime Size not handled")
+				exit()
+			try:
+				phi = sys.argv[2]
+			except IndexError:
+				phi = ""
+			if phi not in ["128", "104", "64", ""]:
+				print("Value of Phi not handled")
+				exit()
+			elif phi == "64":
+				phi = ""
+			gen_amns(psize, phi)
+		except ValueError:
+			print("Invalid arguments")
+	else:
+		print("Not enough arguments")

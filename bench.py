@@ -37,9 +37,13 @@ if __name__ == "__main__":
 				phi = sys.argv[2]
 			except IndexError:
 				phi = ""
-			if phi not in ["128", ""]:
+			if phi not in ["128", "64", ""]:
 				print("Value of Phi not handled")
 				exit()
+			elif phi == "64":
+				phi = ""
 			do_bench(str(psize), phi)
 		except ValueError:
 			print("Invalid arguments")
+	else:
+		print("Not enough arguments")
