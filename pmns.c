@@ -5,9 +5,8 @@
 #include "utilitymp.h"
 
 
-
-static inline void mns_mod_mult_ext_red(__int128* R, const restrict poly A,
-	const restrict poly B)
+static inline void mns_mod_mult_ext_red(__int128* restrict R,
+	const restrict poly A, const restrict poly B)
 {
 	// Function that multiplies A by B and applies external reduction using
 	// E(X) = X^n - lambda as a polynomial used for reduction.
@@ -25,7 +24,8 @@ static inline void mns_mod_mult_ext_red(__int128* R, const restrict poly A,
 	}
 }
 
-static inline void m_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
+static inline void m_mns_mod_mult_ext_red(__int128* restrict R,
+	const restrict poly A)
 {
 	// Same as above but with some pre calculations done in the case of M being
 	// the second operand.
@@ -42,7 +42,8 @@ static inline void m_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
 	}
 }
 
-static inline void m1_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
+static inline void m1_mns_mod_mult_ext_red(int64_t* restrict R,
+	const restrict poly A)
 {
 	// Same as above but with some pre calculations done in the case of M1 being
 	// the second operand.
@@ -52,16 +53,17 @@ static inline void m1_mns_mod_mult_ext_red(__int128* R, const restrict poly A)
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			R[i] += (__int128) ((uint64_t)A->t[i + j]) * M1Lambda[N - j];
+			R[i] += ((uint64_t)A->t[i + j]) * M1Lambda[N - j];
 		
 		for(j = 0; j < i + 1; j++)
-			R[i] += (__int128) ((uint64_t)A->t[j]) * M1[i - j];
+			R[i] += ((uint64_t)A->t[j]) * M1[i - j];
 	}
 }
 
-inline void mns_montg_int_red(restrict poly res, __int128* R)
+inline void mns_montg_int_red(restrict poly res, __int128* restrict R)
 {
-	uint64_t V[N], V2[N], T[N], T2[N];
+	uint64_t V[N], V2[N];
+	int64_t T[N] = {0};
 	register uint16_t i;
 	
 	for(i = 0; i < N; i++)
@@ -72,24 +74,15 @@ inline void mns_montg_int_red(restrict poly res, __int128* R)
 		R[i] = 0;
 	}
 	
-	m1_mns_mod_mult_ext_red(R, res);
+	m1_mns_mod_mult_ext_red(T, res);
 	
 	for(i = 0; i < N; i++)
-	{
-		res->t[i] = R[i];
-		R[i] = 0;
-	}
+		res->t[i] = T[i];
 	
 	m_mns_mod_mult_ext_red(R, res);
 	
 	for(i = 0; i < N; i++)
-	{
-		T[i] = R[i];
-		T2[i] = (R[i] >> 64);
-		
-		T[i] += V[i];
-		res->t[i] = V2[i] + T2[i] + (T[i] < V[i]);
-	}
+		res->t[i] = V2[i] + (R[i] >> 64) + (V[i] != 0);
 }
 
 inline void amns_montg_mult(restrict poly res, const restrict poly A,
@@ -419,7 +412,7 @@ void __multchecks__(void)
 	
 	srand((unsigned) (time(&seed)));
 	
-	for(int i = 0; i < 100; i++)
+	for(int i = 0; i < 1000000; i++)
 	{
 		randpoly(a);
 		randpoly(b);

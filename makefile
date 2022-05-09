@@ -60,6 +60,12 @@ proof128: p128.exe
 p128: p128.exe
 	./p128.exe
 
+bench: bench.exe
+	./bench.exe
+
+bench128: bench128.exe
+	./bench128.exe
+
 progress: *.c *.py *.h makefile
 	git add .
 	git commit -m "progress"
