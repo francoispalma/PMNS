@@ -412,7 +412,7 @@ void __multchecks__(void)
 	
 	srand((unsigned) (time(&seed)));
 	
-	for(int i = 0; i < 1000000; i++)
+	for(int i = 0; i < 100; i++)
 	{
 		randpoly(a);
 		randpoly(b);
