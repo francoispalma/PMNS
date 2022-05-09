@@ -73,18 +73,8 @@ if __name__ == "__main__":
 				c = literal_eval(f.readline()[:-1])
 				c = [elem - phi if elem > (phi >> 1) else elem for elem in c]
 				c_check = amns_montg_mult(a, b, p, n, gamma, rho, lam, phi, M, M1)
-				if horner_modulo(c, gamma, p) != (horner_modulo(c_check, gamma, p) * phi % p):
+				if horner_modulo(c, gamma, p) != horner_modulo(c_check, gamma, p):
 					counter += 1
-					hc = horner_modulo(c, gamma, p)
-					hcc = horner_modulo(c_check, gamma, p)
-					print(hex(hc))
-					print()
-					print(hex(hcc))
-					print()
-					print(hex(hc * phi % p))
-					print()
-					print(hex(hcc * phi % p))
-					exit()
 					#print("False")
 				for elem in c:
 					if abs(elem) >= rho:

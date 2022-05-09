@@ -120,7 +120,7 @@ static inline int64_t __modrho(int64_t param)
 void randpoly(poly P)
 {
 	for(register uint16_t i = 0; i < P->deg; i++)
-		P->t[i] = __modrho(randomint64());
+		P->t[i] = __modrho(randomint64()) * (1 + (rand() & 1) * -2);
 }
 
 void convert_string_to_amns(restrict poly res, const char* string)
@@ -409,4 +409,25 @@ void __multbench__(void)
 	printf("%ld\n", sum);
 	
 	free_polys(a, b, c, soak1, soak2, NULL);
+}
+
+void __multchecks__(void)
+{
+	poly a, b, c;
+	init_polys(N, &a, &b, &c, NULL);
+	int64_t seed;
+	
+	srand((unsigned) (time(&seed)));
+	
+	for(int i = 0; i < 100; i++)
+	{
+		randpoly(a);
+		randpoly(b);
+		print(a);
+		print(b);
+		amns_montg_mult(c, a, b);
+		print(c);
+	}
+	
+	free_polys(a, b, c, NULL);
 }
