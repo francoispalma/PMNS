@@ -12,12 +12,24 @@
 #include "structs.h"
 #include "params.h"
 
-#define NTEST 511
-#define NSAMPLES 1001
+#define NTEST 51
+#define NSAMPLES 101
 
 extern void amns_montg_mult(restrict poly res, const restrict poly A,
 	const restrict poly B);
 void randpoly(poly);
+
+
+inline static unsigned long rdpmc_instructions(void)
+{
+   unsigned a, d, c;
+
+   c = (1<<30);
+   __asm__ __volatile__("rdpmc" : "=a" (a), "=d" (d) : "c" (c));
+
+   return ((unsigned long)a) | (((unsigned long)d) << 32);;
+}
+
 
 // NTEST*NSAMPLES must be odd
 // it's easier to compute median value
@@ -125,6 +137,11 @@ int main(void)
 
   unsigned long long *statTimer1 ;
 
+
+	unsigned long long int timer = 0;
+	uint64_t mini = (uint64_t)-1L;
+	unsigned long long int START, STOP;
+
 	poly a, b, c, soak1, soak2;
 	init_polys(N, &a, &b, &c, &soak1, &soak2, NULL);
 	
@@ -190,10 +207,32 @@ int main(void)
 		free_polys(samplesA[i], samplesB[i], NULL);
 
 /*	printf("\nName Function: min : %lld, max : %lld,  median : %lld  CPU cycles\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES);*/
-	printf("(%lld, %lld, %lld)\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES);
-
-	free_polys(a, b, c, soak1, soak2, NULL);
+	
 	free(cycles1);
+	
+	timer=0;
+	
+	for(int k=0; k<NSAMPLES;k++)
+	{
+		for(int i=0;i<NTEST;i++)
+		{
+			amns_montg_mult(c, a, b);
+		}
+		
+		for(int i=0;i<NTEST;i++)
+		{
+			
+			START = rdpmc_instructions();
+			amns_montg_mult(c, a, b);
+			STOP = rdpmc_instructions();
+			
+			if(mini>STOP-START) mini = STOP-START;
+		}
+		timer += mini;
+	}
+	
+	printf("(%lld, %lld, %lld, %lld)\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES, timer/NSAMPLES);
+	free_polys(a, b, c, soak1, soak2, NULL);
 	return 0;
-
+	
 }
