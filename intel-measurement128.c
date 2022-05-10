@@ -204,10 +204,8 @@ int main(void)
 		free_poly128s(samplesA[i], samplesB[i], NULL);
 
 /*	printf("\nName Function: min : %lld, max : %lld,  median : %lld  CPU cycles\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES);*/
-	printf("(%lld, %lld, %lld)\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES);
 
 	
-	free(cycles1);
 	
 	timer=0;
 	
