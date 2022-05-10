@@ -76,4 +76,4 @@ if __name__ == "__main__":
 		except ValueError:
 			print("Invalid arguments")
 	else:
-		print("Not enough arguments")
+		print("Not enough arguments: Psize [Phi]")
