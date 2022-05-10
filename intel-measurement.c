@@ -12,8 +12,8 @@
 #include "structs.h"
 #include "params.h"
 
-#define NTEST 51
-#define NSAMPLES 101
+#define NTEST 511
+#define NSAMPLES 1001
 
 extern void amns_montg_mult(restrict poly res, const restrict poly A,
 	const restrict poly B);

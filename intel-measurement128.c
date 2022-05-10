@@ -15,6 +15,16 @@
 #define NTEST 511
 #define NSAMPLES 1001
 
+inline static unsigned long rdpmc_instructions(void)
+{
+   unsigned a, d, c;
+
+   c = (1<<30);
+   __asm__ __volatile__("rdpmc" : "=a" (a), "=d" (d) : "c" (c));
+
+   return ((unsigned long)a) | (((unsigned long)d) << 32);;
+}
+
 extern void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
 void randpoly128(poly128);
@@ -125,6 +135,10 @@ int main(void)
 
   unsigned long long *statTimer1 ;
 
+	unsigned long long int timer = 0;
+	uint64_t mini = (uint64_t)-1L;
+	unsigned long long int START, STOP;
+
 	poly128 a, b, c, soak1, soak2;
 	init_poly128s(N, &a, &b, &c, &soak1, &soak2, NULL);
 	
@@ -192,6 +206,31 @@ int main(void)
 /*	printf("\nName Function: min : %lld, max : %lld,  median : %lld  CPU cycles\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES);*/
 	printf("(%lld, %lld, %lld)\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES);
 
+	
+	free(cycles1);
+	
+	timer=0;
+	
+	for(int k=0; k<NSAMPLES;k++)
+	{
+		for(int i=0;i<NTEST;i++)
+		{
+			amns128_montg_mult(c, a, b);
+		}
+		
+		for(int i=0;i<NTEST;i++)
+		{
+			
+			START = rdpmc_instructions();
+			amns128_montg_mult(c, a, b);
+			STOP = rdpmc_instructions();
+			
+			if(mini>STOP-START) mini = STOP-START;
+		}
+		timer += mini;
+	}
+	
+	printf("(%lld, %lld, %lld, %lld)\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES, timer/NSAMPLES);
 	free_poly128s(a, b, c, soak1, soak2, NULL);
 	free(cycles1);
 	return 0;
