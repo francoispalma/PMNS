@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <time.h>
+#include <gmp.h>
 
 #include "pmns128.h"
 #include "utilitymp.h"

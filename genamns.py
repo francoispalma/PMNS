@@ -3,7 +3,7 @@ from sage.modules.free_module_integer import IntegerLattice
 from math import ceil
 import sys
 
-from commonpmns import primesdict
+from commonpmns import primesdict, handledphis
 
 # ||M||inf <= phi/((lambda*n*2)**2)
 # min(||M||inf) = P^1/n
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 				phi = sys.argv[2]
 			except IndexError:
 				phi = ""
-			if phi not in ["128", "104", "64", ""]:
+			if phi not in handledphis:
 				print("Value of Phi not handled")
 				exit()
 			elif phi == "64":

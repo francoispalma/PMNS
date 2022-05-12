@@ -60,7 +60,9 @@ def do_precalcs(p, n, gamma, lam):
 
 	# We convert out of the polynomial Ring
 	M = list(M)
+	M = M + (n - len(M)) * [0]
 	M1 = list(M1)
+	M1 = M1 + (n - len(M1)) * [0]
 
 	# We switch M1 from M^-1 to -M^-1
 	M1 = [(int(M1[i]) * -1) % phi for i in range(n)]
