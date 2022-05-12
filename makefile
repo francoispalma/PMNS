@@ -21,7 +21,7 @@ hardcode.exe: hardcode.c
 	gcc -o $@ $^ $(FLAGS)
 
 p128.exe: main128.c pmns128.o structs.o utilitymp.o
-	gcc -o $@ $^ $(FLAGS)
+	gcc -o $@ $^ $(FLAGS) -lgmp
 
 pmns128.o: pmns128.c pmns128.h params128.h
 	gcc -c $< $(FLAGS) -lgmp
@@ -33,7 +33,7 @@ bench.exe: intel-measurement.c pmns.o structs.o utilitymp.o
 	gcc -o $@ $^ $(FLAGS)
 
 bench128.exe: intel-measurement128.c pmns128.o structs.o utilitymp.o
-	gcc -o $@ $^ $(FLAGS)
+	gcc -o $@ $^ $(FLAGS) -lgmp
 
 clean:
 	rm -rf *.o

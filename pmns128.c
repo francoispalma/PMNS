@@ -85,6 +85,26 @@ static inline void multadd128(__int128* restrict Rhi,
 	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);
 }
 
+static inline void multadd128g(__int128* restrict Rhi,
+	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,
+	const int64_t Bhi, const uint64_t Blo)
+{
+	const uint64_t A[2] = { Alo, Ahi }, B[2] = { Blo, Bhi };
+	uint64_t C[4] = {0}, R[4] = { LOW(*Rlo), HIGH(*Rlo), LOW(Rhi), HIGH(*Rhi)};
+	unsigned __int128 tmplo;
+	
+	
+	mpn_mul_n(C, A, B, 2);
+	
+	mpn_add_n(R, R, C, 4);
+	
+	*Rlo = (__int128) R[0] | ((__int128) R[1] << 64);
+	*Rhi = (__int128) R[2] | ((__int128) R[3] << 64);
+	
+	//tmplo = (__int128) C[0] | ((__int128) C[1] << 64);
+	//*Rhi += (__int128) (C[2] | ((__int128) C[3] << 64)) + __builtin_add_overflow(*Rlo, tmplo, Rlo);
+}
+
 void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
@@ -390,23 +410,23 @@ void __main__(void)
 /*	__int128 R1 = (__int128) ((__int128) 0xffffffffffffffff << 64) + 0xffffffffffffffff;*/
 /*	unsigned __int128 R2 = (__int128) ((__int128) 0xffffffffffffffff << 64) + 0xffffffffffffffff;*/
 	
-	multadd128(&R1, &R2, Ahi, Alo, Bhi, Blo);
+	multadd128g(&R1, &R2, Ahi, Alo, Bhi, Blo);
 	
 	printf("%s\n", RES);
 	
 	printf("0x%lx%016lx%016lx%016lx\n", HIGH(R1), LOW(R1), HIGH(R2), LOW(R2));
 	
-	printf("\n\n");
+/*	printf("\n\n");*/
 	
-	poly128 A;
-	init_poly128(N, &A);
-	const char a[] = "bf6dc9f34905d4ccea18b34313d7f22412795efa0161f7ebcd5912a900ea7d255661bb894729e4fd85a477d3c575f3e97fcd1e6e2fd01d5317724f38def3c7f944162bb4ae4dcd5b1522efca1f3713a927c91f1113096ced7585edf7fef8cc9334dc56e8483a3c49f4a0fb9bb73c00b8b00e3d11435184eacbd45dd38fcbcadd";
-	
-	convert_string_to_amns128(A, a);
-	
-	p128_print(A);
-	
-	free_poly128(A);
+/*	poly128 A;*/
+/*	init_poly128(N, &A);*/
+/*	const char a[] = "bf6dc9f34905d4ccea18b34313d7f22412795efa0161f7ebcd5912a900ea7d255661bb894729e4fd85a477d3c575f3e97fcd1e6e2fd01d5317724f38def3c7f944162bb4ae4dcd5b1522efca1f3713a927c91f1113096ced7585edf7fef8cc9334dc56e8483a3c49f4a0fb9bb73c00b8b00e3d11435184eacbd45dd38fcbcadd";*/
+/*	*/
+/*	convert_string_to_amns128(A, a);*/
+/*	*/
+/*	p128_print(A);*/
+/*	*/
+/*	free_poly128(A);*/
 }
 
 void __benchmult__(void)
