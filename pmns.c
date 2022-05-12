@@ -5,6 +5,18 @@
 #include "utilitymp.h"
 
 
+__inline uint64_t mulx64(uint64_t x, uint64_t y, uint64_t* hi)
+{
+    __asm__(
+        "mulx %3, %0, %1    \n\t"
+        : "=&d"(x), "=&a"(y)
+        : "0"(x), "1"(y)
+    );
+
+    *hi = y;
+    return x;
+}
+
 static inline void mns_mod_mult_ext_red(__int128* restrict R,
 	const restrict poly A, const restrict poly B)
 {
@@ -12,15 +24,34 @@ static inline void mns_mod_mult_ext_red(__int128* restrict R,
 	// E(X) = X^n - lambda as a polynomial used for reduction.
 	register uint16_t i, j;
 	
+/*	uint64_t *Rhi, *Rlo;*/
+/*	__int128 Rfull;*/
+/*	*/
+/*	Rlo = (uint64_t*) &Rfull;*/
+/*	Rhi = Rlo + 1;*/
+/*	uint64_t hi, lo;*/
+	
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
 			R[i] += (__int128) A->t[i + j] * B->t[N - j];
+/*		{*/
+/*			*Rlo = mulx64(A->t[i + j], B->t[N - j], Rhi);*/
+/*			R[i] += Rfull;*/
+/*			lo = mulx64(A->t[i + j], B->t[N - j], &hi);*/
+/*			R[i] += (__int128) lo | ((__int128) hi << 64);*/
+/*		}*/
 		
 		R[i] = R[i] * LAMBDA;
 		
 		for(j = 0; j < i + 1; j++)
 			R[i] += (__int128) A->t[j] * B->t[i - j];
+/*		{*/
+/*			*Rlo = mulx64(A->t[j], B->t[i - j], Rhi);*/
+/*			R[i] += Rfull;*/
+/*			lo = mulx64(A->t[j], B->t[i - j], &hi);*/
+/*			R[i] += (__int128) lo | ((__int128) hi << 64);*/
+/*		}*/
 	}
 }
 
