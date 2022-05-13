@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <gmp.h>
+#include <string.h>
 
 #include "pmns128.h"
 #include "utilitymp.h"
@@ -302,13 +303,14 @@ static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
 	unsigned __int128 V[N], V2[N];
 	register uint16_t i;
 	
+	
+	memcpy(V, Rlo, N * sizeof(__int128));
+	memcpy(V2, Rhi, N * sizeof(__int128));
 	for(i = 0; i < N; i++)
 	{
-		V[i] = Rlo[i];
 		res->lo[i] = LOW(Rlo[i]);
 		res->hi[i] = HI(Rlo[i]);
 		Rlo[i] = 0;
-		V2[i] = Rhi[i];
 	}
 	
 	m1_mns128_mod_mult_ext_red(Rlo, res);
