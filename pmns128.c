@@ -10,6 +10,17 @@
 #define HIGH(X) ((int64_t)(X>>64))
 #define HI(X) ((uint64_t)(X>>64))
 
+__inline uint64_t mulx64(uint64_t x, uint64_t y, uint64_t* hi)
+{
+    __asm__(
+        "mulx %3, %0, %1    \n\t"
+        : "=&d"(x), "=&a"(y)
+        : "0"(x), "1"(y)
+    );
+
+    *hi = y;
+    return x;
+}
 
 static inline void mult128(__int128* Rhi, unsigned __int128* Rlo,
 	const int64_t Ahi, const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
@@ -68,7 +79,7 @@ static inline void multadd128(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,
 	const int64_t Bhi, const uint64_t Blo)
 {
-	// multiplies A and B and adds the result to R;
+	// multiplies A and B and adds the result to R.
 	unsigned __int128 A0B0, tmplo;
 	__int128 A1B1, A1B0, A0B1, aux1, aux2, aux3;
 	
@@ -85,13 +96,45 @@ static inline void multadd128(__int128* restrict Rhi,
 	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);
 }
 
+static inline void multadd128a(__int128* restrict Rhi,
+	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,
+	const int64_t Bhi, const uint64_t Blo)
+{
+	// multiplies A and B and adds the result to R, using mulx64.
+	unsigned __int128 A0B0, tmplo;
+	__int128 A1B1, A1B0, A0B1, aux1, aux2, aux3;
+	
+	uint64_t *hi, *lo;
+	
+	lo = (uint64_t*) &A1B1;
+	hi = lo + 1;
+	*lo = mulx64(Ahi, Bhi, hi);
+	lo = (uint64_t*) &A1B0;
+	hi = lo + 1;
+	*lo = mulx64(Ahi, Blo, hi);
+	lo = (uint64_t*) &A0B1;
+	hi = lo + 1;
+	*lo = mulx64(Alo, Bhi, hi);
+	lo = (uint64_t*) &A0B0;
+	hi = lo + 1;
+	*lo = mulx64(Alo, Blo, hi);
+	
+	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
+	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0) + LOW(A1B1);
+	aux1 = (__int128) HIGH(A1B1);
+	
+	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
+	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);
+}
+
 static inline void multadd128g(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,
 	const int64_t Bhi, const uint64_t Blo)
 {
+	// multiplies A and B and adds the result to R, using gmp's mpn functions.
 	const uint64_t A[2] = { Alo, Ahi }, B[2] = { Blo, Bhi };
 	uint64_t C[4] = {0}, R[4] = { LOW(*Rlo), HIGH(*Rlo), LOW(Rhi), HIGH(*Rhi)};
-	unsigned __int128 tmplo;
+	//unsigned __int128 tmplo;
 	
 	
 	mpn_mul_n(C, A, B, 2);
