@@ -15,11 +15,6 @@
 #define NTEST 511
 #define NSAMPLES 1001
 
-extern void amns_montg_mult(restrict poly res, const restrict poly A,
-	const restrict poly B);
-void randpoly(poly);
-
-
 inline static unsigned long rdpmc_instructions(void)
 {
    unsigned a, d, c;
@@ -30,6 +25,9 @@ inline static unsigned long rdpmc_instructions(void)
    return ((unsigned long)a) | (((unsigned long)d) << 32);;
 }
 
+extern void amns_montg_mult(restrict poly res, const restrict poly A,
+	const restrict poly B);
+void randpoly(poly);
 
 // NTEST*NSAMPLES must be odd
 // it's easier to compute median value
@@ -137,7 +135,6 @@ int main(void)
 
   unsigned long long *statTimer1 ;
 
-
 	unsigned long long int timer = 0;
 	uint64_t mini = (uint64_t)-1L;
 	unsigned long long int START, STOP;
@@ -145,11 +142,11 @@ int main(void)
 	poly a, b, c, soak1, soak2;
 	init_polys(N, &a, &b, &c, &soak1, &soak2, NULL);
 	
-	poly samplesA[NTEST], samplesB[NTEST];
-	
-	randpoly(soak2);
-	soak2->t[0] += Gi[0].t[0];
-	soak2->t[0] += __P__.t[0];
+/*	poly samplesA[NTEST], samplesB[NTEST];*/
+/*	*/
+/*	randpoly(soak2);*/
+/*	soak2->lo[0] += Gi[0].t[0];*/
+/*	soak2->lo[0] += __P__.t[0];*/
 
   cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
 
@@ -158,22 +155,25 @@ int main(void)
     // ici tirage de donnees aleatoires
     // et execution de la fonction a mesurer
     // pour chauffer les caches
-    randpoly(a);
+		randpoly(a);
 		randpoly(b);
 		amns_montg_mult(c, a, b);
-		amns_montg_mult(soak1, c, soak2);
-		amns_montg_mult(soak2, c, soak1);
-		init_polys(N, samplesA + i, samplesB + i, NULL);
+/*		amns_montg_mult(soak1, c, soak2);*/
+/*		amns_montg_mult(soak2, c, soak1);*/
+/*		init_polys(N, samplesA + i, samplesB + i, NULL);*/
   }
 
   for(int i=0;i<NSAMPLES;i++)
 	{
 		// generer ici un jeu de parametres aleatoire pour la
 		// fonction a mesurer
+		randpoly(a);
+		randpoly(b);
 		for(int j=0;j<NTEST;j++)
 		{
-			randpoly(samplesA[j]);
-			randpoly(samplesB[j]);
+/*			randpoly(samplesA[j]);*/
+/*			randpoly(samplesB[j]);*/
+			amns_montg_mult(c, a, b);
 		}
 		timermin1 = (unsigned long long int)0x1<<63;
 		timermax1 = 0;
@@ -182,10 +182,11 @@ int main(void)
 		{
 			t1 = cpucyclesStart();
             // appel de la fonction a mesurer
-			amns_montg_mult(c, samplesA[j], samplesB[j]);
+			//amns_montg_mult(c, samplesA[j], samplesB[j]);
+			amns_montg_mult(c, a, b);
 			t2 = cpucyclesStop();
-			amns_montg_mult(soak1, c, soak2);
-			amns_montg_mult(soak2, c, soak1);
+			//amns_montg_mult(soak1, c, soak2);
+			//amns_montg_mult(soak2, c, soak1);
 			if (t2 < t1){
 				diff_t = 18446744073709551615ULL-t1;
 				diff_t = t2+diff_t+1;
@@ -203,12 +204,12 @@ int main(void)
         free(statTimer1);
 	}
 	
-	for(int i=0;i<NTEST;i++)
-		free_polys(samplesA[i], samplesB[i], NULL);
+/*	for(int i=0;i<NTEST;i++)*/
+/*		free_polys(samplesA[i], samplesB[i], NULL);*/
 
 /*	printf("\nName Function: min : %lld, max : %lld,  median : %lld  CPU cycles\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES);*/
+
 	
-	free(cycles1);
 	
 	timer=0;
 	
@@ -233,6 +234,7 @@ int main(void)
 	
 	printf("(%lld, %lld, %lld, %lld)\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES, timer/NSAMPLES);
 	free_polys(a, b, c, soak1, soak2, NULL);
+	free(cycles1);
 	return 0;
-	
 }
+

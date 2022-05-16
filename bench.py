@@ -12,9 +12,10 @@ def do_bench(Psize="1024", phi=""):
 	pmnsdict = pmnsdicts[int(Psize + phi)]
 	primes = primesdict[int(Psize)]
 	precalc = do_precalcs128 if phi == "128" else do_precalcs
+	filename = "results/results" + Psize + phi
 
 	# We wipe the file
-	with open("results" + Psize + phi, "w+") as f:
+	with open(filename, "w+") as f:
 		pass
 
 	# We run the benchmark
@@ -24,7 +25,7 @@ def do_bench(Psize="1024", phi=""):
 			with redirect_stdout(f):
 				precalc(p, n, gamma, lam)
 		os.system("make bench" + phi + ".exe")
-		os.system("./bench" + phi + ".exe >> results" + phi + Psize)
+		os.system("./bench" + phi + ".exe >> " + filename)
 
 if __name__ == "__main__":
 	if len(sys.argv) >= 2:
