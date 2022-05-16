@@ -2,25 +2,7 @@ import matplotlib.pyplot as plt
 from statistics import mean
 
 if __name__ == "__main__":
-#	with open("results/results128_old", "r") as f:
-#		L = f.readlines()
-#	LL = [int(elem[:-1]) for elem in L]
-#	plt.hist(LL)
-#	with open("results/results128_old2", "r") as f:
-#		L = f.readlines()
-#	LL = [int(elem[:-1]) for elem in L]
-#	plt.hist(LL)
-#	#plt.figure()
-#	with open("results/results_old", "r") as f:
-#		L = f.readlines()
-#	LLL = [int(elem[:-1]) for elem in L]
-#	plt.hist(LLL)
-#	print("Avg for pmns:", mean(LLL))
-#	print("Avg for pmns128:", mean(LL))
-#	print("Ratio:", mean(LL)/mean(LLL))
-#	plt.title("clocks, clocks128new, clocks128")
-#	plt.figure()
-	with open("results/results64", "r") as f:
+	with open("results/results1024", "r") as f:
 		L = f.readlines()
 	LL = [eval(elem[:-1]) for elem in L]
 	mini, maxi, meani = ([elem[0] for elem in LL], [elem[1] for elem in LL],
@@ -30,21 +12,9 @@ if __name__ == "__main__":
 	plt.hist(mini)
 	plt.hist(maxi)
 	plt.hist(meani)
-	plt.title("Min/Mean/Max")
-	plt.figure()
-	with open("results/results1024", "r") as f:
-		L = f.readlines()
-	LL = [eval(elem[:-1]) for elem in L]
-	mini, maxi, meani = ([elem[0] for elem in LL], [elem[1] for elem in LL],
-		[elem[2] for elem in LL])
-	nmin64 = mean(mini)
-	nmean64 = mean(meani)
-	plt.hist(mini)
-	plt.hist(maxi)
-	plt.hist(meani)
 	plt.title("New Min/Mean/Max")
 	plt.figure()
-	with open("results/results128", "r") as f:
+	with open("results/results1024128", "r") as f:
 		L = f.readlines()
 	LL = [eval(elem[:-1]) for elem in L]
 	mini, maxi, meani = ([elem[0] for elem in LL], [elem[1] for elem in LL],
@@ -55,28 +25,15 @@ if __name__ == "__main__":
 	plt.hist(maxi)
 	plt.hist(meani)
 	plt.title("Min/Mean/Max 128")
-	print("Ratio:", mean128/mean64, "(" + str(min128/min64) + ")")
-	print("New Ratio:", mean128/nmean64, "(" + str(min128/nmin64) + ")")
-	plt.figure()
-	with open("results/results204864", "r") as f:
-		L = f.readlines()
-	LL = [eval(elem[:-1]) for elem in L]
-	mini, maxi, meani = ([elem[0] for elem in LL], [elem[1] for elem in LL],
-		[elem[2] for elem in LL])
-	min64 = mean(mini)
-	mean64 = mean(meani)
-	plt.hist(mini)
-	plt.hist(maxi)
-	plt.hist(meani)
-	plt.title("Min/Mean/Max 2048")
+	print("Ratio1024:", mean128/mean64, "(" + str(min128/min64) + ")")
 	plt.figure()
 	with open("results/results2048", "r") as f:
 		L = f.readlines()
 	LL = [eval(elem[:-1]) for elem in L]
 	mini, maxi, meani = ([elem[0] for elem in LL], [elem[1] for elem in LL],
 		[elem[2] for elem in LL])
-	nmin64 = mean(mini)
-	nmean64 = mean(meani)
+	min64 = mean(mini)
+	mean64 = mean(meani)
 	plt.hist(mini)
 	plt.hist(maxi)
 	plt.hist(meani)
@@ -94,7 +51,6 @@ if __name__ == "__main__":
 	plt.hist(meani)
 	plt.title("Min/Mean/Max 2048128")
 	print("Ratio 2048:", mean128/mean64, "(" + str(min128/min64) + ")")
-	print("New Ratio 2048:", mean128/nmean64, "(" + str(min128/nmin64) + ")")
 #	plt.figure()
 #	with open("results/results4096", "r") as f:
 #		L = f.readlines()
