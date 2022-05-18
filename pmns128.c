@@ -76,6 +76,23 @@ static inline void multadd128x(__int128* Rhi, unsigned __int128* Rlo,
 	*Rhi = (__int128) *Rhi + auxhi + (*Rlo < auxlo);
 }
 
+static inline __int128 signed_unsigned_mul128(const uint64_t A, const int64_t B)
+{
+	return (__int128) A * B;
+}
+
+static inline __int128 signed_unsigned_mul128x(const uint64_t A, const int64_t B)
+{
+	int64_t q;
+	uint64_t r;
+	__int128 tmp;
+	tmp = (__int128) A * ((uint64_t)B);
+	r = tmp;
+	q = HIGH(tmp);
+	q -= A;
+	return (__int128) ((__int128) q << 64) | r;
+}
+
 static inline void multadd128(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,
 	const int64_t Bhi, const uint64_t Blo)
@@ -85,8 +102,10 @@ static inline void multadd128(__int128* restrict Rhi,
 	__int128 A1B1, A1B0, A0B1, aux1, aux2, aux3;
 	
 	A1B1 = (__int128) Ahi * Bhi;
-	A1B0 = (__int128) Ahi * Blo;
-	A0B1 = (__int128) Alo * Bhi;
+/*	A1B0 = (__int128) Ahi * Blo;*/
+/*	A0B1 = (__int128) Alo * Bhi;*/
+	A1B0 = signed_unsigned_mul128(Blo, Ahi);
+	A0B1 = signed_unsigned_mul128(Alo, Bhi);
 	A0B0 = (__int128) Alo * Blo;
 	
 	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
@@ -395,7 +414,7 @@ inline void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 static inline int64_t randomint64(void)
 {
 	// Function to generate a random 64 bit number.
-	return (((int64_t)rand() + rand()) << 32) ^ ((int64_t)rand() + rand());
+	return (((int64_t)rand() ^ rand()) << 32) | ((int64_t)rand() ^ rand());
 }
 
 static inline int64_t __modrhohi(int64_t param)

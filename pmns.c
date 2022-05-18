@@ -133,7 +133,7 @@ inline void amns_montg_mult(restrict poly res, const restrict poly A,
 
 static inline int64_t randomint64(void)
 {
-	return (int64_t)(((int64_t)(rand() + rand()) << 32) ^ ((int64_t)(rand() + rand())));
+	return (((int64_t)rand() ^ rand()) << 32) | ((int64_t)rand() ^ rand());
 }
 
 static inline int64_t __modrho(int64_t param)
