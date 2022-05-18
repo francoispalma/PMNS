@@ -3,13 +3,14 @@
 #include <gmp.h>
 #include <string.h>
 
-#include "pmns128.h"
-#include "utilitymp.h"
-
 #define LOW(X) ((uint64_t)X)
 #define LO(X) ((int64_t)X)
 #define HIGH(X) ((int64_t)(X>>64))
 #define HI(X) ((uint64_t)(X>>64))
+
+#include "pmns128.h"
+#include "utilitymp.h"
+
 
 __inline uint64_t mulx64(uint64_t x, uint64_t y, uint64_t* hi)
 {
@@ -236,15 +237,7 @@ static inline void m1_multadd128(unsigned __int128* restrict Rlo,
 	const uint64_t Ahi, const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
 	// multiplies A and B and adds the result to R for mult by M1 use;
-	unsigned __int128 A1B0, A0B1;
-	__int128 aux3;
-	
-	A1B0 = (__int128) Ahi * Blo;
-	A0B1 = (__int128) Alo * Bhi;
-	
-	aux3 = (__int128) LOW(A0B1) + LOW(A1B0);
-	
-	*Rlo += (__int128) Alo * Blo + (aux3 << 64);
+	*Rlo += (__int128) Alo * Blo + ((__int128) (LOW(Alo * Bhi) + LOW(Ahi * Blo)) << 64);
 }
 
 static inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
@@ -332,7 +325,7 @@ static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
 		Rlo[i] = 0;
 	}
 	
-	m1_mns128_mod_mult_ext_red(Rlo, res);
+	m1_mns128_mod_mult_ext_red_pre(Rlo, res);
 	
 	for(i = 0; i < N; i++)
 	{

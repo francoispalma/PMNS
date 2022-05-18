@@ -9,6 +9,11 @@
 #include <time.h>
 #include <inttypes.h>
 
+#define LOW(X) ((uint64_t)X)
+#define LO(X) ((int64_t)X)
+#define HIGH(X) ((int64_t)(X>>64))
+#define HI(X) ((uint64_t)(X>>64))
+
 #include "structs.h"
 #include "params128.h"
 

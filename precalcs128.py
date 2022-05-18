@@ -77,24 +77,34 @@ def do_precalcs(p, n, gamma, lam):
 	M1L = [(elem * lam) % phi for elem in M1]
 	M1L = [M1L[i] - phi if M1L[i] >= (phi >> 1) else M1L[i] for i in range(n)]
 
+	# We cut up M, MLambda, M1 and M1lambda
+	Mhi = [elem >> 64 for elem in M]
+	Mlo = [elem % (2**64) for elem in M]
+	MLambdalo = [(elem * lam) % 2**64 for elem in M]
+	MLambdahi = [(elem * lam) >> 64 for elem in M]
+	M1hi = [elem >> 64 for elem in M1]
+	M1lo = [elem % (2**64) for elem in M1]
+	M1Lambdalo = [elem % 2**64 for elem in M1L]
+	M1Lambdahi = [elem >> 64 for elem in M1L]
+
 	# We then get the Pi
 	phinmoinsun = pow(phi, n - 1, p)
 	Pi = [montgomery_convert_to_mns((rho**i) * (phi**2), p, n, gamma, rho, lam, phi, M, M1, phinmoinsun) for i in range(n)]
 
 	# Then we print
-	print("static const uint64_t Mlo[] = {" + str([elem % (2**64) for elem in M])[1:-1].replace(",", "u,") + "u},")
-	print("\tM1lo[] = {" + str([elem % (2**64) for elem in M1])[1:-1].replace(",", "u,") + "u},")
-	print("\tMLambdalo[] = {" + str([(elem * lam) % 2**64 for elem in M])[1:-1].replace(",", "u,") + "u},")
-	print("\tM1Lambdalo[] = {" + str([elem % 2**64 for elem in M1L])[1:-1].replace(",", "u,") + "u},")
+	print("static const uint64_t Mlo[] = {" + str(Mlo)[1:-1].replace(",", "u,") + "u},")
+	print("\tM1lo[] = {" + str(M1lo)[1:-1].replace(",", "u,") + "u},")
+	print("\tMLambdalo[] = {" + str(MLambdalo)[1:-1].replace(",", "u,") + "u},")
+	print("\tM1Lambdalo[] = {" + str(M1Lambdalo)[1:-1].replace(",", "u,") + "u},")
 	print("\t__Pilo__[N][N] = {")
 	for i in range(len(Pi) - 1):
 		print("\t\t{" + str([elem % 2**64 for elem in Pi[i]])[1:-1].replace(",", "u,") + "u},")
 	print("\t\t{" + str([elem % 2**64 for elem in Pi[-1]])[1:-1].replace(",", "u,") + "u}\n\t};\n")
 
-	print("static const int64_t Mhi[] = {" + str([elem >> 64 for elem in M])[1:-1] + "},")
-	print("\tM1hi[] = {" + str([elem >> 64 for elem in M1])[1:-1] + "},")
-	print("\tMLambdahi[] = {" + str([(elem * lam) >> 64 for elem in M])[1:-1] + "},")
-	print("\tM1Lambdahi[] = {" + str([elem >> 64 for elem in M1L])[1:-1] + "},")
+	print("static const int64_t Mhi[] = {" + str(Mhi)[1:-1] + "},")
+	print("\tM1hi[] = {" + str(M1hi)[1:-1] + "},")
+	print("\tMLambdahi[] = {" + str(MLambdahi)[1:-1] + "},")
+	print("\tM1Lambdahi[] = {" + str(M1Lambdahi)[1:-1] + "},")
 	print("\t__Pihi__[N][N] = {")
 	for i in range(len(Pi) - 1):
 		print("\t\t{" + str([elem >> 64 for elem in Pi[i]])[1:-1] + "},")
@@ -118,12 +128,42 @@ def do_precalcs(p, n, gamma, lam):
 		else:
 			print(";")
 		g = g * gamma % p
-	
+
 	print("static _poly __P__ = { .deg = " + str(n) + ",")
 	tmp = convert_to_int_tabs(p)
 	tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
 	print("\t\t.t = (int64_t[]) {" + tmp + "} },")
 	print("\tGi[] = {" + string[:-3] + "};\n")
+
+	print("""
+static inline void m1_mns128_mod_mult_ext_red_pre(unsigned __int128* restrict Rlo,
+	const restrict poly128 A)
+{
+""")
+
+	for i in range(n):
+		print("Rlo[" + str(i) + "] = (__int128)", end="")
+		for j in range(1, n - i):
+			print(" ((__int128)A->lo[" + str(i + j) + "] * "
+			+ str(M1Lambdalo[n - j]) + "u) + ((__int128) (LOW(A->lo[" + str(i + j) +
+			"] * " + str(M1Lambdahi[n - j]) + ") + LOW(A->hi[" + str(i + j) +
+			"] * " + str(M1Lambdalo[n - j]) + "u)) << 64)", end="")
+			if j != n - i - 1:
+				print(" +", end= "")
+			else:
+				print("+", end= "")
+
+		for j in range(0, i + 1):
+			print(" ((__int128) A->lo[" + str(j) + "] * "
+			+ str(M1lo[i - j]) + "u) + ((__int128) (LOW(A->lo[" + str(j) +
+			"] * " + str(M1hi[i - j]) + ") + LOW(A->hi[" + str(j) +
+			"] * " + str(M1lo[i - j]) + "u)) << 64)", end="")
+			if j != i:
+				print(" +", end= "")
+
+		print(";")
+
+	print("}\n")
 
 	print("#endif")
 
