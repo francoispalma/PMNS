@@ -233,6 +233,25 @@ static inline void mm1_multadd128(__int128* restrict Rhi,
 	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);
 }
 
+static inline void mm1_multadd128x(__int128* restrict Rhi,
+	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,
+	const int64_t Bhi, const uint64_t Blo)
+{
+	// multiplies A and B and adds the result to R for mult by M or M1 use;
+	unsigned __int128 A0B0, A1B0, tmplo;
+	__int128 aux1, aux2, aux3;
+	
+	A1B0 = (__int128) Ahi * Blo;
+	A0B0 = (__int128) Alo * Blo;
+	
+	aux3 = (__int128) HIGH(A0B0) + LOW(Alo * Bhi) + LOW(Ahi * Blo);
+	aux2 = (__int128) HIGH(aux3) + HIGH((__int128) Alo * Bhi) + HIGH(A1B0) + LOW(Ahi * Bhi);
+	aux1 = (__int128) HIGH((__int128) Ahi * Bhi);
+	
+	tmplo = (__int128) LOW(Alo * Blo) | (aux3 << 64);
+	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);
+}
+
 static inline void m1_multadd128(unsigned __int128* restrict Rlo,
 	const uint64_t Ahi, const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
