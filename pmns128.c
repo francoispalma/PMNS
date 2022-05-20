@@ -87,11 +87,11 @@ static inline __int128 signed_unsigned_mul128x(const uint64_t A, const int64_t B
 	int64_t q;
 	uint64_t r;
 	__int128 tmp;
-	tmp = (__int128) A * ((uint64_t)B);
+	tmp = (__int128) A * LOW(B);
 	r = tmp;
 	q = HIGH(tmp);
 	q -= A;
-	return (__int128) ((__int128) q << 64) | r;
+	return (__int128) ((__int128) q << 64) | r; 
 }
 
 static inline void multadd128(__int128* restrict Rhi,
@@ -100,21 +100,28 @@ static inline void multadd128(__int128* restrict Rhi,
 {
 	// multiplies A and B and adds the result to R.
 	unsigned __int128 A0B0, tmplo;
-	__int128 A1B1, A1B0, A0B1, aux1, aux2, aux3;
+	__int128 A1B1, A1B0, A0B1, aux2, aux3;
 	
 	A1B1 = (__int128) Ahi * Bhi;
-/*	A1B0 = (__int128) Ahi * Blo;*/
-/*	A0B1 = (__int128) Alo * Bhi;*/
-	A1B0 = signed_unsigned_mul128(Blo, Ahi);
-	A0B1 = signed_unsigned_mul128(Alo, Bhi);
+	A1B0 = (__int128) Ahi * Blo;
+	A0B1 = (__int128) Alo * Bhi;
+/*	if (Ahi > 0)*/
+/*		A1B0 = (__int128) Ahi * Blo;*/
+/*		//A1B0 = signed_unsigned_mul128x(Blo, Ahi);*/
+/*	else*/
+/*		A1B0 = signed_unsigned_mul128x(Blo, Ahi);*/
+/*	if (Bhi > 0)*/
+/*		A0B1 = (__int128) Alo * Bhi;*/
+/*		//A0B1 = signed_unsigned_mul128x(Alo, Bhi);*/
+/*	else*/
+/*		A0B1 = signed_unsigned_mul128x(Alo, Bhi);*/
 	A0B0 = (__int128) Alo * Blo;
 	
 	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0) + LOW(A1B1);
-	aux1 = (__int128) HIGH(A1B1);
+	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);
+	*Rhi += (__int128) aux2 + A1B1 + __builtin_add_overflow(*Rlo, tmplo, Rlo);
 }
 
 static inline void multadd128a(__int128* restrict Rhi,
@@ -354,7 +361,7 @@ static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
 		Rhi[i] = 0;
 	}
 	
-	m_mns128_mod_mult_ext_red(Rhi, Rlo, res);
+	m_mns128_mod_mult_ext_red_pre(Rhi, Rlo, res);
 	
 	for(i = 0; i < N; i++)
 	{

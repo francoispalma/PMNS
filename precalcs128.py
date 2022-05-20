@@ -168,39 +168,68 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A)
 {
 	unsigned __int128 A0B0, A1B0, A0B1, tmplo;
-	__int128 A1B1, aux1, aux2, aux3;
+	__int128 A1B1, aux2, aux3;
 """)
+
+	At = ["(__int128) (A->lo[", "(__int128) LOW(A->hi["]
+	Mt = [Mlo, Mhi]
+	MLt = [MLambdalo, MLambdahi]
+
+	auxstring = """\taux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
+	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
+	
+	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);"""
 
 	for i in range(n):
 		for j in range(1, n - i):
-			print(f"\n\tA1B1 = ((__int128) A->hi[{i + j}] * {MLambdahi[n-j]});")
-			print(f"\tA1B0 = ((__int128) A->hi[{i + j}] * {MLambdalo[n-j]}u);")
-			print(f"\tA0B1 = ((__int128) A->lo[{i + j}] * {MLambdahi[n-j]});")
-			print(f"\tA0B0 = ((__int128) A->lo[{i + j}] * {MLambdalo[n-j]}u);\n")
-			print(f"""\taux3 = ((__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0));
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0) + LOW(A1B1);
-	aux1 = (__int128) HIGH(A1B1);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[{i}] += (__int128) aux2 + (aux1 << 64) +
-		__builtin_add_overflow(Rlo[{i}], tmplo, Rlo + {i});""")
+			for k in range(3, -1, -1):
+				print(f"\tA{k//2}B{k&1} = {At[k//2]}{i + j}]) * {MLt[k&1][n-j]}" +
+					f"{'' if k&1 else 'u'};")
+			print(auxstring)
+			print(f"""\tRhi[{i}] += (__int128) aux2 + A1B1 +
+		__builtin_add_overflow(Rlo[{i}], tmplo, Rlo + {i});\n""")
 
 		for j in range(0, i + 1):
-			print(f"\n\tA1B1 = ((__int128) A->hi[{j}] * {Mhi[i-j]});")
-			print(f"\tA1B0 = ((__int128) A->hi[{j}] * {Mlo[i-j]}u);")
-			print(f"\tA0B1 = ((__int128) A->lo[{j}] * {Mhi[i-j]});")
-			print(f"\tA0B0 = ((__int128) A->lo[{j}] * {Mlo[i-j]}u);\n")
-			print(f"""\taux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0) + LOW(A1B1);
-	aux1 = (__int128) HIGH(A1B1);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[{i}] += (__int128) aux2 + (aux1 << 64) +
-		__builtin_add_overflow(Rlo[{i}], tmplo, Rlo + {i});""")
+			for k in range(3, -1, -1):
+				print(f"\tA{k//2}B{k&1} = {At[k//2]}{j}]) * {Mt[k&1][i-j]}" +
+					f"{'' if k&1 else 'u'};")
+			print(auxstring)
+			print(f"""\tRhi[{i}] += (__int128) aux2 + A1B1 +
+		__builtin_add_overflow(Rlo[{i}], tmplo, Rlo + {i});\n""")
 
 	print("}\n")
 
-	print("#endif")
+	print("""
+static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
+	unsigned __int128* restrict Rlo, const restrict poly128 A,
+	const restrict poly128 B)
+{
+	unsigned __int128 A0B0, tmplo;
+	__int128 A1B1, A1B0, A0B1, aux2, aux3;
+""")
+
+	At = ["(__int128) A->lo[", "(__int128) A->hi["]
+	Bt = ["B->lo[", "B->hi["]
+
+	for i in range(n):
+		for j in range(1, n - i):
+			for k in range(3, -1, -1):
+				print(f"\tA{k//2}B{k&1} = {At[k//2]}{i + j}] * {Bt[k&1]}{n - j}];")
+			print(auxstring)
+			print(f"""\tRhi[{i}] += (__int128) aux2 + A1B1 +
+		__builtin_add_overflow(Rlo[{i}], tmplo, Rlo + {i});\n""")
+
+# TODO: Multiply by lambda
+
+		for j in range(0, i + 1):
+			for k in range(3, -1, -1):
+				print(f"\tA{k//2}B{k&1} = {At[k//2]}{j}] * {Bt[k&1]}{i - j}];")
+			print(auxstring)
+			print(f"""\tRhi[{i}] += (__int128) aux2 + A1B1 +
+		__builtin_add_overflow(Rlo[{i}], tmplo, Rlo + {i});\n""")
+
+	print("}\n#endif")
+
 
 if __name__ == "__main__":
 #	p = 135235643069960614055763147653064061503447506836195743621526670176368184234720875133770858820476536434488752158042109408722131110950494765999584602783171012937442890496568352400298953673566640901275488915484314041362810104082501296367785554838617047203051373164870703338765011558032443485283660293658396373031
