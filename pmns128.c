@@ -219,7 +219,7 @@ void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,
 /*	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);*/
 /*}*/
 
-static inline void mm1_multadd128(__int128* restrict Rhi,
+static inline void mm1_multadd128__(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,
 	const int64_t Bhi, const uint64_t Blo)
 {
@@ -239,45 +239,14 @@ static inline void mm1_multadd128(__int128* restrict Rhi,
 	*Rhi += (__int128) aux2 + A1B1 + __builtin_add_overflow(*Rlo, tmplo, Rlo);
 }
 
-static inline void mm1_multadd128_inprogress(__int128* restrict Rhi,
+static inline void mm1_multadd128(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,
 	const int64_t Bhi, const uint64_t Blo)
 {
-	// multiplies A and B and adds the result to R for mult by M or M1 use;
-	unsigned __int128 A0B0, A1B0, A0B1, tmplo, aux, carry, null;
-	__int128 aux2, aux3, aux1;
-	
+	unsigned __int128 A1B0, A0B1;
 	A1B0 = (__int128) Ahi * Blo;
 	A0B1 = (__int128) Alo * Bhi;
-	A0B0 = (__int128) Alo * Blo;
-	
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	//aux = (__int128) *Rlo + ((__int128) Alo * Blo) + (((__int128) Ahi * Blo + Alo * Bhi) << 64);
-	
-	carry = __builtin_add_overflow(((__int128) Ahi * Blo) << 64, ((__int128) Alo * Bhi) << 64, &aux) + __builtin_add_overflow(aux, (__int128) Alo * Blo, &aux) + __builtin_add_overflow(aux, *Rlo, &aux);
-	
-	aux1 = (__int128) *Rhi + ((__int128) Ahi * Bhi) + HIGH(A0B1) + HIGH(A1B0) + carry;
-	aux1 = *Rhi;
-	aux1 += (__int128) aux2 + ((__int128) Ahi * Bhi) + __builtin_add_overflow(*Rlo, (unsigned __int128) LOW(Alo * Blo) | (((__int128) HIGH((unsigned __int128)Alo * Blo) + LOW(A0B1) + LOW(A1B0)) << 64), &null);
-/*	aux1 += (__int128) ((__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0)) + ((__int128) Ahi * Bhi) + __builtin_add_overflow(*Rlo, (__int128) LOW(A0B0) | (aux3 << 64), &null);*/
-	
-/*	__print128(((__int128) ((__int128)Ahi * Blo) + A0B1));*/
-/*	__print128(((__int128) A0B1 + A1B0));*/
-/*	exit(-1);*/
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	*Rhi += (__int128) aux2 + ((__int128) Ahi * Bhi) + __builtin_add_overflow(*Rlo, tmplo, Rlo);
-	*Rlo = aux;
-	if(*Rhi != aux1)
-	{
-		__print128(*Rhi);
-		__print128(aux1);
-		__print128(aux1 - HIGH(aux3));
-		__print128(null);
-		exit(-1);
-	}
+	*Rhi += (__int128) __builtin_add_overflow((__int128) Alo * Blo, *Rlo, Rlo) + __builtin_add_overflow(*Rlo, ((unsigned __int128) ((__int128) Alo * Bhi) << 64), Rlo) + __builtin_add_overflow(*Rlo, ((unsigned __int128) ((__int128) Ahi * Blo) << 64), Rlo) + HIGH(A0B1) + HIGH(A1B0) + ((__int128) Ahi * Bhi);
 }
 
 static inline void mm1_multadd128x(__int128* restrict Rhi,
