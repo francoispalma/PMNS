@@ -214,12 +214,10 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	for i in range(n):
 		for j in range(1, n - i):
 			for k in range(3, -1, -1):
-				print(f"\tA{k//2}B{k&1} = {At[k//2]}{i + j}] * {Bt[k&1]}{n - j}];")
+				print(f"\tA{k//2}B{k&1} = {At[k//2]}{i + j}] * {Bt[k&1]}{n - j}] * LAMBDA;")
 			print(auxstring)
 			print(f"""\tRhi[{i}] += (__int128) aux2 + A1B1 +
 		__builtin_add_overflow(Rlo[{i}], tmplo, Rlo + {i});\n""")
-
-# TODO: Multiply by lambda
 
 		for j in range(0, i + 1):
 			for k in range(3, -1, -1):
