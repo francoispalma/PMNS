@@ -243,10 +243,10 @@ static inline void mm1_multadd128(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,
 	const int64_t Bhi, const uint64_t Blo)
 {
-	unsigned __int128 A1B0, A0B1;
-	A1B0 = (__int128) Ahi * Blo;
-	A0B1 = (__int128) Alo * Bhi;
-	*Rhi += (__int128) __builtin_add_overflow((__int128) Alo * Blo, *Rlo, Rlo) + __builtin_add_overflow(*Rlo, ((unsigned __int128) ((__int128) Alo * Bhi) << 64), Rlo) + __builtin_add_overflow(*Rlo, ((unsigned __int128) ((__int128) Ahi * Blo) << 64), Rlo) + HIGH(A0B1) + HIGH(A1B0) + ((__int128) Ahi * Bhi);
+	*Rhi += (__int128) __builtin_add_overflow((__int128) Alo * Blo, *Rlo, Rlo)
+		+ __builtin_add_overflow(*Rlo, ((unsigned __int128) ((__int128) Alo * Bhi) << 64), Rlo)
+		+ __builtin_add_overflow(*Rlo, ((unsigned __int128) ((__int128) Ahi * Blo) << 64), Rlo)
+		+ HIGH((__int128) Alo * Bhi) + HI((unsigned __int128) Ahi * Blo) + ((__int128) Ahi * Bhi);
 }
 
 static inline void mm1_multadd128x(__int128* restrict Rhi,
@@ -434,7 +434,7 @@ inline void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	__int128 Rhi[N] = {0};
 	unsigned __int128 Rlo[N] = {0};
 	
-	mns128_mod_mult_ext_red_pre(Rhi, Rlo, A, B);
+	mns128_mod_mult_ext_red(Rhi, Rlo, A, B);
 	
 	mns128_montg_int_red(res, Rhi, Rlo);
 }

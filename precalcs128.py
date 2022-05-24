@@ -163,39 +163,87 @@ static inline void m1_mns128_mod_mult_ext_red_pre(unsigned __int128* restrict Rl
 
 	print("}\n")
 
-	print("""
-static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi, 
-	unsigned __int128* restrict Rlo, const restrict poly128 A)
-{
-	unsigned __int128 A0B0, A1B0, A0B1, tmplo;
-	__int128 A1B1, aux2, aux3;
-""")
-
-	At = ["(__int128) (A->lo[", "(__int128) LOW(A->hi["]
-	Mt = [Mlo, Mhi]
-	MLt = [MLambdalo, MLambdahi]
-
 	auxstring = """\taux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
 	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);"""
 
+#	print("""
+#static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi, 
+#	unsigned __int128* restrict Rlo, const restrict poly128 A)
+#{
+#	unsigned __int128 A0B0, A1B0, A0B1, tmplo;
+#	__int128 A1B1, aux2, aux3;
+#""")
+
+#	At = ["(__int128) (A->lo[", "(__int128) LOW(A->hi["]
+#	Mt = [Mlo, Mhi]
+#	MLt = [MLambdalo, MLambdahi]
+
+#	
+
+#	for i in range(n):
+#		for j in range(1, n - i):
+#			for k in range(3, -1, -1):
+#				print(f"\tA{k//2}B{k&1} = {At[k//2]}{i + j}]) * {MLt[k&1][n-j]}" +
+#					f"{'' if k&1 else 'u'};")
+#			print(auxstring)
+#			print(f"""\tRhi[{i}] += (__int128) aux2 + A1B1 +
+#		__builtin_add_overflow(Rlo[{i}], tmplo, Rlo + {i});\n""")
+
+#		for j in range(0, i + 1):
+#			for k in range(3, -1, -1):
+#				print(f"\tA{k//2}B{k&1} = {At[k//2]}{j}]) * {Mt[k&1][i-j]}" +
+#					f"{'' if k&1 else 'u'};")
+#			print(auxstring)
+#			print(f"""\tRhi[{i}] += (__int128) aux2 + A1B1 +
+#		__builtin_add_overflow(Rlo[{i}], tmplo, Rlo + {i});\n""")
+
+#	print("}\n")
+
+	print("""
+static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi, 
+	unsigned __int128* restrict Rlo, const restrict poly128 A)
+{""")
+
 	for i in range(n):
+		print(f"\tRhi[{i}] = (__int128) __builtin_add_overflow((__int128)", end="")
+		print(f" A->lo[{i + 1 % n}] * ", end="")
+		print(f"{MLambdalo[n - 1] if i != (n - 1) else Mlo[n - 1]}u", end="")
+		print(f", ((unsigned __int128) ((__int128) A->lo[{i + 1 % n}] * ", end="")
+		print(f"{MLambdahi[n - 1] if i != (n - 1) else Mhi[n - 1]})", end="")
+		print(f" << 64), Rlo + {i})")
 		for j in range(1, n - i):
-			for k in range(3, -1, -1):
-				print(f"\tA{k//2}B{k&1} = {At[k//2]}{i + j}]) * {MLt[k&1][n-j]}" +
-					f"{'' if k&1 else 'u'};")
-			print(auxstring)
-			print(f"""\tRhi[{i}] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[{i}], tmplo, Rlo + {i});\n""")
+			if i + j != 1:
+				print(f"\t\t+ __builtin_add_overflow((__int128) A->lo[{i + j}]", end="")
+				print(f" * {MLambdalo[n-j]}u, Rlo[{i}], Rlo + {i})")
+				print(f"\t\t+ __builtin_add_overflow(Rlo[{i}], ((unsigned __int128)", end="")
+				print(f" ((__int128) A->lo[{i + j}] * {MLambdahi[n-j]}) << 64)", end="")
+				print(f", Rlo + {i})")
+			print(f"\t\t+ __builtin_add_overflow(Rlo[{i}], ((unsigned __int128)", end="")
+			print(f" ((__int128) A->hi[{i + j}] * {MLambdalo[n-j]}u) << 64)", end="")
+			print(f", Rlo + {i})")
+			print(f"\t\t+ HIGH((__int128) A->lo[{i + j}] * {MLambdahi[n-j]})", end="")
+			print(f" + HI((unsigned __int128) A->hi[{i + j}] * {MLambdalo[n-j]}u)", end="")
+			print(f" + ((__int128) A->hi[{i + j}] * {MLambdahi[n-j]})")
 
 		for j in range(0, i + 1):
-			for k in range(3, -1, -1):
-				print(f"\tA{k//2}B{k&1} = {At[k//2]}{j}]) * {Mt[k&1][i-j]}" +
-					f"{'' if k&1 else 'u'};")
-			print(auxstring)
-			print(f"""\tRhi[{i}] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[{i}], tmplo, Rlo + {i});\n""")
+			if i != n - 1 or j != 0:
+				print(f"\t\t+ __builtin_add_overflow((__int128) A->lo[{j}]", end="")
+				print(f" * {Mlo[i-j]}u, Rlo[{i}], Rlo + {i})")
+				print(f"\t\t+ __builtin_add_overflow(Rlo[{i}], ((unsigned __int128)", end="")
+				print(f" ((__int128) A->lo[{j}] * {Mhi[i-j]}) << 64)", end="")
+				print(f", Rlo + {i})")
+			print(f"\t\t+ __builtin_add_overflow(Rlo[{i}], ((unsigned __int128)", end="")
+			print(f" ((__int128) A->hi[{j}] * {Mlo[i-j]}u) << 64)", end="")
+			print(f", Rlo + {i})")
+			print(f"\t\t+ HIGH((__int128) A->lo[{j}] * {Mhi[i-j]})", end="")
+			print(f" + HI((unsigned __int128) A->hi[{j}] * {Mlo[i-j]}u)", end="")
+			print(f" + ((__int128) A->hi[{j}] * {Mhi[i-j]})", end="")
+			if j != i:
+				print()
+			else:
+				print(";")
 
 	print("}\n")
 
