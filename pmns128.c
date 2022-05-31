@@ -360,7 +360,7 @@ static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
 		Rlo[i] = 0;
 	}
 	
-	m1_mns128_mod_mult_ext_red_pre(Rlo, res);
+	m1_mns128_mod_mult_ext_red(Rlo, res);
 	
 	for(i = 0; i < N; i++)
 	{
@@ -437,6 +437,60 @@ inline void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	mns128_mod_mult_ext_red(Rhi, Rlo, A, B);
 	
 	mns128_montg_int_red(res, Rhi, Rlo);
+}
+
+static inline void mns128_montg_int_red_pre(poly128 res, __int128* restrict Rhi,
+	unsigned __int128* restrict Rlo)
+{
+	// Function that reduces the internal coefficient contained in R to be lower
+	// than the chosen Rho.
+	unsigned __int128 V[N], V2[N];
+	register uint16_t i;
+	
+	
+	memcpy(V, Rlo, N * sizeof(__int128));
+	memcpy(V2, Rhi, N * sizeof(__int128));
+	for(i = 0; i < N; i++)
+	{
+		res->lo[i] = LOW(Rlo[i]);
+		res->hi[i] = HI(Rlo[i]);
+		Rlo[i] = 0;
+	}
+	
+	m1_mns128_mod_mult_ext_red_pre(Rlo, res);
+	
+	for(i = 0; i < N; i++)
+	{
+		res->lo[i] = LOW(Rlo[i]);
+		res->hi[i] = HIGH(Rlo[i]);
+		Rlo[i] = 0;
+		Rhi[i] = 0;
+	}
+	
+	m_mns128_mod_mult_ext_red_pre(Rhi, Rlo, res);
+	
+	for(i = 0; i < N; i++)
+	{
+		Rhi[i] = (__int128) V2[i] + Rhi[i] + (V[i] != 0);
+		res->lo[i] = LOW(Rhi[i]);
+		res->hi[i] = HIGH(Rhi[i]);
+	}
+}
+
+inline void amns128_montg_mult_pre(restrict poly128 res, const restrict poly128 A,
+	const restrict poly128 B)
+{
+	// Function that multiplies A by B using the montgomery approach in an
+	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
+	// of the set of polynomials of that amns who have gamma as a root such that
+	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
+	
+	__int128 Rhi[N] = {0};
+	unsigned __int128 Rlo[N] = {0};
+	
+	mns128_mod_mult_ext_red(Rhi, Rlo, A, B);
+	
+	mns128_montg_int_red_pre(res, Rhi, Rlo);
 }
 
 static inline int64_t randomint64(void)

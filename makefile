@@ -63,8 +63,14 @@ p128: p128.exe
 bench: bench.exe
 	./bench.exe
 
+prebench: bench.exe
+	./bench.exe pre
+
 bench128: bench128.exe
 	./bench128.exe
+
+prebench128: bench128.exe
+	./bench128.exe pre
 
 progress: *.c *.py *.h makefile
 	git add .

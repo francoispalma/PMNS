@@ -73,7 +73,8 @@ def do_precalcs(p, n, gamma, lam):
 	# We print
 	print("static const int64_t M[] = {" + str(M)[1:-1] + "},")
 	print("\tM1[] = {" + str(M1)[1:-1] + "},")
-	print("\tMLambda[] = {" + str([elem * lam for elem in M])[1:-1] + "},")
+	ML = [elem * lam for elem in M]
+	print("\tMLambda[] = {" + str(ML)[1:-1] + "},")
 	M1L = [(elem * lam) % phi for elem in M1]
 	M1L = [M1L[i] - phi if M1L[i] >= (phi >> 1) else M1L[i] for i in range(n)]
 	print("\tM1Lambda[] = {" + str(M1L)[1:-1] + "},")
@@ -110,6 +111,72 @@ def do_precalcs(p, n, gamma, lam):
 	tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
 	print("\t\t.t = (int64_t[]) {" + tmp + "} },")
 	print("\tGi[] = {" + string[:-3] + "};\n")
+
+	# From here on, precalc functions, first with the multiplication by M1
+	print("""
+static inline void m1_mns_mod_mult_ext_red_pre(int64_t* restrict R,
+	const restrict poly A)
+{
+""")
+
+	for i in range(n):
+		print(f"R[{i}] = (uint64_t)", end="")
+		for j in range(1, n - i):
+			print(f" ((uint64_t) A->t[{i + j}] * {M1L[n - j]})", end="")
+			print(" +", end= "")
+
+		for j in range(0, i + 1):
+			print(f" ((uint64_t) A->t[{j}] * {M1[i - j]})", end="")
+			if j != i:
+				print(" +", end= "")
+
+		print(";")
+
+	print("}\n")
+
+	# Next is the multiplication by M
+	print("""
+static inline void m_mns_mod_mult_ext_red_pre(__int128* restrict R,
+	const restrict poly A)
+{
+""")
+
+	for i in range(n):
+		print(f"R[{i}] = (__int128)", end="")
+		for j in range(1, n - i):
+			print(f" ((__int128) ((uint64_t) A->t[{i + j}]) * {ML[n - j]})", end="")
+			print(" +", end= "")
+
+		for j in range(0, i + 1):
+			print(f" ((__int128) ((uint64_t) A->t[{j}]) * {M[i - j]})", end="")
+			if j != i:
+				print(" +", end= "")
+
+		print(";")
+
+	print("}\n")
+
+	# This one for the multiplication of A by B.
+	print("""
+static inline void mns_mod_mult_ext_red_pre(__int128* restrict R,
+	const restrict poly A, const restrict poly B)
+{
+""")
+
+	for i in range(n):
+		print(f"R[{i}] = (__int128)", end="")
+		for j in range(1, n - i):
+			print(f" ((__int128) A->t[{i + j}] * B->t[{n - j}] * LAMBDA)", end="")
+			print(" +", end= "")
+
+		for j in range(0, i + 1):
+			print(f" ((__int128) A->t[{j}] * B->t[{i - j}])", end="")
+			if j != i:
+				print(" +", end= "")
+
+		print(";")
+
+	print("}\n")
 
 	print("#endif")
 

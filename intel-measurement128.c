@@ -32,6 +32,8 @@ inline static unsigned long rdpmc_instructions(void)
 
 extern void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
+extern void amns128_montg_mult_pre(restrict poly128 res, const restrict poly128 A,
+	const restrict poly128 B);
 void randpoly128(poly128);
 
 // NTEST*NSAMPLES must be odd
@@ -131,8 +133,7 @@ inline static uint64_t cpucyclesStop (void) {
 }
 
 
-
-int main(void)
+int main(int argc, char** argv)
 {
   uint64_t *cycles1 ;
   unsigned long long timermin1 , timermax1, meanTimer1min =0,  medianTimer1 = 0,
@@ -147,11 +148,12 @@ int main(void)
 	poly128 a, b, c, soak1, soak2;
 	init_poly128s(N, &a, &b, &c, &soak1, &soak2, NULL);
 	
-/*	poly128 samplesA[NTEST], samplesB[NTEST];*/
-/*	*/
-/*	randpoly128(soak2);*/
-/*	soak2->lo[0] += Gi[0].t[0];*/
-/*	soak2->lo[0] += __P__.t[0];*/
+	void (*amns128_mult)(restrict poly128, const restrict poly128,
+		const restrict poly128);
+	if (argc > 1 && (strncmp(argv[1], "pre", 3) == 0))
+		amns128_mult = amns128_montg_mult_pre;
+	else
+		amns128_mult = amns128_montg_mult;
 
   cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
 
@@ -162,10 +164,7 @@ int main(void)
     // pour chauffer les caches
 		randpoly128(a);
 		randpoly128(b);
-		amns128_montg_mult(c, a, b);
-/*		amns128_montg_mult(soak1, c, soak2);*/
-/*		amns128_montg_mult(soak2, c, soak1);*/
-/*		init_poly128s(N, samplesA + i, samplesB + i, NULL);*/
+		amns128_mult(c, a, b);
   }
 
   for(int i=0;i<NSAMPLES;i++)
@@ -176,9 +175,7 @@ int main(void)
 		randpoly128(b);
 		for(int j=0;j<NTEST;j++)
 		{
-/*			randpoly128(samplesA[j]);*/
-/*			randpoly128(samplesB[j]);*/
-			amns128_montg_mult(c, a, b);
+			amns128_mult(c, a, b);
 		}
 		timermin1 = (unsigned long long int)0x1<<63;
 		timermax1 = 0;
@@ -187,11 +184,8 @@ int main(void)
 		{
 			t1 = cpucyclesStart();
             // appel de la fonction a mesurer
-			//amns128_montg_mult(c, samplesA[j], samplesB[j]);
-			amns128_montg_mult(c, a, b);
+			amns128_mult(c, a, b);
 			t2 = cpucyclesStop();
-			//amns128_montg_mult(soak1, c, soak2);
-			//amns128_montg_mult(soak2, c, soak1);
 			if (t2 < t1){
 				diff_t = 18446744073709551615ULL-t1;
 				diff_t = t2+diff_t+1;
@@ -209,27 +203,20 @@ int main(void)
         free(statTimer1);
 	}
 	
-/*	for(int i=0;i<NTEST;i++)*/
-/*		free_poly128s(samplesA[i], samplesB[i], NULL);*/
-
-/*	printf("\nName Function: min : %lld, max : %lld,  median : %lld  CPU cycles\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES);*/
-
-	
-	
 	timer=0;
 	
 	for(int k=0; k<NSAMPLES;k++)
 	{
 		for(int i=0;i<NTEST;i++)
 		{
-			amns128_montg_mult(c, a, b);
+			amns128_mult(c, a, b);
 		}
 		
 		for(int i=0;i<NTEST;i++)
 		{
 			
 			START = rdpmc_instructions();
-			amns128_montg_mult(c, a, b);
+			amns128_mult(c, a, b);
 			STOP = rdpmc_instructions();
 			
 			if(mini>STOP-START) mini = STOP-START;

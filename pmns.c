@@ -131,6 +131,46 @@ inline void amns_montg_mult(restrict poly res, const restrict poly A,
 	mns_montg_int_red(res, R);
 }
 
+static inline void mns_montg_int_red_pre(restrict poly res, __int128* restrict R)
+{
+	uint64_t V[N], V2[N];
+	int64_t T[N] = {0};
+	register uint16_t i;
+	
+	for(i = 0; i < N; i++)
+	{
+		V[i] = R[i];
+		res->t[i] = R[i];
+		V2[i] = (R[i] >> 64);
+		R[i] = 0;
+	}
+	
+	m1_mns_mod_mult_ext_red_pre(T, res);
+	
+	for(i = 0; i < N; i++)
+		res->t[i] = T[i];
+	
+	m_mns_mod_mult_ext_red_pre(R, res);
+	
+	for(i = 0; i < N; i++)
+		res->t[i] = V2[i] + (R[i] >> 64) + (V[i] != 0);
+}
+
+inline void amns_montg_mult_pre(restrict poly res, const restrict poly A,
+	const restrict poly B)
+{
+	// Function that multiplies A by B using the montgomery approach in an
+	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
+	// of the set of polynomials of that amns who have gamma as a root such that
+	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
+	
+	__int128 R[N] = {0};
+	
+	mns_mod_mult_ext_red_pre(R, A, B);
+
+	mns_montg_int_red_pre(res, R);
+}
+
 static inline int64_t randomint64(void)
 {
 	return (((int64_t)rand() ^ rand()) << 32) | ((int64_t)rand() ^ rand());

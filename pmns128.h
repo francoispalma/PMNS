@@ -9,5 +9,7 @@
 
 extern void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
+extern void amns128_montg_mult_pre(restrict poly128 res, const restrict poly128 A,
+	const restrict poly128 B);
 
 #endif
