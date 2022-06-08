@@ -14,9 +14,14 @@ def do_bench(Psize="1024", phi=""):
 	precalc = do_precalcs128 if phi == "128" else do_precalcs
 	filename = "results/results" + Psize + phi
 
-	# We wipe the file
+	# We wipe the files
 	with open(filename, "w+") as f:
 		pass
+	with open(filename + "pre", "w+") as f:
+		pass
+	if phi == "128":
+		with open(filename + "hyb", "w+") as f:
+			pass
 
 	# We run the benchmark
 	for i in range(len(pmnsdict)):
@@ -26,6 +31,9 @@ def do_bench(Psize="1024", phi=""):
 				precalc(p, n, gamma, lam)
 		os.system("make bench" + phi + ".exe")
 		os.system("./bench" + phi + ".exe >> " + filename)
+		os.system("./bench" + phi + ".exe pre >> " + filename + "pre")
+		if phi == "128":
+			os.system("./bench" + phi + ".exe hyb >> " + filename + "hyb")
 
 if __name__ == "__main__":
 	if len(sys.argv) >= 2:

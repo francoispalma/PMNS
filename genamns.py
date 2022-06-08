@@ -51,10 +51,10 @@ def gen_amns(power, sphi):
 				B = list(IntegerLattice(matrix(ZZ, B)).LLL())
 				__tmp = int(2 * w * max(max(B)))
 				rho = ceil(__tmp.bit_length())
-				if rho < 2 * w * phi:
+				if 2 * w * rho < phi:
 					break
 			n += 2
-		print("pmns" + sphi + "dict[" + str(p) + "] = (" + str(p) + ", " + str(n) + ", " + str(fs[0][0][0]) + ", " + str(lamb) + ")")
+		print(f"pmns{sphi}dict[{p}] = ({p}, {n}, {fs[0][0][0]}, {lamb}, {B})")
 
 if __name__ == "__main__":
 	if len(sys.argv) >= 2:

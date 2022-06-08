@@ -20,19 +20,23 @@
 #define NTEST 511
 #define NSAMPLES 1001
 
-inline static unsigned long rdpmc_instructions(void)
-{
-   unsigned a, d, c;
+/*inline static unsigned long rdpmc_instructions(void)*/
+/*{*/
+/*   unsigned a, d, c;*/
 
-   c = (1<<30);
-   __asm__ __volatile__("rdpmc" : "=a" (a), "=d" (d) : "c" (c));
+/*   c = (1<<30);*/
+/*   __asm__ __volatile__("rdpmc" : "=a" (a), "=d" (d) : "c" (c));*/
 
-   return ((unsigned long)a) | (((unsigned long)d) << 32);;
-}
+/*   return ((unsigned long)a) | (((unsigned long)d) << 32);;*/
+/*}*/
+
+unsigned long rdpmc_instructions(void) { return 1;}
 
 extern void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
 extern void amns128_montg_mult_pre(restrict poly128 res, const restrict poly128 A,
+	const restrict poly128 B);
+extern void amns128_montg_mult_hyb(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
 void randpoly128(poly128);
 
@@ -152,6 +156,8 @@ int main(int argc, char** argv)
 		const restrict poly128);
 	if (argc > 1 && (strncmp(argv[1], "pre", 3) == 0))
 		amns128_mult = amns128_montg_mult_pre;
+	else if (argc > 1 && (strncmp(argv[1], "hyb", 3) == 0))
+		amns128_mult = amns128_montg_mult_hyb;
 	else
 		amns128_mult = amns128_montg_mult;
 
