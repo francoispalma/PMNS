@@ -1,6 +1,6 @@
 from sage.all import next_prime, previous_prime, GF, PolynomialRing, factor, matrix, ZZ
 from sage.modules.free_module_integer import IntegerLattice
-from math import ceil
+from math import ceil, log2
 import sys
 
 from commonpmns import primesdict, handledphis
@@ -10,7 +10,7 @@ from commonpmns import primesdict, handledphis
 
 def gen_amns(power, sphi):
 	primes = primesdict[power]
-	print("pmns" + sphi + "dict = {}")
+	#print("pmns" + sphi + "dict = {}")
 	if sphi == "":
 		phi = 64
 	else:
@@ -19,7 +19,7 @@ def gen_amns(power, sphi):
 	init_n = (power // phi) | 1
 	while 2**(power/init_n) >= PHI/((2*init_n*2)**2):
 		init_n += 2
-	for i in range(len(primes)):
+	for i in range(8, len(primes)):
 		p = primes[i]
 		K = GF(p)
 		polK = PolynomialRing(K, 'X')
@@ -51,10 +51,10 @@ def gen_amns(power, sphi):
 				B = list(IntegerLattice(matrix(ZZ, B)).LLL())
 				__tmp = int(2 * w * max(max(B)))
 				rho = ceil(__tmp.bit_length())
-				if 2 * w * rho < phi:
+				if rho < phi - 1 - log2(w):
 					break
 			n += 2
-		print(f"pmns{sphi}dict[{p}] = ({p}, {n}, {fs[0][0][0]}, {lamb}, {B})")
+		print(f"pmns{sphi}dict[{p}] = ({p}, {n}, {fs[0][0][0]}, {lamb}, {rho}, {B})")
 
 if __name__ == "__main__":
 	if len(sys.argv) >= 2:

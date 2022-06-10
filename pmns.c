@@ -17,7 +17,7 @@ __inline uint64_t mulx64(uint64_t x, uint64_t y, uint64_t* hi)
     return x;
 }
 
-static inline void mns_mod_mult_ext_red(__int128* restrict R,
+inline void mns_mod_mult_ext_red(__int128* restrict R,
 	const restrict poly A, const restrict poly B)
 {
 	// Function that multiplies A by B and applies external reduction using

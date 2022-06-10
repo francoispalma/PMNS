@@ -35,6 +35,12 @@ bench.exe: intel-measurement.c pmns.o structs.o utilitymp.o
 bench128.exe: intel-measurement128.c pmns128.o structs.o utilitymp.o
 	gcc -o $@ $^ $(FLAGS) -lgmp
 
+multbench.exe: multmeasurement.c pmns.o structs.o utilitymp.o
+	gcc -o $@ $^ $(FLAGS)
+
+multbench128.exe: multmeasurement128.c pmns128.o structs.o utilitymp.o
+	gcc -o $@ $^ $(FLAGS) -lgmp
+
 clean:
 	rm -rf *.o
 	rm -rf *.exe

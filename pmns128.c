@@ -275,7 +275,7 @@ static inline void m1_multadd128(unsigned __int128* restrict Rlo,
 	*Rlo += (__int128) Alo * Blo + ((__int128) (LOW(Alo * Bhi) + LOW(Ahi * Blo)) << 64);
 }
 
-static inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
+inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A,
 	const restrict poly128 B)
 {
