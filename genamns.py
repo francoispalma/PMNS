@@ -19,7 +19,7 @@ def gen_amns(power, sphi):
 	init_n = (power // phi) | 1
 	while 2**(power/init_n) >= PHI/((2*init_n*2)**2):
 		init_n += 2
-	for i in range(8, len(primes)):
+	for i in range(len(primes)):
 		p = primes[i]
 		K = GF(p)
 		polK = PolynomialRing(K, 'X')
