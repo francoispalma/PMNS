@@ -10,7 +10,7 @@ from commonpmns import primesdict, handledphis
 
 def gen_amns(power, sphi):
 	primes = primesdict[power]
-	#print("pmns" + sphi + "dict = {}")
+	print("pmns" + sphi + "dict = {}")
 	if sphi == "":
 		phi = 64
 	else:
