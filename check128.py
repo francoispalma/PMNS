@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
 	# We find our w factor to get rho
 	w = 1 + (n - 1) * abs(lam)
-	__tmp = int(2 * w * max([max(Line) for Line in B])))
+	__tmp = int(2 * w * max([max(Line) for Line in B]))
 	RHO = ceil(__tmp.bit_length())
 	rho = 2**RHO
 	

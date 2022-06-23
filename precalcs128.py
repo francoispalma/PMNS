@@ -34,7 +34,7 @@ def do_precalcs(p, n, gamma, lam, rho=None, B=None):
 	if rho is None:
 		# We find our w factor to get rho
 		w = 1 + (n - 1) * abs(lam)
-		__tmp = int(2 * w * max([max(Line) for Line in B])))
+		__tmp = int(2 * w * max([max(Line) for Line in B]))
 		rho = ceil(__tmp.bit_length())
 
 	print("#define RHO", rho)
