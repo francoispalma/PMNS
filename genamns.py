@@ -8,9 +8,10 @@ from commonpmns import primesdict, handledphis
 # ||M||inf <= phi/((lambda*n*2)**2)
 # min(||M||inf) = P^1/n
 
-def gen_amns(power, sphi):
+def gen_amns(power, sphi, start=0):
 	primes = primesdict[power]
-	print("pmns" + sphi + "dict = {}")
+	if start == 0:
+		print("pmns" + sphi + "dict = {}")
 	if sphi == "":
 		phi = 64
 	else:
@@ -72,8 +73,12 @@ if __name__ == "__main__":
 				exit()
 			elif phi == "64":
 				phi = ""
-			gen_amns(psize, phi)
+			if len(sys.argv) >= 4:
+				start = int(sys.argv[3])
+			else:
+				start = 0
+			gen_amns(psize, phi, start)
 		except ValueError:
 			print("Invalid arguments")
 	else:
-		print("Not enough arguments: Psize [Phi]")
+		print("Not enough arguments: Psize [Phi] [start]")

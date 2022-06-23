@@ -14,23 +14,26 @@ def convert_to_int_tabs(num):
 		string = string[:-16]
 	return L
 
-def do_precalcs(p, n, gamma, lam):
+def do_precalcs(p, n, gamma, lam, rho=None, B=None):
 	print("#ifndef PMNS_PARAMS_H_INCLUDED\n#define PMNS_PARAMS_H_INCLUDED\n")
 
-	# We calculate the base matrix
-	B = [[p if (i, j) == (0, 0) else -pow(gamma, i, p) if i != 0 and j == 0 else 1 if i == j else 0 for j in range(n)] for i in range(n)]
+	if B is None:
+		# We calculate the base matrix
+		B = [[p if (i, j) == (0, 0) else -pow(gamma, i, p) if i != 0 and j == 0 else 1 if i == j else 0 for j in range(n)] for i in range(n)]
 
-	# We apply LLL to it
-	B = list(IntegerLattice(matrix(ZZ, B)).LLL())
+		# We apply LLL to it
+		B = list(IntegerLattice(matrix(ZZ, B)).LLL())
 
 	# We define our external reduction polynomial
 	RingPoly = PolynomialRing(ZZ, 'X')
 	E = RingPoly("X^" + str(n) + " - (" + str(lam) + ")")
 
-	# We find our w factor to get rho
-	w = 1 + (n - 1) * abs(lam)
-	__tmp = int(2 * w * max(max(B)))
-	rho = ceil(__tmp.bit_length())
+	if rho is None:
+		# We find our w factor to get rho
+		w = 1 + (n - 1) * abs(lam)
+		__tmp = int(2 * w * max(max(B)))
+		rho = ceil(__tmp.bit_length())
+
 	print("#define RHO", rho)
 	rho = 2**rho
 

@@ -169,10 +169,6 @@ int main(int argc, char** argv)
 		// fonction a mesurer
 		randpoly(a);
 		randpoly(b);
-		for(int j=0;j<NTEST;j++)
-		{
-			amns_mult(c, a, b);
-		}
 		timermin1 = (unsigned long long int)0x1<<63;
 		timermax1 = 0;
         memset(cycles1,0,NTEST*sizeof(uint64_t));

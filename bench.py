@@ -25,10 +25,10 @@ def do_bench(Psize="1024", phi=""):
 
 	# We run the benchmark
 	for i in range(len(pmnsdict)):
-		(p, n, gamma, lam) = pmnsdict[primes[i]]
+		(p, n, gamma, lam, rho, B) = pmnsdict[primes[i]]
 		with open("params" + phi + ".h", "w+") as f:
 			with redirect_stdout(f):
-				precalc(p, n, gamma, lam)
+				precalc(p, n, gamma, lam, rho, B)
 		os.system("make bench" + phi + ".exe")
 		os.system("./bench" + phi + ".exe >> " + filename)
 		os.system("./bench" + phi + ".exe pre >> " + filename + "pre")
