@@ -50,7 +50,7 @@ def gen_amns(power, sphi, start=0):
 				gamma = fs[0][0][0]
 				B = [[p if (k, j) == (0, 0) else -pow(gamma, k, p) if k != 0 and j == 0 else 1 if k == j else 0 for j in range(n)] for k in range(n)]
 				B = list(IntegerLattice(matrix(ZZ, B)).LLL())
-				__tmp = int(2 * w * max(max(B)))
+				__tmp = int(2 * w * max([max(Line) for Line in B])))
 				rho = ceil(__tmp.bit_length())
 				if rho < phi - 1 - log2(w):
 					break
