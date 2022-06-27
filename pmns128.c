@@ -12,6 +12,13 @@
 #include "utilitymp.h"
 
 
+static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned __int128 b)
+{
+	const unsigned __int128 tmp = *a;
+	*a += b;
+	return *a < tmp;
+}
+
 __inline uint64_t mulx64(uint64_t x, uint64_t y, uint64_t* hi)
 {
     __asm__(
@@ -121,7 +128,7 @@ static inline void multadd128(__int128* restrict Rhi,
 	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	*Rhi += (__int128) aux2 + A1B1 + __builtin_add_overflow(*Rlo, tmplo, Rlo);
+	*Rhi += (__int128) aux2 + A1B1 + add_overflow(Rlo, tmplo);
 }
 
 static inline void multadd128a(__int128* restrict Rhi,
@@ -236,7 +243,7 @@ static inline void mm1_multadd128(__int128* restrict Rhi,
 	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	*Rhi += (__int128) aux2 + A1B1 + __builtin_add_overflow(*Rlo, tmplo, Rlo);
+	*Rhi += (__int128) aux2 + A1B1 + add_overflow(Rlo, tmplo);
 }
 
 static inline void mm1_multadd128__(__int128* restrict Rhi,
