@@ -1,3 +1,4 @@
+import sys
 from sage.all import matrix, ZZ, PolynomialRing, xgcd
 from sage.modules.free_module_integer import IntegerLattice
 from math import ceil
@@ -5,6 +6,7 @@ from math import ceil
 from ops import list_to_poly, montgomery_like_coefficient_reduction, horner_modulo, amns_montg_mult
 from convert import montgomery_convert_to_mns, rho_div_convert_to_mns
 from pyparams import p, n, gamma, lam, phi
+from commonpmns import pmnsdicts, primesdict
 
 def convert_to_int_tabs(num):
 	L = []
@@ -91,29 +93,43 @@ def do_precalcs(p, n, gamma, lam, rho=None, B=None):
 	print("\t\t{" + str(Pi[-1])[1:-1] + "}\n\t};\n")
 
 	# Powers of gamma next
-	string = "G"
-	print("static const _poly ", end="")
-	g = gamma
-	for i in range(1, n):
-		string = string + str(i) + ", G"
-		tmp = convert_to_int_tabs(int(g))
-		if i != 1:
-			print("\t", end="")
-		print("G" + str(i) + " = { .deg = " + str(len(tmp)) + ",")
-		print("\t\t.t = (int64_t[]) {", end="")
-		tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
-		print(tmp + "} }", end="")
-		if i != n - 1:
-			print(",")
-		else:
-			print(";")
-		g = g * gamma % p
+#	string = "G"
+#	print("static const _poly ", end="")
+#	g = gamma
+#	for i in range(1, n):
+#		string = string + str(i) + ", G"
+#		tmp = convert_to_int_tabs(int(g))
+#		if i != 1:
+#			print("\t", end="")
+#		print("G" + str(i) + " = { .deg = " + str(len(tmp)) + ",")
+#		print("\t\t.t = (int64_t[]) {", end="")
+#		tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
+#		print(tmp + "} }", end="")
+#		if i != n - 1:
+#			print(",")
+#		else:
+#			print(";")
+#		g = g * gamma % p
 	
 	print("static _poly __P__ = { .deg = " + str(n) + ",")
 	tmp = convert_to_int_tabs(p)
 	tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
 	print("\t\t.t = (int64_t[]) {" + tmp + "} },")
-	print("\tGi[] = {" + string[:-3] + "};\n")
+#	print("\tGi[] = {" + string[:-3] + "};\n")
+	print("\tGi[] = { ", end="")
+	g = gamma
+	for i in range(1, n):
+		tmp = convert_to_int_tabs(int(g))
+		if i != 1:
+			print("\t", end="")
+		print("{ .deg = " + str(len(tmp)) + ",")
+		print("\t\t.t = (int64_t[]) {", end="")
+		tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
+		print(tmp + "} }", end="")
+		if i != n - 1:
+			print(",")
+		g = g * gamma % p
+	print("};")
 
 	# From here on, precalc functions, first with the multiplication by M1
 	print("""
@@ -188,4 +204,22 @@ if __name__ == "__main__":
 #	n = 12
 #	gamma = 4636652768285458569062878611317602841499088282530798143147640460012527948722544350531006403703239417663454147165839392083945105225074778235517366830265723868
 #	lam = -3
-	do_precalcs(p, n, gamma, lam)
+	if len(sys.argv) == 1:
+		do_precalcs(p, n, gamma, lam)
+	else:
+		try:
+			psize = int(sys.argv[1])
+			if psize not in pmnsdicts.keys():
+				print("Prime size not handled")
+				exit()
+			if len(sys.argv) > 2:
+				index = int(sys.argv[2])
+			else:
+				index = 0
+			index = primesdict[psize][index]
+			pmns = pmnsdicts[psize][index]
+			do_precalcs(*pmns)
+		except ValueError:
+			print("Invalid syntax: [psize] [index]")
+		except KeyError:
+			print("Index value invalid")

@@ -12,6 +12,8 @@ def gen_amns(power, sphi, start=0):
 	primes = primesdict[power]
 	if start == 0:
 		print("pmns" + sphi + "dict = {}")
+	else:
+		print()
 	if sphi == "":
 		phi = 64
 	else:
@@ -20,7 +22,7 @@ def gen_amns(power, sphi, start=0):
 	init_n = (power // phi) | 1
 	while 2**(power/init_n) >= PHI/((2*init_n*2)**2):
 		init_n += 2
-	for i in range(len(primes)):
+	for i in range(start, len(primes)):
 		p = primes[i]
 		K = GF(p)
 		polK = PolynomialRing(K, 'X')

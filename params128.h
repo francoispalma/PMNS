@@ -5,6 +5,15 @@
 #define N 9
 #define LAMBDA 2
 
+
+static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned __int128 b)
+{
+	//return __builtin_add_overflow(*a, b, a);
+	const unsigned __int128 tmp = *a;
+	*a += b;
+	return *a < tmp;
+}
+
 // Various values you can get from precalc
 static const uint64_t Mlo[] = {7208710283951223821u, 16470900848815575625u, 12094338623667909333u, 7105755307053303794u, 4718488279913713768u, 15638703076346184814u, 3436003758609590581u, 7457739546006752748u, 10861162536523552327u},
 	M1lo[] = {10624667757354428881u, 12831421836146225949u, 16605785116151146848u, 6293085397168886947u, 17064132055918088649u, 7157288741630911238u, 10001649156227634806u, 4173273978350557481u, 11199722977370077424u},
@@ -38,26 +47,24 @@ static const int64_t Mhi[] = {-287932041058164, -14457312270234, -13979751094725
 		{888428567686705, 1422833685094392, 938016002148773, 1033632283766632, 448348480485566, -169386010462110, -483839435557457, 101988233769700, 669031537371765}
 	};
 
-static const _poly G1 = { .deg = 16,
-		.t = (int64_t[]) {0x8368535df0a25dc7, 0x976d896a96c40997, 0x413b6bcf84d8d985, 0xcaaed7b2b771236b, 0x64816e4e0dcd0714, 0xf677fbd2c4dd5564, 0xfec613a55f729094, 0xa2aedd610c5038fa, 0xfde8a89d120c42ea, 0xf16ba119ebfdae9b, 0xfdf724f0ba8a21ea, 0x389b6240a18cbcb6, 0x9207386be38a2896, 0x949d672b3b0bdad8, 0xc2c430c05039016d, 0x4c1d4a93fcba8523} },
-	G2 = { .deg = 16,
-		.t = (int64_t[]) {0xf963bde9a3dc00e1, 0x27851d1e34fee22e, 0x73358d3fe0e63a5c, 0x94c5fc2eb4507b04, 0xf6fb2776159d1606, 0x4d278668c0f85784, 0x46b5774daaa44e2f, 0x53f89ef2ce058353, 0x29fd05a3a149bfc9, 0x4ee5026fe85a7235, 0x3a22b63827df96da, 0x3231ce84b194fb0d, 0xdaa28854f7613800, 0xd18e117ca4c8e3af, 0x74391bfb64bb1d6c, 0x8611d9c22bae66a6} },
-	G3 = { .deg = 16,
-		.t = (int64_t[]) {0xff3e0cf31ec25185, 0xa6ec4065dece0a0e, 0xb2a2552c2c72199e, 0xec77b9894cbe646e, 0x5b074f7f180bf4af, 0x4b677a3a60999e5c, 0xe12c7eb9f969f23, 0x3044e71fe87f52d, 0x411ab1cdaf805541, 0xe14a09477c24427, 0x9238a3346cb62356, 0xaa8c5ff77f53439a, 0x1d81839f27ae49d1, 0x55e9180132b97e91, 0x29a6d9689d882144, 0xccde6b13e3bdbd94} },
-	G4 = { .deg = 16,
-		.t = (int64_t[]) {0x781904639eec10bb, 0x89d66e375f57e439, 0x397413ba6e960813, 0x8f913a7f9ec2cd5, 0xea5bf18e5402d578, 0x945dc870882ffe9, 0x6fe23337b57813c1, 0x81a9dd0121f3108, 0x2b4130fd7d10976d, 0x25f747a11bcd77cc, 0x9592e663701fd5c3, 0xade3c5083e8e1bfe, 0xf984f44aeda499d4, 0xb8142fd13772d767, 0xb37547889d0c300e, 0xfc2cd2176a0e6b98} },
-	G5 = { .deg = 16,
-		.t = (int64_t[]) {0xd689936a6625f365, 0x1695d6178ecbe213, 0xb37c43c6f9ca7416, 0xccd4313524f9d4d8, 0x525115c88532bdce, 0x11b54f74d6d21061, 0x378abeb0acd01627, 0xad3419ee51efd3c2, 0xd607c354dc1f7cac, 0x8490fbfd8bbf5c7d, 0x97396235df87e361, 0xa87f1d28729ee332, 0xcc0339e0c802ed95, 0xec66ce6c06fd9a9a, 0x408e463fcd3f6b7e, 0xd14327347edc2ede} },
-	G6 = { .deg = 16,
-		.t = (int64_t[]) {0x8c3c486df4dd38a8, 0x42d4d52d00a067d0, 0xc872c0ceb843ccf, 0xfa487d07f568d32c, 0x697cebaaa4404c60, 0x61e4d73a7f3b3074, 0x7c865fd034c673e0, 0x522aa287d45f587, 0x181b0fa31895a89e, 0x1e06d2b95e5380fd, 0x3d7e2e610864cfe6, 0x35eb9b8c30e018e3, 0xd42fd375e06db69e, 0x1ff91b4fb046aad4, 0x7efc5002797a7d32, 0x3c9541fe9dfd0fad} },
-	G7 = { .deg = 16,
-		.t = (int64_t[]) {0xa3a821e550e14131, 0x87007deb8b80a576, 0xaaf2a6e20d238e0a, 0x865ee84519d4280, 0x5f64da60f2836599, 0xa2e8ad22674765d2, 0x894b1345ab4b0564, 0xdf12c4e92bb2e3eb, 0x1adfad9f0bd5c44b, 0xb5321b20f0958eaf, 0xd61ee940ce191eff, 0x6175f554e7697ab2, 0x18ca11a3762cab38, 0x4da7f47e4a431d71, 0x3ecaf4902e7f670, 0x1ccd6f7cf540cf2} },
-	G8 = { .deg = 16,
-		.t = (int64_t[]) {0x520d9668e6c7d838, 0x99e203ae57afe58a, 0x833b7a98f4092abe, 0xdd520fb5f95d8a8, 0x9d5b8744c96f44e4, 0x2b2a50c31906f394, 0xfd8fba3fc33ad773, 0x74c8c54431686be2, 0x47a26431fc5d2bf6, 0x6771b7c7fcab5f04, 0x9a4b982f97a974d, 0x3a7541a1f2e42c2b, 0x81934b8b35b13ae, 0x4f4b7164b8745d89, 0x55dd63d9622429a2, 0xa8bfde1d5fcdce7f} };
 static _poly __P__ = { .deg = 9,
 		.t = (int64_t[]) {0xffffffffffffff4d, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff} },
-	Gi[] = {G1, G2, G3, G4, G5, G6, G7, G8};
-
+	Gi[] = { { .deg = 16,
+		.t = (int64_t[]) {0x8368535df0a25dc7, 0x976d896a96c40997, 0x413b6bcf84d8d985, 0xcaaed7b2b771236b, 0x64816e4e0dcd0714, 0xf677fbd2c4dd5564, 0xfec613a55f729094, 0xa2aedd610c5038fa, 0xfde8a89d120c42ea, 0xf16ba119ebfdae9b, 0xfdf724f0ba8a21ea, 0x389b6240a18cbcb6, 0x9207386be38a2896, 0x949d672b3b0bdad8, 0xc2c430c05039016d, 0x4c1d4a93fcba8523} },
+	{ .deg = 16,
+		.t = (int64_t[]) {0xf963bde9a3dc00e1, 0x27851d1e34fee22e, 0x73358d3fe0e63a5c, 0x94c5fc2eb4507b04, 0xf6fb2776159d1606, 0x4d278668c0f85784, 0x46b5774daaa44e2f, 0x53f89ef2ce058353, 0x29fd05a3a149bfc9, 0x4ee5026fe85a7235, 0x3a22b63827df96da, 0x3231ce84b194fb0d, 0xdaa28854f7613800, 0xd18e117ca4c8e3af, 0x74391bfb64bb1d6c, 0x8611d9c22bae66a6} },
+	{ .deg = 16,
+		.t = (int64_t[]) {0xff3e0cf31ec25185, 0xa6ec4065dece0a0e, 0xb2a2552c2c72199e, 0xec77b9894cbe646e, 0x5b074f7f180bf4af, 0x4b677a3a60999e5c, 0xe12c7eb9f969f23, 0x3044e71fe87f52d, 0x411ab1cdaf805541, 0xe14a09477c24427, 0x9238a3346cb62356, 0xaa8c5ff77f53439a, 0x1d81839f27ae49d1, 0x55e9180132b97e91, 0x29a6d9689d882144, 0xccde6b13e3bdbd94} },
+	{ .deg = 16,
+		.t = (int64_t[]) {0x781904639eec10bb, 0x89d66e375f57e439, 0x397413ba6e960813, 0x8f913a7f9ec2cd5, 0xea5bf18e5402d578, 0x945dc870882ffe9, 0x6fe23337b57813c1, 0x81a9dd0121f3108, 0x2b4130fd7d10976d, 0x25f747a11bcd77cc, 0x9592e663701fd5c3, 0xade3c5083e8e1bfe, 0xf984f44aeda499d4, 0xb8142fd13772d767, 0xb37547889d0c300e, 0xfc2cd2176a0e6b98} },
+	{ .deg = 16,
+		.t = (int64_t[]) {0xd689936a6625f365, 0x1695d6178ecbe213, 0xb37c43c6f9ca7416, 0xccd4313524f9d4d8, 0x525115c88532bdce, 0x11b54f74d6d21061, 0x378abeb0acd01627, 0xad3419ee51efd3c2, 0xd607c354dc1f7cac, 0x8490fbfd8bbf5c7d, 0x97396235df87e361, 0xa87f1d28729ee332, 0xcc0339e0c802ed95, 0xec66ce6c06fd9a9a, 0x408e463fcd3f6b7e, 0xd14327347edc2ede} },
+	{ .deg = 16,
+		.t = (int64_t[]) {0x8c3c486df4dd38a8, 0x42d4d52d00a067d0, 0xc872c0ceb843ccf, 0xfa487d07f568d32c, 0x697cebaaa4404c60, 0x61e4d73a7f3b3074, 0x7c865fd034c673e0, 0x522aa287d45f587, 0x181b0fa31895a89e, 0x1e06d2b95e5380fd, 0x3d7e2e610864cfe6, 0x35eb9b8c30e018e3, 0xd42fd375e06db69e, 0x1ff91b4fb046aad4, 0x7efc5002797a7d32, 0x3c9541fe9dfd0fad} },
+	{ .deg = 16,
+		.t = (int64_t[]) {0xa3a821e550e14131, 0x87007deb8b80a576, 0xaaf2a6e20d238e0a, 0x865ee84519d4280, 0x5f64da60f2836599, 0xa2e8ad22674765d2, 0x894b1345ab4b0564, 0xdf12c4e92bb2e3eb, 0x1adfad9f0bd5c44b, 0xb5321b20f0958eaf, 0xd61ee940ce191eff, 0x6175f554e7697ab2, 0x18ca11a3762cab38, 0x4da7f47e4a431d71, 0x3ecaf4902e7f670, 0x1ccd6f7cf540cf2} },
+	{ .deg = 16,
+		.t = (int64_t[]) {0x520d9668e6c7d838, 0x99e203ae57afe58a, 0x833b7a98f4092abe, 0xdd520fb5f95d8a8, 0x9d5b8744c96f44e4, 0x2b2a50c31906f394, 0xfd8fba3fc33ad773, 0x74c8c54431686be2, 0x47a26431fc5d2bf6, 0x6771b7c7fcab5f04, 0x9a4b982f97a974d, 0x3a7541a1f2e42c2b, 0x81934b8b35b13ae, 0x4f4b7164b8745d89, 0x55dd63d9622429a2, 0xa8bfde1d5fcdce7f} }};
 
 static inline void m1_mns128_mod_mult_ext_red_pre(unsigned __int128* restrict Rlo,
 	const restrict poly128 A)
@@ -90,7 +97,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[2]) * 6465850030592;
 	A1B0 = (__int128) LOW(A->hi[2]) * 14915479092013505496u;
@@ -101,7 +108,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[3]) * 1096664795556270;
 	A1B0 = (__int128) LOW(A->hi[3]) * 6872007517219181162u;
@@ -112,7 +119,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[4]) * 333062044477985;
 	A1B0 = (__int128) LOW(A->hi[4]) * 12830662078982818012u;
@@ -123,7 +130,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[5]) * 437210225679452;
 	A1B0 = (__int128) LOW(A->hi[5]) * 9436976559827427536u;
@@ -134,7 +141,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[6]) * 781940166695576;
 	A1B0 = (__int128) LOW(A->hi[6]) * 14211510614106607588u;
@@ -145,7 +152,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[7]) * -279595021894509;
 	A1B0 = (__int128) LOW(A->hi[7]) * 5741933173626267050u;
@@ -156,7 +163,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[8]) * -28914624540467;
 	A1B0 = (__int128) LOW(A->hi[8]) * 14495057623921599634u;
@@ -167,7 +174,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[0]) * -287932041058164;
 	A1B0 = (__int128) LOW(A->hi[0]) * 7208710283951223821u;
@@ -178,7 +185,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[2]) * -430865449014011;
 	A1B0 = (__int128) LOW(A->hi[2]) * 3275580999337553038u;
@@ -189,7 +196,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[3]) * 6465850030592;
 	A1B0 = (__int128) LOW(A->hi[3]) * 14915479092013505496u;
@@ -200,7 +207,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[4]) * 1096664795556270;
 	A1B0 = (__int128) LOW(A->hi[4]) * 6872007517219181162u;
@@ -211,7 +218,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[5]) * 333062044477985;
 	A1B0 = (__int128) LOW(A->hi[5]) * 12830662078982818012u;
@@ -222,7 +229,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[6]) * 437210225679452;
 	A1B0 = (__int128) LOW(A->hi[6]) * 9436976559827427536u;
@@ -233,7 +240,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[7]) * 781940166695576;
 	A1B0 = (__int128) LOW(A->hi[7]) * 14211510614106607588u;
@@ -244,7 +251,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[8]) * -279595021894509;
 	A1B0 = (__int128) LOW(A->hi[8]) * 5741933173626267050u;
@@ -255,7 +262,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[0]) * -14457312270234;
 	A1B0 = (__int128) LOW(A->hi[0]) * 16470900848815575625u;
@@ -266,7 +273,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[1]) * -287932041058164;
 	A1B0 = (__int128) LOW(A->hi[1]) * 7208710283951223821u;
@@ -277,7 +284,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[3]) * -430865449014011;
 	A1B0 = (__int128) LOW(A->hi[3]) * 3275580999337553038u;
@@ -288,7 +295,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[4]) * 6465850030592;
 	A1B0 = (__int128) LOW(A->hi[4]) * 14915479092013505496u;
@@ -299,7 +306,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[5]) * 1096664795556270;
 	A1B0 = (__int128) LOW(A->hi[5]) * 6872007517219181162u;
@@ -310,7 +317,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[6]) * 333062044477985;
 	A1B0 = (__int128) LOW(A->hi[6]) * 12830662078982818012u;
@@ -321,7 +328,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[7]) * 437210225679452;
 	A1B0 = (__int128) LOW(A->hi[7]) * 9436976559827427536u;
@@ -332,7 +339,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[8]) * 781940166695576;
 	A1B0 = (__int128) LOW(A->hi[8]) * 14211510614106607588u;
@@ -343,7 +350,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[0]) * -139797510947255;
 	A1B0 = (__int128) LOW(A->hi[0]) * 12094338623667909333u;
@@ -354,7 +361,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[1]) * -14457312270234;
 	A1B0 = (__int128) LOW(A->hi[1]) * 16470900848815575625u;
@@ -365,7 +372,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[2]) * -287932041058164;
 	A1B0 = (__int128) LOW(A->hi[2]) * 7208710283951223821u;
@@ -376,7 +383,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[4]) * -430865449014011;
 	A1B0 = (__int128) LOW(A->hi[4]) * 3275580999337553038u;
@@ -387,7 +394,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[5]) * 6465850030592;
 	A1B0 = (__int128) LOW(A->hi[5]) * 14915479092013505496u;
@@ -398,7 +405,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[6]) * 1096664795556270;
 	A1B0 = (__int128) LOW(A->hi[6]) * 6872007517219181162u;
@@ -409,7 +416,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[7]) * 333062044477985;
 	A1B0 = (__int128) LOW(A->hi[7]) * 12830662078982818012u;
@@ -420,7 +427,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[8]) * 437210225679452;
 	A1B0 = (__int128) LOW(A->hi[8]) * 9436976559827427536u;
@@ -431,7 +438,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[0]) * 390970083347788;
 	A1B0 = (__int128) LOW(A->hi[0]) * 7105755307053303794u;
@@ -442,7 +449,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[1]) * -139797510947255;
 	A1B0 = (__int128) LOW(A->hi[1]) * 12094338623667909333u;
@@ -453,7 +460,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[2]) * -14457312270234;
 	A1B0 = (__int128) LOW(A->hi[2]) * 16470900848815575625u;
@@ -464,7 +471,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[3]) * -287932041058164;
 	A1B0 = (__int128) LOW(A->hi[3]) * 7208710283951223821u;
@@ -475,7 +482,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[5]) * -430865449014011;
 	A1B0 = (__int128) LOW(A->hi[5]) * 3275580999337553038u;
@@ -486,7 +493,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[6]) * 6465850030592;
 	A1B0 = (__int128) LOW(A->hi[6]) * 14915479092013505496u;
@@ -497,7 +504,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[7]) * 1096664795556270;
 	A1B0 = (__int128) LOW(A->hi[7]) * 6872007517219181162u;
@@ -508,7 +515,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[8]) * 333062044477985;
 	A1B0 = (__int128) LOW(A->hi[8]) * 12830662078982818012u;
@@ -519,7 +526,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[0]) * 218605112839726;
 	A1B0 = (__int128) LOW(A->hi[0]) * 4718488279913713768u;
@@ -530,7 +537,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[1]) * 390970083347788;
 	A1B0 = (__int128) LOW(A->hi[1]) * 7105755307053303794u;
@@ -541,7 +548,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[2]) * -139797510947255;
 	A1B0 = (__int128) LOW(A->hi[2]) * 12094338623667909333u;
@@ -552,7 +559,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[3]) * -14457312270234;
 	A1B0 = (__int128) LOW(A->hi[3]) * 16470900848815575625u;
@@ -563,7 +570,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[4]) * -287932041058164;
 	A1B0 = (__int128) LOW(A->hi[4]) * 7208710283951223821u;
@@ -574,7 +581,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[6]) * -430865449014011;
 	A1B0 = (__int128) LOW(A->hi[6]) * 3275580999337553038u;
@@ -585,7 +592,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[7]) * 6465850030592;
 	A1B0 = (__int128) LOW(A->hi[7]) * 14915479092013505496u;
@@ -596,7 +603,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[8]) * 1096664795556270;
 	A1B0 = (__int128) LOW(A->hi[8]) * 6872007517219181162u;
@@ -607,7 +614,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[0]) * 166531022238992;
 	A1B0 = (__int128) LOW(A->hi[0]) * 15638703076346184814u;
@@ -618,7 +625,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[1]) * 218605112839726;
 	A1B0 = (__int128) LOW(A->hi[1]) * 4718488279913713768u;
@@ -629,7 +636,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[2]) * 390970083347788;
 	A1B0 = (__int128) LOW(A->hi[2]) * 7105755307053303794u;
@@ -640,7 +647,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[3]) * -139797510947255;
 	A1B0 = (__int128) LOW(A->hi[3]) * 12094338623667909333u;
@@ -651,7 +658,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[4]) * -14457312270234;
 	A1B0 = (__int128) LOW(A->hi[4]) * 16470900848815575625u;
@@ -662,7 +669,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[5]) * -287932041058164;
 	A1B0 = (__int128) LOW(A->hi[5]) * 7208710283951223821u;
@@ -673,7 +680,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[7]) * -430865449014011;
 	A1B0 = (__int128) LOW(A->hi[7]) * 3275580999337553038u;
@@ -684,7 +691,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[8]) * 6465850030592;
 	A1B0 = (__int128) LOW(A->hi[8]) * 14915479092013505496u;
@@ -695,7 +702,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[0]) * 548332397778135;
 	A1B0 = (__int128) LOW(A->hi[0]) * 3436003758609590581u;
@@ -706,7 +713,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[1]) * 166531022238992;
 	A1B0 = (__int128) LOW(A->hi[1]) * 15638703076346184814u;
@@ -717,7 +724,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[2]) * 218605112839726;
 	A1B0 = (__int128) LOW(A->hi[2]) * 4718488279913713768u;
@@ -728,7 +735,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[3]) * 390970083347788;
 	A1B0 = (__int128) LOW(A->hi[3]) * 7105755307053303794u;
@@ -739,7 +746,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[4]) * -139797510947255;
 	A1B0 = (__int128) LOW(A->hi[4]) * 12094338623667909333u;
@@ -750,7 +757,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[5]) * -14457312270234;
 	A1B0 = (__int128) LOW(A->hi[5]) * 16470900848815575625u;
@@ -761,7 +768,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[6]) * -287932041058164;
 	A1B0 = (__int128) LOW(A->hi[6]) * 7208710283951223821u;
@@ -772,7 +779,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[8]) * -430865449014011;
 	A1B0 = (__int128) LOW(A->hi[8]) * 3275580999337553038u;
@@ -783,7 +790,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[0]) * 3232925015296;
 	A1B0 = (__int128) LOW(A->hi[0]) * 7457739546006752748u;
@@ -794,7 +801,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[1]) * 548332397778135;
 	A1B0 = (__int128) LOW(A->hi[1]) * 3436003758609590581u;
@@ -805,7 +812,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[2]) * 166531022238992;
 	A1B0 = (__int128) LOW(A->hi[2]) * 15638703076346184814u;
@@ -816,7 +823,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[3]) * 218605112839726;
 	A1B0 = (__int128) LOW(A->hi[3]) * 4718488279913713768u;
@@ -827,7 +834,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[4]) * 390970083347788;
 	A1B0 = (__int128) LOW(A->hi[4]) * 7105755307053303794u;
@@ -838,7 +845,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[5]) * -139797510947255;
 	A1B0 = (__int128) LOW(A->hi[5]) * 12094338623667909333u;
@@ -849,7 +856,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[6]) * -14457312270234;
 	A1B0 = (__int128) LOW(A->hi[6]) * 16470900848815575625u;
@@ -860,7 +867,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[7]) * -287932041058164;
 	A1B0 = (__int128) LOW(A->hi[7]) * 7208710283951223821u;
@@ -871,7 +878,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[0]) * -215432724507006;
 	A1B0 = (__int128) LOW(A->hi[0]) * 10861162536523552327u;
@@ -882,7 +889,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[1]) * 3232925015296;
 	A1B0 = (__int128) LOW(A->hi[1]) * 7457739546006752748u;
@@ -893,7 +900,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[2]) * 548332397778135;
 	A1B0 = (__int128) LOW(A->hi[2]) * 3436003758609590581u;
@@ -904,7 +911,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[3]) * 166531022238992;
 	A1B0 = (__int128) LOW(A->hi[3]) * 15638703076346184814u;
@@ -915,7 +922,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[4]) * 218605112839726;
 	A1B0 = (__int128) LOW(A->hi[4]) * 4718488279913713768u;
@@ -926,7 +933,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[5]) * 390970083347788;
 	A1B0 = (__int128) LOW(A->hi[5]) * 7105755307053303794u;
@@ -937,7 +944,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[6]) * -139797510947255;
 	A1B0 = (__int128) LOW(A->hi[6]) * 12094338623667909333u;
@@ -948,7 +955,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[7]) * -14457312270234;
 	A1B0 = (__int128) LOW(A->hi[7]) * 16470900848815575625u;
@@ -959,7 +966,7 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) LOW(A->hi[8]) * -287932041058164;
 	A1B0 = (__int128) LOW(A->hi[8]) * 7208710283951223821u;
@@ -970,343 +977,8 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
-}
-
-
-static inline void m_mns128_mod_mult_ext_red_pre_one_line(__int128* restrict Rhi, 
-	unsigned __int128* restrict Rlo, const restrict poly128 A)
-{
-	Rhi[0] = (__int128) __builtin_add_overflow(((__int128) A->lo[1] * 3275580999337553038u), ((unsigned __int128) ((__int128) A->lo[1] * -430865449014011) << 64), Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->hi[1] * 3275580999337553038u) << 64), Rlo + 0)
-		+ HIGH((__int128) A->lo[1] * -430865449014011) + HI((unsigned __int128) A->hi[1] * 3275580999337553038u) + ((__int128) A->hi[1] * -430865449014011)
-		+ __builtin_add_overflow(((__int128) A->lo[2] * 14915479092013505496u), Rlo[0], Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->lo[2] * 6465850030592) << 64), Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->hi[2] * 14915479092013505496u) << 64), Rlo + 0)
-		+ HIGH((__int128) A->lo[2] * 6465850030592) + HI((unsigned __int128) A->hi[2] * 14915479092013505496u) + ((__int128) A->hi[2] * 6465850030592)
-		+ __builtin_add_overflow(((__int128) A->lo[3] * 6872007517219181162u), Rlo[0], Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->lo[3] * 1096664795556270) << 64), Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->hi[3] * 6872007517219181162u) << 64), Rlo + 0)
-		+ HIGH((__int128) A->lo[3] * 1096664795556270) + HI((unsigned __int128) A->hi[3] * 6872007517219181162u) + ((__int128) A->hi[3] * 1096664795556270)
-		+ __builtin_add_overflow(((__int128) A->lo[4] * 12830662078982818012u), Rlo[0], Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->lo[4] * 333062044477985) << 64), Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->hi[4] * 12830662078982818012u) << 64), Rlo + 0)
-		+ HIGH((__int128) A->lo[4] * 333062044477985) + HI((unsigned __int128) A->hi[4] * 12830662078982818012u) + ((__int128) A->hi[4] * 333062044477985)
-		+ __builtin_add_overflow(((__int128) A->lo[5] * 9436976559827427536u), Rlo[0], Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->lo[5] * 437210225679452) << 64), Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->hi[5] * 9436976559827427536u) << 64), Rlo + 0)
-		+ HIGH((__int128) A->lo[5] * 437210225679452) + HI((unsigned __int128) A->hi[5] * 9436976559827427536u) + ((__int128) A->hi[5] * 437210225679452)
-		+ __builtin_add_overflow(((__int128) A->lo[6] * 14211510614106607588u), Rlo[0], Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->lo[6] * 781940166695576) << 64), Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->hi[6] * 14211510614106607588u) << 64), Rlo + 0)
-		+ HIGH((__int128) A->lo[6] * 781940166695576) + HI((unsigned __int128) A->hi[6] * 14211510614106607588u) + ((__int128) A->hi[6] * 781940166695576)
-		+ __builtin_add_overflow(((__int128) A->lo[7] * 5741933173626267050u), Rlo[0], Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->lo[7] * -279595021894509) << 64), Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->hi[7] * 5741933173626267050u) << 64), Rlo + 0)
-		+ HIGH((__int128) A->lo[7] * -279595021894509) + HI((unsigned __int128) A->hi[7] * 5741933173626267050u) + ((__int128) A->hi[7] * -279595021894509)
-		+ __builtin_add_overflow(((__int128) A->lo[8] * 14495057623921599634u), Rlo[0], Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->lo[8] * -28914624540467) << 64), Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->hi[8] * 14495057623921599634u) << 64), Rlo + 0)
-		+ HIGH((__int128) A->lo[8] * -28914624540467) + HI((unsigned __int128) A->hi[8] * 14495057623921599634u) + ((__int128) A->hi[8] * -28914624540467)
-		+ __builtin_add_overflow(((__int128) A->lo[0] * 7208710283951223821u), Rlo[0], Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->lo[0] * -287932041058164) << 64), Rlo + 0)
-		+ __builtin_add_overflow(Rlo[0], ((unsigned __int128) ((__int128) A->hi[0] * 7208710283951223821u) << 64), Rlo + 0)
-		+ HIGH((__int128) A->lo[0] * -287932041058164) + HI((unsigned __int128) A->hi[0] * 7208710283951223821u) + ((__int128) A->hi[0] * -287932041058164);
-	Rhi[1] = (__int128) __builtin_add_overflow(((__int128) A->lo[2] * 3275580999337553038u), ((unsigned __int128) ((__int128) A->lo[2] * -430865449014011) << 64), Rlo + 1)
-		+ __builtin_add_overflow(((__int128) A->lo[2] * 3275580999337553038u), Rlo[1], Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->lo[2] * -430865449014011) << 64), Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->hi[2] * 3275580999337553038u) << 64), Rlo + 1)
-		+ HIGH((__int128) A->lo[2] * -430865449014011) + HI((unsigned __int128) A->hi[2] * 3275580999337553038u) + ((__int128) A->hi[2] * -430865449014011)
-		+ __builtin_add_overflow(((__int128) A->lo[3] * 14915479092013505496u), Rlo[1], Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->lo[3] * 6465850030592) << 64), Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->hi[3] * 14915479092013505496u) << 64), Rlo + 1)
-		+ HIGH((__int128) A->lo[3] * 6465850030592) + HI((unsigned __int128) A->hi[3] * 14915479092013505496u) + ((__int128) A->hi[3] * 6465850030592)
-		+ __builtin_add_overflow(((__int128) A->lo[4] * 6872007517219181162u), Rlo[1], Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->lo[4] * 1096664795556270) << 64), Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->hi[4] * 6872007517219181162u) << 64), Rlo + 1)
-		+ HIGH((__int128) A->lo[4] * 1096664795556270) + HI((unsigned __int128) A->hi[4] * 6872007517219181162u) + ((__int128) A->hi[4] * 1096664795556270)
-		+ __builtin_add_overflow(((__int128) A->lo[5] * 12830662078982818012u), Rlo[1], Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->lo[5] * 333062044477985) << 64), Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->hi[5] * 12830662078982818012u) << 64), Rlo + 1)
-		+ HIGH((__int128) A->lo[5] * 333062044477985) + HI((unsigned __int128) A->hi[5] * 12830662078982818012u) + ((__int128) A->hi[5] * 333062044477985)
-		+ __builtin_add_overflow(((__int128) A->lo[6] * 9436976559827427536u), Rlo[1], Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->lo[6] * 437210225679452) << 64), Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->hi[6] * 9436976559827427536u) << 64), Rlo + 1)
-		+ HIGH((__int128) A->lo[6] * 437210225679452) + HI((unsigned __int128) A->hi[6] * 9436976559827427536u) + ((__int128) A->hi[6] * 437210225679452)
-		+ __builtin_add_overflow(((__int128) A->lo[7] * 14211510614106607588u), Rlo[1], Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->lo[7] * 781940166695576) << 64), Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->hi[7] * 14211510614106607588u) << 64), Rlo + 1)
-		+ HIGH((__int128) A->lo[7] * 781940166695576) + HI((unsigned __int128) A->hi[7] * 14211510614106607588u) + ((__int128) A->hi[7] * 781940166695576)
-		+ __builtin_add_overflow(((__int128) A->lo[8] * 5741933173626267050u), Rlo[1], Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->lo[8] * -279595021894509) << 64), Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->hi[8] * 5741933173626267050u) << 64), Rlo + 1)
-		+ HIGH((__int128) A->lo[8] * -279595021894509) + HI((unsigned __int128) A->hi[8] * 5741933173626267050u) + ((__int128) A->hi[8] * -279595021894509)
-		+ __builtin_add_overflow(((__int128) A->lo[0] * 16470900848815575625u), Rlo[1], Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->lo[0] * -14457312270234) << 64), Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->hi[0] * 16470900848815575625u) << 64), Rlo + 1)
-		+ HIGH((__int128) A->lo[0] * -14457312270234) + HI((unsigned __int128) A->hi[0] * 16470900848815575625u) + ((__int128) A->hi[0] * -14457312270234)
-		+ __builtin_add_overflow(((__int128) A->lo[1] * 7208710283951223821u), Rlo[1], Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->lo[1] * -287932041058164) << 64), Rlo + 1)
-		+ __builtin_add_overflow(Rlo[1], ((unsigned __int128) ((__int128) A->hi[1] * 7208710283951223821u) << 64), Rlo + 1)
-		+ HIGH((__int128) A->lo[1] * -287932041058164) + HI((unsigned __int128) A->hi[1] * 7208710283951223821u) + ((__int128) A->hi[1] * -287932041058164);
-	Rhi[2] = (__int128) __builtin_add_overflow(((__int128) A->lo[3] * 3275580999337553038u), ((unsigned __int128) ((__int128) A->lo[3] * -430865449014011) << 64), Rlo + 2)
-		+ __builtin_add_overflow(((__int128) A->lo[3] * 3275580999337553038u), Rlo[2], Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->lo[3] * -430865449014011) << 64), Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->hi[3] * 3275580999337553038u) << 64), Rlo + 2)
-		+ HIGH((__int128) A->lo[3] * -430865449014011) + HI((unsigned __int128) A->hi[3] * 3275580999337553038u) + ((__int128) A->hi[3] * -430865449014011)
-		+ __builtin_add_overflow(((__int128) A->lo[4] * 14915479092013505496u), Rlo[2], Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->lo[4] * 6465850030592) << 64), Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->hi[4] * 14915479092013505496u) << 64), Rlo + 2)
-		+ HIGH((__int128) A->lo[4] * 6465850030592) + HI((unsigned __int128) A->hi[4] * 14915479092013505496u) + ((__int128) A->hi[4] * 6465850030592)
-		+ __builtin_add_overflow(((__int128) A->lo[5] * 6872007517219181162u), Rlo[2], Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->lo[5] * 1096664795556270) << 64), Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->hi[5] * 6872007517219181162u) << 64), Rlo + 2)
-		+ HIGH((__int128) A->lo[5] * 1096664795556270) + HI((unsigned __int128) A->hi[5] * 6872007517219181162u) + ((__int128) A->hi[5] * 1096664795556270)
-		+ __builtin_add_overflow(((__int128) A->lo[6] * 12830662078982818012u), Rlo[2], Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->lo[6] * 333062044477985) << 64), Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->hi[6] * 12830662078982818012u) << 64), Rlo + 2)
-		+ HIGH((__int128) A->lo[6] * 333062044477985) + HI((unsigned __int128) A->hi[6] * 12830662078982818012u) + ((__int128) A->hi[6] * 333062044477985)
-		+ __builtin_add_overflow(((__int128) A->lo[7] * 9436976559827427536u), Rlo[2], Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->lo[7] * 437210225679452) << 64), Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->hi[7] * 9436976559827427536u) << 64), Rlo + 2)
-		+ HIGH((__int128) A->lo[7] * 437210225679452) + HI((unsigned __int128) A->hi[7] * 9436976559827427536u) + ((__int128) A->hi[7] * 437210225679452)
-		+ __builtin_add_overflow(((__int128) A->lo[8] * 14211510614106607588u), Rlo[2], Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->lo[8] * 781940166695576) << 64), Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->hi[8] * 14211510614106607588u) << 64), Rlo + 2)
-		+ HIGH((__int128) A->lo[8] * 781940166695576) + HI((unsigned __int128) A->hi[8] * 14211510614106607588u) + ((__int128) A->hi[8] * 781940166695576)
-		+ __builtin_add_overflow(((__int128) A->lo[0] * 12094338623667909333u), Rlo[2], Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->lo[0] * -139797510947255) << 64), Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->hi[0] * 12094338623667909333u) << 64), Rlo + 2)
-		+ HIGH((__int128) A->lo[0] * -139797510947255) + HI((unsigned __int128) A->hi[0] * 12094338623667909333u) + ((__int128) A->hi[0] * -139797510947255)
-		+ __builtin_add_overflow(((__int128) A->lo[1] * 16470900848815575625u), Rlo[2], Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->lo[1] * -14457312270234) << 64), Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->hi[1] * 16470900848815575625u) << 64), Rlo + 2)
-		+ HIGH((__int128) A->lo[1] * -14457312270234) + HI((unsigned __int128) A->hi[1] * 16470900848815575625u) + ((__int128) A->hi[1] * -14457312270234)
-		+ __builtin_add_overflow(((__int128) A->lo[2] * 7208710283951223821u), Rlo[2], Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->lo[2] * -287932041058164) << 64), Rlo + 2)
-		+ __builtin_add_overflow(Rlo[2], ((unsigned __int128) ((__int128) A->hi[2] * 7208710283951223821u) << 64), Rlo + 2)
-		+ HIGH((__int128) A->lo[2] * -287932041058164) + HI((unsigned __int128) A->hi[2] * 7208710283951223821u) + ((__int128) A->hi[2] * -287932041058164);
-	Rhi[3] = (__int128) __builtin_add_overflow(((__int128) A->lo[4] * 3275580999337553038u), ((unsigned __int128) ((__int128) A->lo[4] * -430865449014011) << 64), Rlo + 3)
-		+ __builtin_add_overflow(((__int128) A->lo[4] * 3275580999337553038u), Rlo[3], Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->lo[4] * -430865449014011) << 64), Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->hi[4] * 3275580999337553038u) << 64), Rlo + 3)
-		+ HIGH((__int128) A->lo[4] * -430865449014011) + HI((unsigned __int128) A->hi[4] * 3275580999337553038u) + ((__int128) A->hi[4] * -430865449014011)
-		+ __builtin_add_overflow(((__int128) A->lo[5] * 14915479092013505496u), Rlo[3], Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->lo[5] * 6465850030592) << 64), Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->hi[5] * 14915479092013505496u) << 64), Rlo + 3)
-		+ HIGH((__int128) A->lo[5] * 6465850030592) + HI((unsigned __int128) A->hi[5] * 14915479092013505496u) + ((__int128) A->hi[5] * 6465850030592)
-		+ __builtin_add_overflow(((__int128) A->lo[6] * 6872007517219181162u), Rlo[3], Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->lo[6] * 1096664795556270) << 64), Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->hi[6] * 6872007517219181162u) << 64), Rlo + 3)
-		+ HIGH((__int128) A->lo[6] * 1096664795556270) + HI((unsigned __int128) A->hi[6] * 6872007517219181162u) + ((__int128) A->hi[6] * 1096664795556270)
-		+ __builtin_add_overflow(((__int128) A->lo[7] * 12830662078982818012u), Rlo[3], Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->lo[7] * 333062044477985) << 64), Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->hi[7] * 12830662078982818012u) << 64), Rlo + 3)
-		+ HIGH((__int128) A->lo[7] * 333062044477985) + HI((unsigned __int128) A->hi[7] * 12830662078982818012u) + ((__int128) A->hi[7] * 333062044477985)
-		+ __builtin_add_overflow(((__int128) A->lo[8] * 9436976559827427536u), Rlo[3], Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->lo[8] * 437210225679452) << 64), Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->hi[8] * 9436976559827427536u) << 64), Rlo + 3)
-		+ HIGH((__int128) A->lo[8] * 437210225679452) + HI((unsigned __int128) A->hi[8] * 9436976559827427536u) + ((__int128) A->hi[8] * 437210225679452)
-		+ __builtin_add_overflow(((__int128) A->lo[0] * 7105755307053303794u), Rlo[3], Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->lo[0] * 390970083347788) << 64), Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->hi[0] * 7105755307053303794u) << 64), Rlo + 3)
-		+ HIGH((__int128) A->lo[0] * 390970083347788) + HI((unsigned __int128) A->hi[0] * 7105755307053303794u) + ((__int128) A->hi[0] * 390970083347788)
-		+ __builtin_add_overflow(((__int128) A->lo[1] * 12094338623667909333u), Rlo[3], Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->lo[1] * -139797510947255) << 64), Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->hi[1] * 12094338623667909333u) << 64), Rlo + 3)
-		+ HIGH((__int128) A->lo[1] * -139797510947255) + HI((unsigned __int128) A->hi[1] * 12094338623667909333u) + ((__int128) A->hi[1] * -139797510947255)
-		+ __builtin_add_overflow(((__int128) A->lo[2] * 16470900848815575625u), Rlo[3], Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->lo[2] * -14457312270234) << 64), Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->hi[2] * 16470900848815575625u) << 64), Rlo + 3)
-		+ HIGH((__int128) A->lo[2] * -14457312270234) + HI((unsigned __int128) A->hi[2] * 16470900848815575625u) + ((__int128) A->hi[2] * -14457312270234)
-		+ __builtin_add_overflow(((__int128) A->lo[3] * 7208710283951223821u), Rlo[3], Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->lo[3] * -287932041058164) << 64), Rlo + 3)
-		+ __builtin_add_overflow(Rlo[3], ((unsigned __int128) ((__int128) A->hi[3] * 7208710283951223821u) << 64), Rlo + 3)
-		+ HIGH((__int128) A->lo[3] * -287932041058164) + HI((unsigned __int128) A->hi[3] * 7208710283951223821u) + ((__int128) A->hi[3] * -287932041058164);
-	Rhi[4] = (__int128) __builtin_add_overflow(((__int128) A->lo[5] * 3275580999337553038u), ((unsigned __int128) ((__int128) A->lo[5] * -430865449014011) << 64), Rlo + 4)
-		+ __builtin_add_overflow(((__int128) A->lo[5] * 3275580999337553038u), Rlo[4], Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->lo[5] * -430865449014011) << 64), Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->hi[5] * 3275580999337553038u) << 64), Rlo + 4)
-		+ HIGH((__int128) A->lo[5] * -430865449014011) + HI((unsigned __int128) A->hi[5] * 3275580999337553038u) + ((__int128) A->hi[5] * -430865449014011)
-		+ __builtin_add_overflow(((__int128) A->lo[6] * 14915479092013505496u), Rlo[4], Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->lo[6] * 6465850030592) << 64), Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->hi[6] * 14915479092013505496u) << 64), Rlo + 4)
-		+ HIGH((__int128) A->lo[6] * 6465850030592) + HI((unsigned __int128) A->hi[6] * 14915479092013505496u) + ((__int128) A->hi[6] * 6465850030592)
-		+ __builtin_add_overflow(((__int128) A->lo[7] * 6872007517219181162u), Rlo[4], Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->lo[7] * 1096664795556270) << 64), Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->hi[7] * 6872007517219181162u) << 64), Rlo + 4)
-		+ HIGH((__int128) A->lo[7] * 1096664795556270) + HI((unsigned __int128) A->hi[7] * 6872007517219181162u) + ((__int128) A->hi[7] * 1096664795556270)
-		+ __builtin_add_overflow(((__int128) A->lo[8] * 12830662078982818012u), Rlo[4], Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->lo[8] * 333062044477985) << 64), Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->hi[8] * 12830662078982818012u) << 64), Rlo + 4)
-		+ HIGH((__int128) A->lo[8] * 333062044477985) + HI((unsigned __int128) A->hi[8] * 12830662078982818012u) + ((__int128) A->hi[8] * 333062044477985)
-		+ __builtin_add_overflow(((__int128) A->lo[0] * 4718488279913713768u), Rlo[4], Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->lo[0] * 218605112839726) << 64), Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->hi[0] * 4718488279913713768u) << 64), Rlo + 4)
-		+ HIGH((__int128) A->lo[0] * 218605112839726) + HI((unsigned __int128) A->hi[0] * 4718488279913713768u) + ((__int128) A->hi[0] * 218605112839726)
-		+ __builtin_add_overflow(((__int128) A->lo[1] * 7105755307053303794u), Rlo[4], Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->lo[1] * 390970083347788) << 64), Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->hi[1] * 7105755307053303794u) << 64), Rlo + 4)
-		+ HIGH((__int128) A->lo[1] * 390970083347788) + HI((unsigned __int128) A->hi[1] * 7105755307053303794u) + ((__int128) A->hi[1] * 390970083347788)
-		+ __builtin_add_overflow(((__int128) A->lo[2] * 12094338623667909333u), Rlo[4], Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->lo[2] * -139797510947255) << 64), Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->hi[2] * 12094338623667909333u) << 64), Rlo + 4)
-		+ HIGH((__int128) A->lo[2] * -139797510947255) + HI((unsigned __int128) A->hi[2] * 12094338623667909333u) + ((__int128) A->hi[2] * -139797510947255)
-		+ __builtin_add_overflow(((__int128) A->lo[3] * 16470900848815575625u), Rlo[4], Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->lo[3] * -14457312270234) << 64), Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->hi[3] * 16470900848815575625u) << 64), Rlo + 4)
-		+ HIGH((__int128) A->lo[3] * -14457312270234) + HI((unsigned __int128) A->hi[3] * 16470900848815575625u) + ((__int128) A->hi[3] * -14457312270234)
-		+ __builtin_add_overflow(((__int128) A->lo[4] * 7208710283951223821u), Rlo[4], Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->lo[4] * -287932041058164) << 64), Rlo + 4)
-		+ __builtin_add_overflow(Rlo[4], ((unsigned __int128) ((__int128) A->hi[4] * 7208710283951223821u) << 64), Rlo + 4)
-		+ HIGH((__int128) A->lo[4] * -287932041058164) + HI((unsigned __int128) A->hi[4] * 7208710283951223821u) + ((__int128) A->hi[4] * -287932041058164);
-	Rhi[5] = (__int128) __builtin_add_overflow(((__int128) A->lo[6] * 3275580999337553038u), ((unsigned __int128) ((__int128) A->lo[6] * -430865449014011) << 64), Rlo + 5)
-		+ __builtin_add_overflow(((__int128) A->lo[6] * 3275580999337553038u), Rlo[5], Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->lo[6] * -430865449014011) << 64), Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->hi[6] * 3275580999337553038u) << 64), Rlo + 5)
-		+ HIGH((__int128) A->lo[6] * -430865449014011) + HI((unsigned __int128) A->hi[6] * 3275580999337553038u) + ((__int128) A->hi[6] * -430865449014011)
-		+ __builtin_add_overflow(((__int128) A->lo[7] * 14915479092013505496u), Rlo[5], Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->lo[7] * 6465850030592) << 64), Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->hi[7] * 14915479092013505496u) << 64), Rlo + 5)
-		+ HIGH((__int128) A->lo[7] * 6465850030592) + HI((unsigned __int128) A->hi[7] * 14915479092013505496u) + ((__int128) A->hi[7] * 6465850030592)
-		+ __builtin_add_overflow(((__int128) A->lo[8] * 6872007517219181162u), Rlo[5], Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->lo[8] * 1096664795556270) << 64), Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->hi[8] * 6872007517219181162u) << 64), Rlo + 5)
-		+ HIGH((__int128) A->lo[8] * 1096664795556270) + HI((unsigned __int128) A->hi[8] * 6872007517219181162u) + ((__int128) A->hi[8] * 1096664795556270)
-		+ __builtin_add_overflow(((__int128) A->lo[0] * 15638703076346184814u), Rlo[5], Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->lo[0] * 166531022238992) << 64), Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->hi[0] * 15638703076346184814u) << 64), Rlo + 5)
-		+ HIGH((__int128) A->lo[0] * 166531022238992) + HI((unsigned __int128) A->hi[0] * 15638703076346184814u) + ((__int128) A->hi[0] * 166531022238992)
-		+ __builtin_add_overflow(((__int128) A->lo[1] * 4718488279913713768u), Rlo[5], Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->lo[1] * 218605112839726) << 64), Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->hi[1] * 4718488279913713768u) << 64), Rlo + 5)
-		+ HIGH((__int128) A->lo[1] * 218605112839726) + HI((unsigned __int128) A->hi[1] * 4718488279913713768u) + ((__int128) A->hi[1] * 218605112839726)
-		+ __builtin_add_overflow(((__int128) A->lo[2] * 7105755307053303794u), Rlo[5], Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->lo[2] * 390970083347788) << 64), Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->hi[2] * 7105755307053303794u) << 64), Rlo + 5)
-		+ HIGH((__int128) A->lo[2] * 390970083347788) + HI((unsigned __int128) A->hi[2] * 7105755307053303794u) + ((__int128) A->hi[2] * 390970083347788)
-		+ __builtin_add_overflow(((__int128) A->lo[3] * 12094338623667909333u), Rlo[5], Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->lo[3] * -139797510947255) << 64), Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->hi[3] * 12094338623667909333u) << 64), Rlo + 5)
-		+ HIGH((__int128) A->lo[3] * -139797510947255) + HI((unsigned __int128) A->hi[3] * 12094338623667909333u) + ((__int128) A->hi[3] * -139797510947255)
-		+ __builtin_add_overflow(((__int128) A->lo[4] * 16470900848815575625u), Rlo[5], Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->lo[4] * -14457312270234) << 64), Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->hi[4] * 16470900848815575625u) << 64), Rlo + 5)
-		+ HIGH((__int128) A->lo[4] * -14457312270234) + HI((unsigned __int128) A->hi[4] * 16470900848815575625u) + ((__int128) A->hi[4] * -14457312270234)
-		+ __builtin_add_overflow(((__int128) A->lo[5] * 7208710283951223821u), Rlo[5], Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->lo[5] * -287932041058164) << 64), Rlo + 5)
-		+ __builtin_add_overflow(Rlo[5], ((unsigned __int128) ((__int128) A->hi[5] * 7208710283951223821u) << 64), Rlo + 5)
-		+ HIGH((__int128) A->lo[5] * -287932041058164) + HI((unsigned __int128) A->hi[5] * 7208710283951223821u) + ((__int128) A->hi[5] * -287932041058164);
-	Rhi[6] = (__int128) __builtin_add_overflow(((__int128) A->lo[7] * 3275580999337553038u), ((unsigned __int128) ((__int128) A->lo[7] * -430865449014011) << 64), Rlo + 6)
-		+ __builtin_add_overflow(((__int128) A->lo[7] * 3275580999337553038u), Rlo[6], Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->lo[7] * -430865449014011) << 64), Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->hi[7] * 3275580999337553038u) << 64), Rlo + 6)
-		+ HIGH((__int128) A->lo[7] * -430865449014011) + HI((unsigned __int128) A->hi[7] * 3275580999337553038u) + ((__int128) A->hi[7] * -430865449014011)
-		+ __builtin_add_overflow(((__int128) A->lo[8] * 14915479092013505496u), Rlo[6], Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->lo[8] * 6465850030592) << 64), Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->hi[8] * 14915479092013505496u) << 64), Rlo + 6)
-		+ HIGH((__int128) A->lo[8] * 6465850030592) + HI((unsigned __int128) A->hi[8] * 14915479092013505496u) + ((__int128) A->hi[8] * 6465850030592)
-		+ __builtin_add_overflow(((__int128) A->lo[0] * 3436003758609590581u), Rlo[6], Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->lo[0] * 548332397778135) << 64), Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->hi[0] * 3436003758609590581u) << 64), Rlo + 6)
-		+ HIGH((__int128) A->lo[0] * 548332397778135) + HI((unsigned __int128) A->hi[0] * 3436003758609590581u) + ((__int128) A->hi[0] * 548332397778135)
-		+ __builtin_add_overflow(((__int128) A->lo[1] * 15638703076346184814u), Rlo[6], Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->lo[1] * 166531022238992) << 64), Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->hi[1] * 15638703076346184814u) << 64), Rlo + 6)
-		+ HIGH((__int128) A->lo[1] * 166531022238992) + HI((unsigned __int128) A->hi[1] * 15638703076346184814u) + ((__int128) A->hi[1] * 166531022238992)
-		+ __builtin_add_overflow(((__int128) A->lo[2] * 4718488279913713768u), Rlo[6], Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->lo[2] * 218605112839726) << 64), Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->hi[2] * 4718488279913713768u) << 64), Rlo + 6)
-		+ HIGH((__int128) A->lo[2] * 218605112839726) + HI((unsigned __int128) A->hi[2] * 4718488279913713768u) + ((__int128) A->hi[2] * 218605112839726)
-		+ __builtin_add_overflow(((__int128) A->lo[3] * 7105755307053303794u), Rlo[6], Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->lo[3] * 390970083347788) << 64), Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->hi[3] * 7105755307053303794u) << 64), Rlo + 6)
-		+ HIGH((__int128) A->lo[3] * 390970083347788) + HI((unsigned __int128) A->hi[3] * 7105755307053303794u) + ((__int128) A->hi[3] * 390970083347788)
-		+ __builtin_add_overflow(((__int128) A->lo[4] * 12094338623667909333u), Rlo[6], Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->lo[4] * -139797510947255) << 64), Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->hi[4] * 12094338623667909333u) << 64), Rlo + 6)
-		+ HIGH((__int128) A->lo[4] * -139797510947255) + HI((unsigned __int128) A->hi[4] * 12094338623667909333u) + ((__int128) A->hi[4] * -139797510947255)
-		+ __builtin_add_overflow(((__int128) A->lo[5] * 16470900848815575625u), Rlo[6], Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->lo[5] * -14457312270234) << 64), Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->hi[5] * 16470900848815575625u) << 64), Rlo + 6)
-		+ HIGH((__int128) A->lo[5] * -14457312270234) + HI((unsigned __int128) A->hi[5] * 16470900848815575625u) + ((__int128) A->hi[5] * -14457312270234)
-		+ __builtin_add_overflow(((__int128) A->lo[6] * 7208710283951223821u), Rlo[6], Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->lo[6] * -287932041058164) << 64), Rlo + 6)
-		+ __builtin_add_overflow(Rlo[6], ((unsigned __int128) ((__int128) A->hi[6] * 7208710283951223821u) << 64), Rlo + 6)
-		+ HIGH((__int128) A->lo[6] * -287932041058164) + HI((unsigned __int128) A->hi[6] * 7208710283951223821u) + ((__int128) A->hi[6] * -287932041058164);
-	Rhi[7] = (__int128) __builtin_add_overflow(((__int128) A->lo[8] * 3275580999337553038u), ((unsigned __int128) ((__int128) A->lo[8] * -430865449014011) << 64), Rlo + 7)
-		+ __builtin_add_overflow(((__int128) A->lo[8] * 3275580999337553038u), Rlo[7], Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->lo[8] * -430865449014011) << 64), Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->hi[8] * 3275580999337553038u) << 64), Rlo + 7)
-		+ HIGH((__int128) A->lo[8] * -430865449014011) + HI((unsigned __int128) A->hi[8] * 3275580999337553038u) + ((__int128) A->hi[8] * -430865449014011)
-		+ __builtin_add_overflow(((__int128) A->lo[0] * 7457739546006752748u), Rlo[7], Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->lo[0] * 3232925015296) << 64), Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->hi[0] * 7457739546006752748u) << 64), Rlo + 7)
-		+ HIGH((__int128) A->lo[0] * 3232925015296) + HI((unsigned __int128) A->hi[0] * 7457739546006752748u) + ((__int128) A->hi[0] * 3232925015296)
-		+ __builtin_add_overflow(((__int128) A->lo[1] * 3436003758609590581u), Rlo[7], Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->lo[1] * 548332397778135) << 64), Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->hi[1] * 3436003758609590581u) << 64), Rlo + 7)
-		+ HIGH((__int128) A->lo[1] * 548332397778135) + HI((unsigned __int128) A->hi[1] * 3436003758609590581u) + ((__int128) A->hi[1] * 548332397778135)
-		+ __builtin_add_overflow(((__int128) A->lo[2] * 15638703076346184814u), Rlo[7], Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->lo[2] * 166531022238992) << 64), Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->hi[2] * 15638703076346184814u) << 64), Rlo + 7)
-		+ HIGH((__int128) A->lo[2] * 166531022238992) + HI((unsigned __int128) A->hi[2] * 15638703076346184814u) + ((__int128) A->hi[2] * 166531022238992)
-		+ __builtin_add_overflow(((__int128) A->lo[3] * 4718488279913713768u), Rlo[7], Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->lo[3] * 218605112839726) << 64), Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->hi[3] * 4718488279913713768u) << 64), Rlo + 7)
-		+ HIGH((__int128) A->lo[3] * 218605112839726) + HI((unsigned __int128) A->hi[3] * 4718488279913713768u) + ((__int128) A->hi[3] * 218605112839726)
-		+ __builtin_add_overflow(((__int128) A->lo[4] * 7105755307053303794u), Rlo[7], Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->lo[4] * 390970083347788) << 64), Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->hi[4] * 7105755307053303794u) << 64), Rlo + 7)
-		+ HIGH((__int128) A->lo[4] * 390970083347788) + HI((unsigned __int128) A->hi[4] * 7105755307053303794u) + ((__int128) A->hi[4] * 390970083347788)
-		+ __builtin_add_overflow(((__int128) A->lo[5] * 12094338623667909333u), Rlo[7], Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->lo[5] * -139797510947255) << 64), Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->hi[5] * 12094338623667909333u) << 64), Rlo + 7)
-		+ HIGH((__int128) A->lo[5] * -139797510947255) + HI((unsigned __int128) A->hi[5] * 12094338623667909333u) + ((__int128) A->hi[5] * -139797510947255)
-		+ __builtin_add_overflow(((__int128) A->lo[6] * 16470900848815575625u), Rlo[7], Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->lo[6] * -14457312270234) << 64), Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->hi[6] * 16470900848815575625u) << 64), Rlo + 7)
-		+ HIGH((__int128) A->lo[6] * -14457312270234) + HI((unsigned __int128) A->hi[6] * 16470900848815575625u) + ((__int128) A->hi[6] * -14457312270234)
-		+ __builtin_add_overflow(((__int128) A->lo[7] * 7208710283951223821u), Rlo[7], Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->lo[7] * -287932041058164) << 64), Rlo + 7)
-		+ __builtin_add_overflow(Rlo[7], ((unsigned __int128) ((__int128) A->hi[7] * 7208710283951223821u) << 64), Rlo + 7)
-		+ HIGH((__int128) A->lo[7] * -287932041058164) + HI((unsigned __int128) A->hi[7] * 7208710283951223821u) + ((__int128) A->hi[7] * -287932041058164);
-	Rhi[8] = (__int128) __builtin_add_overflow(((__int128) A->lo[9] * 10861162536523552327u), ((unsigned __int128) ((__int128) A->lo[9] * -215432724507006) << 64), Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->hi[0] * 10861162536523552327u) << 64), Rlo + 8)
-		+ HIGH((__int128) A->lo[0] * -215432724507006) + HI((unsigned __int128) A->hi[0] * 10861162536523552327u) + ((__int128) A->hi[0] * -215432724507006)
-		+ __builtin_add_overflow(((__int128) A->lo[1] * 7457739546006752748u), Rlo[8], Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->lo[1] * 3232925015296) << 64), Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->hi[1] * 7457739546006752748u) << 64), Rlo + 8)
-		+ HIGH((__int128) A->lo[1] * 3232925015296) + HI((unsigned __int128) A->hi[1] * 7457739546006752748u) + ((__int128) A->hi[1] * 3232925015296)
-		+ __builtin_add_overflow(((__int128) A->lo[2] * 3436003758609590581u), Rlo[8], Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->lo[2] * 548332397778135) << 64), Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->hi[2] * 3436003758609590581u) << 64), Rlo + 8)
-		+ HIGH((__int128) A->lo[2] * 548332397778135) + HI((unsigned __int128) A->hi[2] * 3436003758609590581u) + ((__int128) A->hi[2] * 548332397778135)
-		+ __builtin_add_overflow(((__int128) A->lo[3] * 15638703076346184814u), Rlo[8], Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->lo[3] * 166531022238992) << 64), Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->hi[3] * 15638703076346184814u) << 64), Rlo + 8)
-		+ HIGH((__int128) A->lo[3] * 166531022238992) + HI((unsigned __int128) A->hi[3] * 15638703076346184814u) + ((__int128) A->hi[3] * 166531022238992)
-		+ __builtin_add_overflow(((__int128) A->lo[4] * 4718488279913713768u), Rlo[8], Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->lo[4] * 218605112839726) << 64), Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->hi[4] * 4718488279913713768u) << 64), Rlo + 8)
-		+ HIGH((__int128) A->lo[4] * 218605112839726) + HI((unsigned __int128) A->hi[4] * 4718488279913713768u) + ((__int128) A->hi[4] * 218605112839726)
-		+ __builtin_add_overflow(((__int128) A->lo[5] * 7105755307053303794u), Rlo[8], Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->lo[5] * 390970083347788) << 64), Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->hi[5] * 7105755307053303794u) << 64), Rlo + 8)
-		+ HIGH((__int128) A->lo[5] * 390970083347788) + HI((unsigned __int128) A->hi[5] * 7105755307053303794u) + ((__int128) A->hi[5] * 390970083347788)
-		+ __builtin_add_overflow(((__int128) A->lo[6] * 12094338623667909333u), Rlo[8], Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->lo[6] * -139797510947255) << 64), Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->hi[6] * 12094338623667909333u) << 64), Rlo + 8)
-		+ HIGH((__int128) A->lo[6] * -139797510947255) + HI((unsigned __int128) A->hi[6] * 12094338623667909333u) + ((__int128) A->hi[6] * -139797510947255)
-		+ __builtin_add_overflow(((__int128) A->lo[7] * 16470900848815575625u), Rlo[8], Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->lo[7] * -14457312270234) << 64), Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->hi[7] * 16470900848815575625u) << 64), Rlo + 8)
-		+ HIGH((__int128) A->lo[7] * -14457312270234) + HI((unsigned __int128) A->hi[7] * 16470900848815575625u) + ((__int128) A->hi[7] * -14457312270234)
-		+ __builtin_add_overflow(((__int128) A->lo[8] * 7208710283951223821u), Rlo[8], Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->lo[8] * -287932041058164) << 64), Rlo + 8)
-		+ __builtin_add_overflow(Rlo[8], ((unsigned __int128) ((__int128) A->hi[8] * 7208710283951223821u) << 64), Rlo + 8)
-		+ HIGH((__int128) A->lo[8] * -287932041058164) + HI((unsigned __int128) A->hi[8] * 7208710283951223821u) + ((__int128) A->hi[8] * -287932041058164);
 }
 
 
@@ -1326,7 +998,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) A->hi[2] * B->hi[7] * LAMBDA;
 	A1B0 = (__int128) A->hi[2] * B->lo[7] * LAMBDA;
@@ -1337,7 +1009,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) A->hi[3] * B->hi[6] * LAMBDA;
 	A1B0 = (__int128) A->hi[3] * B->lo[6] * LAMBDA;
@@ -1348,7 +1020,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) A->hi[4] * B->hi[5] * LAMBDA;
 	A1B0 = (__int128) A->hi[4] * B->lo[5] * LAMBDA;
@@ -1359,7 +1031,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) A->hi[5] * B->hi[4] * LAMBDA;
 	A1B0 = (__int128) A->hi[5] * B->lo[4] * LAMBDA;
@@ -1370,7 +1042,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) A->hi[6] * B->hi[3] * LAMBDA;
 	A1B0 = (__int128) A->hi[6] * B->lo[3] * LAMBDA;
@@ -1381,7 +1053,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) A->hi[7] * B->hi[2] * LAMBDA;
 	A1B0 = (__int128) A->hi[7] * B->lo[2] * LAMBDA;
@@ -1392,7 +1064,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) A->hi[8] * B->hi[1] * LAMBDA;
 	A1B0 = (__int128) A->hi[8] * B->lo[1] * LAMBDA;
@@ -1403,7 +1075,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) A->hi[0] * B->hi[0];
 	A1B0 = (__int128) A->hi[0] * B->lo[0];
@@ -1414,7 +1086,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
+		add_overflow(Rlo + 0, tmplo);
 
 	A1B1 = (__int128) A->hi[2] * B->hi[8] * LAMBDA;
 	A1B0 = (__int128) A->hi[2] * B->lo[8] * LAMBDA;
@@ -1425,7 +1097,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) A->hi[3] * B->hi[7] * LAMBDA;
 	A1B0 = (__int128) A->hi[3] * B->lo[7] * LAMBDA;
@@ -1436,7 +1108,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) A->hi[4] * B->hi[6] * LAMBDA;
 	A1B0 = (__int128) A->hi[4] * B->lo[6] * LAMBDA;
@@ -1447,7 +1119,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) A->hi[5] * B->hi[5] * LAMBDA;
 	A1B0 = (__int128) A->hi[5] * B->lo[5] * LAMBDA;
@@ -1458,7 +1130,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) A->hi[6] * B->hi[4] * LAMBDA;
 	A1B0 = (__int128) A->hi[6] * B->lo[4] * LAMBDA;
@@ -1469,7 +1141,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) A->hi[7] * B->hi[3] * LAMBDA;
 	A1B0 = (__int128) A->hi[7] * B->lo[3] * LAMBDA;
@@ -1480,7 +1152,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) A->hi[8] * B->hi[2] * LAMBDA;
 	A1B0 = (__int128) A->hi[8] * B->lo[2] * LAMBDA;
@@ -1491,7 +1163,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) A->hi[0] * B->hi[1];
 	A1B0 = (__int128) A->hi[0] * B->lo[1];
@@ -1502,7 +1174,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) A->hi[1] * B->hi[0];
 	A1B0 = (__int128) A->hi[1] * B->lo[0];
@@ -1513,7 +1185,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
+		add_overflow(Rlo + 1, tmplo);
 
 	A1B1 = (__int128) A->hi[3] * B->hi[8] * LAMBDA;
 	A1B0 = (__int128) A->hi[3] * B->lo[8] * LAMBDA;
@@ -1524,7 +1196,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) A->hi[4] * B->hi[7] * LAMBDA;
 	A1B0 = (__int128) A->hi[4] * B->lo[7] * LAMBDA;
@@ -1535,7 +1207,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) A->hi[5] * B->hi[6] * LAMBDA;
 	A1B0 = (__int128) A->hi[5] * B->lo[6] * LAMBDA;
@@ -1546,7 +1218,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) A->hi[6] * B->hi[5] * LAMBDA;
 	A1B0 = (__int128) A->hi[6] * B->lo[5] * LAMBDA;
@@ -1557,7 +1229,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) A->hi[7] * B->hi[4] * LAMBDA;
 	A1B0 = (__int128) A->hi[7] * B->lo[4] * LAMBDA;
@@ -1568,7 +1240,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) A->hi[8] * B->hi[3] * LAMBDA;
 	A1B0 = (__int128) A->hi[8] * B->lo[3] * LAMBDA;
@@ -1579,7 +1251,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) A->hi[0] * B->hi[2];
 	A1B0 = (__int128) A->hi[0] * B->lo[2];
@@ -1590,7 +1262,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) A->hi[1] * B->hi[1];
 	A1B0 = (__int128) A->hi[1] * B->lo[1];
@@ -1601,7 +1273,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) A->hi[2] * B->hi[0];
 	A1B0 = (__int128) A->hi[2] * B->lo[0];
@@ -1612,7 +1284,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
+		add_overflow(Rlo + 2, tmplo);
 
 	A1B1 = (__int128) A->hi[4] * B->hi[8] * LAMBDA;
 	A1B0 = (__int128) A->hi[4] * B->lo[8] * LAMBDA;
@@ -1623,7 +1295,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) A->hi[5] * B->hi[7] * LAMBDA;
 	A1B0 = (__int128) A->hi[5] * B->lo[7] * LAMBDA;
@@ -1634,7 +1306,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) A->hi[6] * B->hi[6] * LAMBDA;
 	A1B0 = (__int128) A->hi[6] * B->lo[6] * LAMBDA;
@@ -1645,7 +1317,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) A->hi[7] * B->hi[5] * LAMBDA;
 	A1B0 = (__int128) A->hi[7] * B->lo[5] * LAMBDA;
@@ -1656,7 +1328,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) A->hi[8] * B->hi[4] * LAMBDA;
 	A1B0 = (__int128) A->hi[8] * B->lo[4] * LAMBDA;
@@ -1667,7 +1339,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) A->hi[0] * B->hi[3];
 	A1B0 = (__int128) A->hi[0] * B->lo[3];
@@ -1678,7 +1350,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) A->hi[1] * B->hi[2];
 	A1B0 = (__int128) A->hi[1] * B->lo[2];
@@ -1689,7 +1361,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) A->hi[2] * B->hi[1];
 	A1B0 = (__int128) A->hi[2] * B->lo[1];
@@ -1700,7 +1372,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) A->hi[3] * B->hi[0];
 	A1B0 = (__int128) A->hi[3] * B->lo[0];
@@ -1711,7 +1383,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
+		add_overflow(Rlo + 3, tmplo);
 
 	A1B1 = (__int128) A->hi[5] * B->hi[8] * LAMBDA;
 	A1B0 = (__int128) A->hi[5] * B->lo[8] * LAMBDA;
@@ -1722,7 +1394,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) A->hi[6] * B->hi[7] * LAMBDA;
 	A1B0 = (__int128) A->hi[6] * B->lo[7] * LAMBDA;
@@ -1733,7 +1405,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) A->hi[7] * B->hi[6] * LAMBDA;
 	A1B0 = (__int128) A->hi[7] * B->lo[6] * LAMBDA;
@@ -1744,7 +1416,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) A->hi[8] * B->hi[5] * LAMBDA;
 	A1B0 = (__int128) A->hi[8] * B->lo[5] * LAMBDA;
@@ -1755,7 +1427,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) A->hi[0] * B->hi[4];
 	A1B0 = (__int128) A->hi[0] * B->lo[4];
@@ -1766,7 +1438,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) A->hi[1] * B->hi[3];
 	A1B0 = (__int128) A->hi[1] * B->lo[3];
@@ -1777,7 +1449,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) A->hi[2] * B->hi[2];
 	A1B0 = (__int128) A->hi[2] * B->lo[2];
@@ -1788,7 +1460,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) A->hi[3] * B->hi[1];
 	A1B0 = (__int128) A->hi[3] * B->lo[1];
@@ -1799,7 +1471,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) A->hi[4] * B->hi[0];
 	A1B0 = (__int128) A->hi[4] * B->lo[0];
@@ -1810,7 +1482,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
+		add_overflow(Rlo + 4, tmplo);
 
 	A1B1 = (__int128) A->hi[6] * B->hi[8] * LAMBDA;
 	A1B0 = (__int128) A->hi[6] * B->lo[8] * LAMBDA;
@@ -1821,7 +1493,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) A->hi[7] * B->hi[7] * LAMBDA;
 	A1B0 = (__int128) A->hi[7] * B->lo[7] * LAMBDA;
@@ -1832,7 +1504,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) A->hi[8] * B->hi[6] * LAMBDA;
 	A1B0 = (__int128) A->hi[8] * B->lo[6] * LAMBDA;
@@ -1843,7 +1515,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) A->hi[0] * B->hi[5];
 	A1B0 = (__int128) A->hi[0] * B->lo[5];
@@ -1854,7 +1526,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) A->hi[1] * B->hi[4];
 	A1B0 = (__int128) A->hi[1] * B->lo[4];
@@ -1865,7 +1537,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) A->hi[2] * B->hi[3];
 	A1B0 = (__int128) A->hi[2] * B->lo[3];
@@ -1876,7 +1548,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) A->hi[3] * B->hi[2];
 	A1B0 = (__int128) A->hi[3] * B->lo[2];
@@ -1887,7 +1559,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) A->hi[4] * B->hi[1];
 	A1B0 = (__int128) A->hi[4] * B->lo[1];
@@ -1898,7 +1570,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) A->hi[5] * B->hi[0];
 	A1B0 = (__int128) A->hi[5] * B->lo[0];
@@ -1909,7 +1581,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
+		add_overflow(Rlo + 5, tmplo);
 
 	A1B1 = (__int128) A->hi[7] * B->hi[8] * LAMBDA;
 	A1B0 = (__int128) A->hi[7] * B->lo[8] * LAMBDA;
@@ -1920,7 +1592,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) A->hi[8] * B->hi[7] * LAMBDA;
 	A1B0 = (__int128) A->hi[8] * B->lo[7] * LAMBDA;
@@ -1931,7 +1603,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) A->hi[0] * B->hi[6];
 	A1B0 = (__int128) A->hi[0] * B->lo[6];
@@ -1942,7 +1614,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) A->hi[1] * B->hi[5];
 	A1B0 = (__int128) A->hi[1] * B->lo[5];
@@ -1953,7 +1625,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) A->hi[2] * B->hi[4];
 	A1B0 = (__int128) A->hi[2] * B->lo[4];
@@ -1964,7 +1636,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) A->hi[3] * B->hi[3];
 	A1B0 = (__int128) A->hi[3] * B->lo[3];
@@ -1975,7 +1647,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) A->hi[4] * B->hi[2];
 	A1B0 = (__int128) A->hi[4] * B->lo[2];
@@ -1986,7 +1658,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) A->hi[5] * B->hi[1];
 	A1B0 = (__int128) A->hi[5] * B->lo[1];
@@ -1997,7 +1669,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) A->hi[6] * B->hi[0];
 	A1B0 = (__int128) A->hi[6] * B->lo[0];
@@ -2008,7 +1680,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
+		add_overflow(Rlo + 6, tmplo);
 
 	A1B1 = (__int128) A->hi[8] * B->hi[8] * LAMBDA;
 	A1B0 = (__int128) A->hi[8] * B->lo[8] * LAMBDA;
@@ -2019,7 +1691,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) A->hi[0] * B->hi[7];
 	A1B0 = (__int128) A->hi[0] * B->lo[7];
@@ -2030,7 +1702,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) A->hi[1] * B->hi[6];
 	A1B0 = (__int128) A->hi[1] * B->lo[6];
@@ -2041,7 +1713,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) A->hi[2] * B->hi[5];
 	A1B0 = (__int128) A->hi[2] * B->lo[5];
@@ -2052,7 +1724,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) A->hi[3] * B->hi[4];
 	A1B0 = (__int128) A->hi[3] * B->lo[4];
@@ -2063,7 +1735,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) A->hi[4] * B->hi[3];
 	A1B0 = (__int128) A->hi[4] * B->lo[3];
@@ -2074,7 +1746,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) A->hi[5] * B->hi[2];
 	A1B0 = (__int128) A->hi[5] * B->lo[2];
@@ -2085,7 +1757,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) A->hi[6] * B->hi[1];
 	A1B0 = (__int128) A->hi[6] * B->lo[1];
@@ -2096,7 +1768,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) A->hi[7] * B->hi[0];
 	A1B0 = (__int128) A->hi[7] * B->lo[0];
@@ -2107,7 +1779,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
+		add_overflow(Rlo + 7, tmplo);
 
 	A1B1 = (__int128) A->hi[0] * B->hi[8];
 	A1B0 = (__int128) A->hi[0] * B->lo[8];
@@ -2118,7 +1790,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) A->hi[1] * B->hi[7];
 	A1B0 = (__int128) A->hi[1] * B->lo[7];
@@ -2129,7 +1801,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) A->hi[2] * B->hi[6];
 	A1B0 = (__int128) A->hi[2] * B->lo[6];
@@ -2140,7 +1812,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) A->hi[3] * B->hi[5];
 	A1B0 = (__int128) A->hi[3] * B->lo[5];
@@ -2151,7 +1823,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) A->hi[4] * B->hi[4];
 	A1B0 = (__int128) A->hi[4] * B->lo[4];
@@ -2162,7 +1834,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) A->hi[5] * B->hi[3];
 	A1B0 = (__int128) A->hi[5] * B->lo[3];
@@ -2173,7 +1845,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) A->hi[6] * B->hi[2];
 	A1B0 = (__int128) A->hi[6] * B->lo[2];
@@ -2184,7 +1856,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) A->hi[7] * B->hi[1];
 	A1B0 = (__int128) A->hi[7] * B->lo[1];
@@ -2195,7 +1867,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 	A1B1 = (__int128) A->hi[8] * B->hi[0];
 	A1B0 = (__int128) A->hi[8] * B->lo[0];
@@ -2206,1233 +1878,7 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	
 	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
 	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
-
-}
-
-
-static inline void mns128_mod_mult_ext_red_pre_wmat(__int128* restrict Rhi,
-	unsigned __int128* restrict Rlo, const restrict poly128 A,
-	const restrict poly128 B)
-{
-	unsigned __int128 A0B0, tmplo;
-	__int128 A1B1, A1B0, A0B1, aux2, aux3, hihi[9][9], hilo[9][9],
-		lohi[9][9], lolo[9][9];
-
-hihi[0][0] = (__int128) A->hi[0] * B->hi[0];
-hilo[0][0] = (__int128) A->hi[0] * B->lo[0];
-lohi[0][0] = (__int128) A->lo[0] * B->hi[0];
-lolo[0][0] = (__int128) A->lo[0] * B->lo[0];
-hihi[0][1] = (__int128) A->hi[0] * B->hi[1];
-hilo[0][1] = (__int128) A->hi[0] * B->lo[1];
-lohi[0][1] = (__int128) A->lo[0] * B->hi[1];
-lolo[0][1] = (__int128) A->lo[0] * B->lo[1];
-hihi[0][2] = (__int128) A->hi[0] * B->hi[2];
-hilo[0][2] = (__int128) A->hi[0] * B->lo[2];
-lohi[0][2] = (__int128) A->lo[0] * B->hi[2];
-lolo[0][2] = (__int128) A->lo[0] * B->lo[2];
-hihi[0][3] = (__int128) A->hi[0] * B->hi[3];
-hilo[0][3] = (__int128) A->hi[0] * B->lo[3];
-lohi[0][3] = (__int128) A->lo[0] * B->hi[3];
-lolo[0][3] = (__int128) A->lo[0] * B->lo[3];
-hihi[0][4] = (__int128) A->hi[0] * B->hi[4];
-hilo[0][4] = (__int128) A->hi[0] * B->lo[4];
-lohi[0][4] = (__int128) A->lo[0] * B->hi[4];
-lolo[0][4] = (__int128) A->lo[0] * B->lo[4];
-hihi[0][5] = (__int128) A->hi[0] * B->hi[5];
-hilo[0][5] = (__int128) A->hi[0] * B->lo[5];
-lohi[0][5] = (__int128) A->lo[0] * B->hi[5];
-lolo[0][5] = (__int128) A->lo[0] * B->lo[5];
-hihi[0][6] = (__int128) A->hi[0] * B->hi[6];
-hilo[0][6] = (__int128) A->hi[0] * B->lo[6];
-lohi[0][6] = (__int128) A->lo[0] * B->hi[6];
-lolo[0][6] = (__int128) A->lo[0] * B->lo[6];
-hihi[0][7] = (__int128) A->hi[0] * B->hi[7];
-hilo[0][7] = (__int128) A->hi[0] * B->lo[7];
-lohi[0][7] = (__int128) A->lo[0] * B->hi[7];
-lolo[0][7] = (__int128) A->lo[0] * B->lo[7];
-hihi[0][8] = (__int128) A->hi[0] * B->hi[8];
-hilo[0][8] = (__int128) A->hi[0] * B->lo[8];
-lohi[0][8] = (__int128) A->lo[0] * B->hi[8];
-lolo[0][8] = (__int128) A->lo[0] * B->lo[8];
-hihi[1][0] = (__int128) A->hi[1] * B->hi[0];
-hilo[1][0] = (__int128) A->hi[1] * B->lo[0];
-lohi[1][0] = (__int128) A->lo[1] * B->hi[0];
-lolo[1][0] = (__int128) A->lo[1] * B->lo[0];
-hihi[1][1] = (__int128) A->hi[1] * B->hi[1];
-hilo[1][1] = (__int128) A->hi[1] * B->lo[1];
-lohi[1][1] = (__int128) A->lo[1] * B->hi[1];
-lolo[1][1] = (__int128) A->lo[1] * B->lo[1];
-hihi[1][2] = (__int128) A->hi[1] * B->hi[2];
-hilo[1][2] = (__int128) A->hi[1] * B->lo[2];
-lohi[1][2] = (__int128) A->lo[1] * B->hi[2];
-lolo[1][2] = (__int128) A->lo[1] * B->lo[2];
-hihi[1][3] = (__int128) A->hi[1] * B->hi[3];
-hilo[1][3] = (__int128) A->hi[1] * B->lo[3];
-lohi[1][3] = (__int128) A->lo[1] * B->hi[3];
-lolo[1][3] = (__int128) A->lo[1] * B->lo[3];
-hihi[1][4] = (__int128) A->hi[1] * B->hi[4];
-hilo[1][4] = (__int128) A->hi[1] * B->lo[4];
-lohi[1][4] = (__int128) A->lo[1] * B->hi[4];
-lolo[1][4] = (__int128) A->lo[1] * B->lo[4];
-hihi[1][5] = (__int128) A->hi[1] * B->hi[5];
-hilo[1][5] = (__int128) A->hi[1] * B->lo[5];
-lohi[1][5] = (__int128) A->lo[1] * B->hi[5];
-lolo[1][5] = (__int128) A->lo[1] * B->lo[5];
-hihi[1][6] = (__int128) A->hi[1] * B->hi[6];
-hilo[1][6] = (__int128) A->hi[1] * B->lo[6];
-lohi[1][6] = (__int128) A->lo[1] * B->hi[6];
-lolo[1][6] = (__int128) A->lo[1] * B->lo[6];
-hihi[1][7] = (__int128) A->hi[1] * B->hi[7];
-hilo[1][7] = (__int128) A->hi[1] * B->lo[7];
-lohi[1][7] = (__int128) A->lo[1] * B->hi[7];
-lolo[1][7] = (__int128) A->lo[1] * B->lo[7];
-hihi[1][8] = (__int128) A->hi[1] * B->hi[8];
-hilo[1][8] = (__int128) A->hi[1] * B->lo[8];
-lohi[1][8] = (__int128) A->lo[1] * B->hi[8];
-lolo[1][8] = (__int128) A->lo[1] * B->lo[8];
-hihi[2][0] = (__int128) A->hi[2] * B->hi[0];
-hilo[2][0] = (__int128) A->hi[2] * B->lo[0];
-lohi[2][0] = (__int128) A->lo[2] * B->hi[0];
-lolo[2][0] = (__int128) A->lo[2] * B->lo[0];
-hihi[2][1] = (__int128) A->hi[2] * B->hi[1];
-hilo[2][1] = (__int128) A->hi[2] * B->lo[1];
-lohi[2][1] = (__int128) A->lo[2] * B->hi[1];
-lolo[2][1] = (__int128) A->lo[2] * B->lo[1];
-hihi[2][2] = (__int128) A->hi[2] * B->hi[2];
-hilo[2][2] = (__int128) A->hi[2] * B->lo[2];
-lohi[2][2] = (__int128) A->lo[2] * B->hi[2];
-lolo[2][2] = (__int128) A->lo[2] * B->lo[2];
-hihi[2][3] = (__int128) A->hi[2] * B->hi[3];
-hilo[2][3] = (__int128) A->hi[2] * B->lo[3];
-lohi[2][3] = (__int128) A->lo[2] * B->hi[3];
-lolo[2][3] = (__int128) A->lo[2] * B->lo[3];
-hihi[2][4] = (__int128) A->hi[2] * B->hi[4];
-hilo[2][4] = (__int128) A->hi[2] * B->lo[4];
-lohi[2][4] = (__int128) A->lo[2] * B->hi[4];
-lolo[2][4] = (__int128) A->lo[2] * B->lo[4];
-hihi[2][5] = (__int128) A->hi[2] * B->hi[5];
-hilo[2][5] = (__int128) A->hi[2] * B->lo[5];
-lohi[2][5] = (__int128) A->lo[2] * B->hi[5];
-lolo[2][5] = (__int128) A->lo[2] * B->lo[5];
-hihi[2][6] = (__int128) A->hi[2] * B->hi[6];
-hilo[2][6] = (__int128) A->hi[2] * B->lo[6];
-lohi[2][6] = (__int128) A->lo[2] * B->hi[6];
-lolo[2][6] = (__int128) A->lo[2] * B->lo[6];
-hihi[2][7] = (__int128) A->hi[2] * B->hi[7];
-hilo[2][7] = (__int128) A->hi[2] * B->lo[7];
-lohi[2][7] = (__int128) A->lo[2] * B->hi[7];
-lolo[2][7] = (__int128) A->lo[2] * B->lo[7];
-hihi[2][8] = (__int128) A->hi[2] * B->hi[8];
-hilo[2][8] = (__int128) A->hi[2] * B->lo[8];
-lohi[2][8] = (__int128) A->lo[2] * B->hi[8];
-lolo[2][8] = (__int128) A->lo[2] * B->lo[8];
-hihi[3][0] = (__int128) A->hi[3] * B->hi[0];
-hilo[3][0] = (__int128) A->hi[3] * B->lo[0];
-lohi[3][0] = (__int128) A->lo[3] * B->hi[0];
-lolo[3][0] = (__int128) A->lo[3] * B->lo[0];
-hihi[3][1] = (__int128) A->hi[3] * B->hi[1];
-hilo[3][1] = (__int128) A->hi[3] * B->lo[1];
-lohi[3][1] = (__int128) A->lo[3] * B->hi[1];
-lolo[3][1] = (__int128) A->lo[3] * B->lo[1];
-hihi[3][2] = (__int128) A->hi[3] * B->hi[2];
-hilo[3][2] = (__int128) A->hi[3] * B->lo[2];
-lohi[3][2] = (__int128) A->lo[3] * B->hi[2];
-lolo[3][2] = (__int128) A->lo[3] * B->lo[2];
-hihi[3][3] = (__int128) A->hi[3] * B->hi[3];
-hilo[3][3] = (__int128) A->hi[3] * B->lo[3];
-lohi[3][3] = (__int128) A->lo[3] * B->hi[3];
-lolo[3][3] = (__int128) A->lo[3] * B->lo[3];
-hihi[3][4] = (__int128) A->hi[3] * B->hi[4];
-hilo[3][4] = (__int128) A->hi[3] * B->lo[4];
-lohi[3][4] = (__int128) A->lo[3] * B->hi[4];
-lolo[3][4] = (__int128) A->lo[3] * B->lo[4];
-hihi[3][5] = (__int128) A->hi[3] * B->hi[5];
-hilo[3][5] = (__int128) A->hi[3] * B->lo[5];
-lohi[3][5] = (__int128) A->lo[3] * B->hi[5];
-lolo[3][5] = (__int128) A->lo[3] * B->lo[5];
-hihi[3][6] = (__int128) A->hi[3] * B->hi[6];
-hilo[3][6] = (__int128) A->hi[3] * B->lo[6];
-lohi[3][6] = (__int128) A->lo[3] * B->hi[6];
-lolo[3][6] = (__int128) A->lo[3] * B->lo[6];
-hihi[3][7] = (__int128) A->hi[3] * B->hi[7];
-hilo[3][7] = (__int128) A->hi[3] * B->lo[7];
-lohi[3][7] = (__int128) A->lo[3] * B->hi[7];
-lolo[3][7] = (__int128) A->lo[3] * B->lo[7];
-hihi[3][8] = (__int128) A->hi[3] * B->hi[8];
-hilo[3][8] = (__int128) A->hi[3] * B->lo[8];
-lohi[3][8] = (__int128) A->lo[3] * B->hi[8];
-lolo[3][8] = (__int128) A->lo[3] * B->lo[8];
-hihi[4][0] = (__int128) A->hi[4] * B->hi[0];
-hilo[4][0] = (__int128) A->hi[4] * B->lo[0];
-lohi[4][0] = (__int128) A->lo[4] * B->hi[0];
-lolo[4][0] = (__int128) A->lo[4] * B->lo[0];
-hihi[4][1] = (__int128) A->hi[4] * B->hi[1];
-hilo[4][1] = (__int128) A->hi[4] * B->lo[1];
-lohi[4][1] = (__int128) A->lo[4] * B->hi[1];
-lolo[4][1] = (__int128) A->lo[4] * B->lo[1];
-hihi[4][2] = (__int128) A->hi[4] * B->hi[2];
-hilo[4][2] = (__int128) A->hi[4] * B->lo[2];
-lohi[4][2] = (__int128) A->lo[4] * B->hi[2];
-lolo[4][2] = (__int128) A->lo[4] * B->lo[2];
-hihi[4][3] = (__int128) A->hi[4] * B->hi[3];
-hilo[4][3] = (__int128) A->hi[4] * B->lo[3];
-lohi[4][3] = (__int128) A->lo[4] * B->hi[3];
-lolo[4][3] = (__int128) A->lo[4] * B->lo[3];
-hihi[4][4] = (__int128) A->hi[4] * B->hi[4];
-hilo[4][4] = (__int128) A->hi[4] * B->lo[4];
-lohi[4][4] = (__int128) A->lo[4] * B->hi[4];
-lolo[4][4] = (__int128) A->lo[4] * B->lo[4];
-hihi[4][5] = (__int128) A->hi[4] * B->hi[5];
-hilo[4][5] = (__int128) A->hi[4] * B->lo[5];
-lohi[4][5] = (__int128) A->lo[4] * B->hi[5];
-lolo[4][5] = (__int128) A->lo[4] * B->lo[5];
-hihi[4][6] = (__int128) A->hi[4] * B->hi[6];
-hilo[4][6] = (__int128) A->hi[4] * B->lo[6];
-lohi[4][6] = (__int128) A->lo[4] * B->hi[6];
-lolo[4][6] = (__int128) A->lo[4] * B->lo[6];
-hihi[4][7] = (__int128) A->hi[4] * B->hi[7];
-hilo[4][7] = (__int128) A->hi[4] * B->lo[7];
-lohi[4][7] = (__int128) A->lo[4] * B->hi[7];
-lolo[4][7] = (__int128) A->lo[4] * B->lo[7];
-hihi[4][8] = (__int128) A->hi[4] * B->hi[8];
-hilo[4][8] = (__int128) A->hi[4] * B->lo[8];
-lohi[4][8] = (__int128) A->lo[4] * B->hi[8];
-lolo[4][8] = (__int128) A->lo[4] * B->lo[8];
-hihi[5][0] = (__int128) A->hi[5] * B->hi[0];
-hilo[5][0] = (__int128) A->hi[5] * B->lo[0];
-lohi[5][0] = (__int128) A->lo[5] * B->hi[0];
-lolo[5][0] = (__int128) A->lo[5] * B->lo[0];
-hihi[5][1] = (__int128) A->hi[5] * B->hi[1];
-hilo[5][1] = (__int128) A->hi[5] * B->lo[1];
-lohi[5][1] = (__int128) A->lo[5] * B->hi[1];
-lolo[5][1] = (__int128) A->lo[5] * B->lo[1];
-hihi[5][2] = (__int128) A->hi[5] * B->hi[2];
-hilo[5][2] = (__int128) A->hi[5] * B->lo[2];
-lohi[5][2] = (__int128) A->lo[5] * B->hi[2];
-lolo[5][2] = (__int128) A->lo[5] * B->lo[2];
-hihi[5][3] = (__int128) A->hi[5] * B->hi[3];
-hilo[5][3] = (__int128) A->hi[5] * B->lo[3];
-lohi[5][3] = (__int128) A->lo[5] * B->hi[3];
-lolo[5][3] = (__int128) A->lo[5] * B->lo[3];
-hihi[5][4] = (__int128) A->hi[5] * B->hi[4];
-hilo[5][4] = (__int128) A->hi[5] * B->lo[4];
-lohi[5][4] = (__int128) A->lo[5] * B->hi[4];
-lolo[5][4] = (__int128) A->lo[5] * B->lo[4];
-hihi[5][5] = (__int128) A->hi[5] * B->hi[5];
-hilo[5][5] = (__int128) A->hi[5] * B->lo[5];
-lohi[5][5] = (__int128) A->lo[5] * B->hi[5];
-lolo[5][5] = (__int128) A->lo[5] * B->lo[5];
-hihi[5][6] = (__int128) A->hi[5] * B->hi[6];
-hilo[5][6] = (__int128) A->hi[5] * B->lo[6];
-lohi[5][6] = (__int128) A->lo[5] * B->hi[6];
-lolo[5][6] = (__int128) A->lo[5] * B->lo[6];
-hihi[5][7] = (__int128) A->hi[5] * B->hi[7];
-hilo[5][7] = (__int128) A->hi[5] * B->lo[7];
-lohi[5][7] = (__int128) A->lo[5] * B->hi[7];
-lolo[5][7] = (__int128) A->lo[5] * B->lo[7];
-hihi[5][8] = (__int128) A->hi[5] * B->hi[8];
-hilo[5][8] = (__int128) A->hi[5] * B->lo[8];
-lohi[5][8] = (__int128) A->lo[5] * B->hi[8];
-lolo[5][8] = (__int128) A->lo[5] * B->lo[8];
-hihi[6][0] = (__int128) A->hi[6] * B->hi[0];
-hilo[6][0] = (__int128) A->hi[6] * B->lo[0];
-lohi[6][0] = (__int128) A->lo[6] * B->hi[0];
-lolo[6][0] = (__int128) A->lo[6] * B->lo[0];
-hihi[6][1] = (__int128) A->hi[6] * B->hi[1];
-hilo[6][1] = (__int128) A->hi[6] * B->lo[1];
-lohi[6][1] = (__int128) A->lo[6] * B->hi[1];
-lolo[6][1] = (__int128) A->lo[6] * B->lo[1];
-hihi[6][2] = (__int128) A->hi[6] * B->hi[2];
-hilo[6][2] = (__int128) A->hi[6] * B->lo[2];
-lohi[6][2] = (__int128) A->lo[6] * B->hi[2];
-lolo[6][2] = (__int128) A->lo[6] * B->lo[2];
-hihi[6][3] = (__int128) A->hi[6] * B->hi[3];
-hilo[6][3] = (__int128) A->hi[6] * B->lo[3];
-lohi[6][3] = (__int128) A->lo[6] * B->hi[3];
-lolo[6][3] = (__int128) A->lo[6] * B->lo[3];
-hihi[6][4] = (__int128) A->hi[6] * B->hi[4];
-hilo[6][4] = (__int128) A->hi[6] * B->lo[4];
-lohi[6][4] = (__int128) A->lo[6] * B->hi[4];
-lolo[6][4] = (__int128) A->lo[6] * B->lo[4];
-hihi[6][5] = (__int128) A->hi[6] * B->hi[5];
-hilo[6][5] = (__int128) A->hi[6] * B->lo[5];
-lohi[6][5] = (__int128) A->lo[6] * B->hi[5];
-lolo[6][5] = (__int128) A->lo[6] * B->lo[5];
-hihi[6][6] = (__int128) A->hi[6] * B->hi[6];
-hilo[6][6] = (__int128) A->hi[6] * B->lo[6];
-lohi[6][6] = (__int128) A->lo[6] * B->hi[6];
-lolo[6][6] = (__int128) A->lo[6] * B->lo[6];
-hihi[6][7] = (__int128) A->hi[6] * B->hi[7];
-hilo[6][7] = (__int128) A->hi[6] * B->lo[7];
-lohi[6][7] = (__int128) A->lo[6] * B->hi[7];
-lolo[6][7] = (__int128) A->lo[6] * B->lo[7];
-hihi[6][8] = (__int128) A->hi[6] * B->hi[8];
-hilo[6][8] = (__int128) A->hi[6] * B->lo[8];
-lohi[6][8] = (__int128) A->lo[6] * B->hi[8];
-lolo[6][8] = (__int128) A->lo[6] * B->lo[8];
-hihi[7][0] = (__int128) A->hi[7] * B->hi[0];
-hilo[7][0] = (__int128) A->hi[7] * B->lo[0];
-lohi[7][0] = (__int128) A->lo[7] * B->hi[0];
-lolo[7][0] = (__int128) A->lo[7] * B->lo[0];
-hihi[7][1] = (__int128) A->hi[7] * B->hi[1];
-hilo[7][1] = (__int128) A->hi[7] * B->lo[1];
-lohi[7][1] = (__int128) A->lo[7] * B->hi[1];
-lolo[7][1] = (__int128) A->lo[7] * B->lo[1];
-hihi[7][2] = (__int128) A->hi[7] * B->hi[2];
-hilo[7][2] = (__int128) A->hi[7] * B->lo[2];
-lohi[7][2] = (__int128) A->lo[7] * B->hi[2];
-lolo[7][2] = (__int128) A->lo[7] * B->lo[2];
-hihi[7][3] = (__int128) A->hi[7] * B->hi[3];
-hilo[7][3] = (__int128) A->hi[7] * B->lo[3];
-lohi[7][3] = (__int128) A->lo[7] * B->hi[3];
-lolo[7][3] = (__int128) A->lo[7] * B->lo[3];
-hihi[7][4] = (__int128) A->hi[7] * B->hi[4];
-hilo[7][4] = (__int128) A->hi[7] * B->lo[4];
-lohi[7][4] = (__int128) A->lo[7] * B->hi[4];
-lolo[7][4] = (__int128) A->lo[7] * B->lo[4];
-hihi[7][5] = (__int128) A->hi[7] * B->hi[5];
-hilo[7][5] = (__int128) A->hi[7] * B->lo[5];
-lohi[7][5] = (__int128) A->lo[7] * B->hi[5];
-lolo[7][5] = (__int128) A->lo[7] * B->lo[5];
-hihi[7][6] = (__int128) A->hi[7] * B->hi[6];
-hilo[7][6] = (__int128) A->hi[7] * B->lo[6];
-lohi[7][6] = (__int128) A->lo[7] * B->hi[6];
-lolo[7][6] = (__int128) A->lo[7] * B->lo[6];
-hihi[7][7] = (__int128) A->hi[7] * B->hi[7];
-hilo[7][7] = (__int128) A->hi[7] * B->lo[7];
-lohi[7][7] = (__int128) A->lo[7] * B->hi[7];
-lolo[7][7] = (__int128) A->lo[7] * B->lo[7];
-hihi[7][8] = (__int128) A->hi[7] * B->hi[8];
-hilo[7][8] = (__int128) A->hi[7] * B->lo[8];
-lohi[7][8] = (__int128) A->lo[7] * B->hi[8];
-lolo[7][8] = (__int128) A->lo[7] * B->lo[8];
-hihi[8][0] = (__int128) A->hi[8] * B->hi[0];
-hilo[8][0] = (__int128) A->hi[8] * B->lo[0];
-lohi[8][0] = (__int128) A->lo[8] * B->hi[0];
-lolo[8][0] = (__int128) A->lo[8] * B->lo[0];
-hihi[8][1] = (__int128) A->hi[8] * B->hi[1];
-hilo[8][1] = (__int128) A->hi[8] * B->lo[1];
-lohi[8][1] = (__int128) A->lo[8] * B->hi[1];
-lolo[8][1] = (__int128) A->lo[8] * B->lo[1];
-hihi[8][2] = (__int128) A->hi[8] * B->hi[2];
-hilo[8][2] = (__int128) A->hi[8] * B->lo[2];
-lohi[8][2] = (__int128) A->lo[8] * B->hi[2];
-lolo[8][2] = (__int128) A->lo[8] * B->lo[2];
-hihi[8][3] = (__int128) A->hi[8] * B->hi[3];
-hilo[8][3] = (__int128) A->hi[8] * B->lo[3];
-lohi[8][3] = (__int128) A->lo[8] * B->hi[3];
-lolo[8][3] = (__int128) A->lo[8] * B->lo[3];
-hihi[8][4] = (__int128) A->hi[8] * B->hi[4];
-hilo[8][4] = (__int128) A->hi[8] * B->lo[4];
-lohi[8][4] = (__int128) A->lo[8] * B->hi[4];
-lolo[8][4] = (__int128) A->lo[8] * B->lo[4];
-hihi[8][5] = (__int128) A->hi[8] * B->hi[5];
-hilo[8][5] = (__int128) A->hi[8] * B->lo[5];
-lohi[8][5] = (__int128) A->lo[8] * B->hi[5];
-lolo[8][5] = (__int128) A->lo[8] * B->lo[5];
-hihi[8][6] = (__int128) A->hi[8] * B->hi[6];
-hilo[8][6] = (__int128) A->hi[8] * B->lo[6];
-lohi[8][6] = (__int128) A->lo[8] * B->hi[6];
-lolo[8][6] = (__int128) A->lo[8] * B->lo[6];
-hihi[8][7] = (__int128) A->hi[8] * B->hi[7];
-hilo[8][7] = (__int128) A->hi[8] * B->lo[7];
-lohi[8][7] = (__int128) A->lo[8] * B->hi[7];
-lolo[8][7] = (__int128) A->lo[8] * B->lo[7];
-hihi[8][8] = (__int128) A->hi[8] * B->hi[8];
-hilo[8][8] = (__int128) A->hi[8] * B->lo[8];
-lohi[8][8] = (__int128) A->lo[8] * B->hi[8];
-lolo[8][8] = (__int128) A->lo[8] * B->lo[8];
-	A1B1 = hihi[1][8] * LAMBDA;
-	A1B0 = hilo[1][8] * LAMBDA;
-	A0B1 = lohi[1][8] * LAMBDA;
-	A0B0 = lolo[1][8] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
-
-	A1B1 = hihi[2][7] * LAMBDA;
-	A1B0 = hilo[2][7] * LAMBDA;
-	A0B1 = lohi[2][7] * LAMBDA;
-	A0B0 = lolo[2][7] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
-
-	A1B1 = hihi[3][6] * LAMBDA;
-	A1B0 = hilo[3][6] * LAMBDA;
-	A0B1 = lohi[3][6] * LAMBDA;
-	A0B0 = lolo[3][6] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
-
-	A1B1 = hihi[4][5] * LAMBDA;
-	A1B0 = hilo[4][5] * LAMBDA;
-	A0B1 = lohi[4][5] * LAMBDA;
-	A0B0 = lolo[4][5] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
-
-	A1B1 = hihi[5][4] * LAMBDA;
-	A1B0 = hilo[5][4] * LAMBDA;
-	A0B1 = lohi[5][4] * LAMBDA;
-	A0B0 = lolo[5][4] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
-
-	A1B1 = hihi[6][3] * LAMBDA;
-	A1B0 = hilo[6][3] * LAMBDA;
-	A0B1 = lohi[6][3] * LAMBDA;
-	A0B0 = lolo[6][3] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
-
-	A1B1 = hihi[7][2] * LAMBDA;
-	A1B0 = hilo[7][2] * LAMBDA;
-	A0B1 = lohi[7][2] * LAMBDA;
-	A0B0 = lolo[7][2] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
-
-	A1B1 = hihi[8][1] * LAMBDA;
-	A1B0 = hilo[8][1] * LAMBDA;
-	A0B1 = lohi[8][1] * LAMBDA;
-	A0B0 = lolo[8][1] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
-
-	A1B1 = hihi[0][0];
-	A1B0 = hilo[0][0];
-	A0B1 = lohi[0][0];
-	A0B0 = lolo[0][0];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[0] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[0], tmplo, Rlo + 0);
-
-	A1B1 = hihi[2][8] * LAMBDA;
-	A1B0 = hilo[2][8] * LAMBDA;
-	A0B1 = lohi[2][8] * LAMBDA;
-	A0B0 = lolo[2][8] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
-
-	A1B1 = hihi[3][7] * LAMBDA;
-	A1B0 = hilo[3][7] * LAMBDA;
-	A0B1 = lohi[3][7] * LAMBDA;
-	A0B0 = lolo[3][7] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
-
-	A1B1 = hihi[4][6] * LAMBDA;
-	A1B0 = hilo[4][6] * LAMBDA;
-	A0B1 = lohi[4][6] * LAMBDA;
-	A0B0 = lolo[4][6] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
-
-	A1B1 = hihi[5][5] * LAMBDA;
-	A1B0 = hilo[5][5] * LAMBDA;
-	A0B1 = lohi[5][5] * LAMBDA;
-	A0B0 = lolo[5][5] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
-
-	A1B1 = hihi[6][4] * LAMBDA;
-	A1B0 = hilo[6][4] * LAMBDA;
-	A0B1 = lohi[6][4] * LAMBDA;
-	A0B0 = lolo[6][4] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
-
-	A1B1 = hihi[7][3] * LAMBDA;
-	A1B0 = hilo[7][3] * LAMBDA;
-	A0B1 = lohi[7][3] * LAMBDA;
-	A0B0 = lolo[7][3] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
-
-	A1B1 = hihi[8][2] * LAMBDA;
-	A1B0 = hilo[8][2] * LAMBDA;
-	A0B1 = lohi[8][2] * LAMBDA;
-	A0B0 = lolo[8][2] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
-
-	A1B1 = hihi[0][1];
-	A1B0 = hilo[0][1];
-	A0B1 = lohi[0][1];
-	A0B0 = lolo[0][1];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
-
-	A1B1 = hihi[1][0];
-	A1B0 = hilo[1][0];
-	A0B1 = lohi[1][0];
-	A0B0 = lolo[1][0];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[1] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[1], tmplo, Rlo + 1);
-
-	A1B1 = hihi[3][8] * LAMBDA;
-	A1B0 = hilo[3][8] * LAMBDA;
-	A0B1 = lohi[3][8] * LAMBDA;
-	A0B0 = lolo[3][8] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
-
-	A1B1 = hihi[4][7] * LAMBDA;
-	A1B0 = hilo[4][7] * LAMBDA;
-	A0B1 = lohi[4][7] * LAMBDA;
-	A0B0 = lolo[4][7] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
-
-	A1B1 = hihi[5][6] * LAMBDA;
-	A1B0 = hilo[5][6] * LAMBDA;
-	A0B1 = lohi[5][6] * LAMBDA;
-	A0B0 = lolo[5][6] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
-
-	A1B1 = hihi[6][5] * LAMBDA;
-	A1B0 = hilo[6][5] * LAMBDA;
-	A0B1 = lohi[6][5] * LAMBDA;
-	A0B0 = lolo[6][5] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
-
-	A1B1 = hihi[7][4] * LAMBDA;
-	A1B0 = hilo[7][4] * LAMBDA;
-	A0B1 = lohi[7][4] * LAMBDA;
-	A0B0 = lolo[7][4] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
-
-	A1B1 = hihi[8][3] * LAMBDA;
-	A1B0 = hilo[8][3] * LAMBDA;
-	A0B1 = lohi[8][3] * LAMBDA;
-	A0B0 = lolo[8][3] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
-
-	A1B1 = hihi[0][2];
-	A1B0 = hilo[0][2];
-	A0B1 = lohi[0][2];
-	A0B0 = lolo[0][2];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
-
-	A1B1 = hihi[1][1];
-	A1B0 = hilo[1][1];
-	A0B1 = lohi[1][1];
-	A0B0 = lolo[1][1];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
-
-	A1B1 = hihi[2][0];
-	A1B0 = hilo[2][0];
-	A0B1 = lohi[2][0];
-	A0B0 = lolo[2][0];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[2] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[2], tmplo, Rlo + 2);
-
-	A1B1 = hihi[4][8] * LAMBDA;
-	A1B0 = hilo[4][8] * LAMBDA;
-	A0B1 = lohi[4][8] * LAMBDA;
-	A0B0 = lolo[4][8] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
-
-	A1B1 = hihi[5][7] * LAMBDA;
-	A1B0 = hilo[5][7] * LAMBDA;
-	A0B1 = lohi[5][7] * LAMBDA;
-	A0B0 = lolo[5][7] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
-
-	A1B1 = hihi[6][6] * LAMBDA;
-	A1B0 = hilo[6][6] * LAMBDA;
-	A0B1 = lohi[6][6] * LAMBDA;
-	A0B0 = lolo[6][6] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
-
-	A1B1 = hihi[7][5] * LAMBDA;
-	A1B0 = hilo[7][5] * LAMBDA;
-	A0B1 = lohi[7][5] * LAMBDA;
-	A0B0 = lolo[7][5] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
-
-	A1B1 = hihi[8][4] * LAMBDA;
-	A1B0 = hilo[8][4] * LAMBDA;
-	A0B1 = lohi[8][4] * LAMBDA;
-	A0B0 = lolo[8][4] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
-
-	A1B1 = hihi[0][3];
-	A1B0 = hilo[0][3];
-	A0B1 = lohi[0][3];
-	A0B0 = lolo[0][3];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
-
-	A1B1 = hihi[1][2];
-	A1B0 = hilo[1][2];
-	A0B1 = lohi[1][2];
-	A0B0 = lolo[1][2];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
-
-	A1B1 = hihi[2][1];
-	A1B0 = hilo[2][1];
-	A0B1 = lohi[2][1];
-	A0B0 = lolo[2][1];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
-
-	A1B1 = hihi[3][0];
-	A1B0 = hilo[3][0];
-	A0B1 = lohi[3][0];
-	A0B0 = lolo[3][0];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[3] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[3], tmplo, Rlo + 3);
-
-	A1B1 = hihi[5][8] * LAMBDA;
-	A1B0 = hilo[5][8] * LAMBDA;
-	A0B1 = lohi[5][8] * LAMBDA;
-	A0B0 = lolo[5][8] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
-
-	A1B1 = hihi[6][7] * LAMBDA;
-	A1B0 = hilo[6][7] * LAMBDA;
-	A0B1 = lohi[6][7] * LAMBDA;
-	A0B0 = lolo[6][7] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
-
-	A1B1 = hihi[7][6] * LAMBDA;
-	A1B0 = hilo[7][6] * LAMBDA;
-	A0B1 = lohi[7][6] * LAMBDA;
-	A0B0 = lolo[7][6] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
-
-	A1B1 = hihi[8][5] * LAMBDA;
-	A1B0 = hilo[8][5] * LAMBDA;
-	A0B1 = lohi[8][5] * LAMBDA;
-	A0B0 = lolo[8][5] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
-
-	A1B1 = hihi[0][4];
-	A1B0 = hilo[0][4];
-	A0B1 = lohi[0][4];
-	A0B0 = lolo[0][4];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
-
-	A1B1 = hihi[1][3];
-	A1B0 = hilo[1][3];
-	A0B1 = lohi[1][3];
-	A0B0 = lolo[1][3];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
-
-	A1B1 = hihi[2][2];
-	A1B0 = hilo[2][2];
-	A0B1 = lohi[2][2];
-	A0B0 = lolo[2][2];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
-
-	A1B1 = hihi[3][1];
-	A1B0 = hilo[3][1];
-	A0B1 = lohi[3][1];
-	A0B0 = lolo[3][1];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
-
-	A1B1 = hihi[4][0];
-	A1B0 = hilo[4][0];
-	A0B1 = lohi[4][0];
-	A0B0 = lolo[4][0];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[4] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[4], tmplo, Rlo + 4);
-
-	A1B1 = hihi[6][8] * LAMBDA;
-	A1B0 = hilo[6][8] * LAMBDA;
-	A0B1 = lohi[6][8] * LAMBDA;
-	A0B0 = lolo[6][8] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
-
-	A1B1 = hihi[7][7] * LAMBDA;
-	A1B0 = hilo[7][7] * LAMBDA;
-	A0B1 = lohi[7][7] * LAMBDA;
-	A0B0 = lolo[7][7] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
-
-	A1B1 = hihi[8][6] * LAMBDA;
-	A1B0 = hilo[8][6] * LAMBDA;
-	A0B1 = lohi[8][6] * LAMBDA;
-	A0B0 = lolo[8][6] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
-
-	A1B1 = hihi[0][5];
-	A1B0 = hilo[0][5];
-	A0B1 = lohi[0][5];
-	A0B0 = lolo[0][5];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
-
-	A1B1 = hihi[1][4];
-	A1B0 = hilo[1][4];
-	A0B1 = lohi[1][4];
-	A0B0 = lolo[1][4];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
-
-	A1B1 = hihi[2][3];
-	A1B0 = hilo[2][3];
-	A0B1 = lohi[2][3];
-	A0B0 = lolo[2][3];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
-
-	A1B1 = hihi[3][2];
-	A1B0 = hilo[3][2];
-	A0B1 = lohi[3][2];
-	A0B0 = lolo[3][2];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
-
-	A1B1 = hihi[4][1];
-	A1B0 = hilo[4][1];
-	A0B1 = lohi[4][1];
-	A0B0 = lolo[4][1];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
-
-	A1B1 = hihi[5][0];
-	A1B0 = hilo[5][0];
-	A0B1 = lohi[5][0];
-	A0B0 = lolo[5][0];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[5] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[5], tmplo, Rlo + 5);
-
-	A1B1 = hihi[7][8] * LAMBDA;
-	A1B0 = hilo[7][8] * LAMBDA;
-	A0B1 = lohi[7][8] * LAMBDA;
-	A0B0 = lolo[7][8] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
-
-	A1B1 = hihi[8][7] * LAMBDA;
-	A1B0 = hilo[8][7] * LAMBDA;
-	A0B1 = lohi[8][7] * LAMBDA;
-	A0B0 = lolo[8][7] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
-
-	A1B1 = hihi[0][6];
-	A1B0 = hilo[0][6];
-	A0B1 = lohi[0][6];
-	A0B0 = lolo[0][6];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
-
-	A1B1 = hihi[1][5];
-	A1B0 = hilo[1][5];
-	A0B1 = lohi[1][5];
-	A0B0 = lolo[1][5];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
-
-	A1B1 = hihi[2][4];
-	A1B0 = hilo[2][4];
-	A0B1 = lohi[2][4];
-	A0B0 = lolo[2][4];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
-
-	A1B1 = hihi[3][3];
-	A1B0 = hilo[3][3];
-	A0B1 = lohi[3][3];
-	A0B0 = lolo[3][3];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
-
-	A1B1 = hihi[4][2];
-	A1B0 = hilo[4][2];
-	A0B1 = lohi[4][2];
-	A0B0 = lolo[4][2];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
-
-	A1B1 = hihi[5][1];
-	A1B0 = hilo[5][1];
-	A0B1 = lohi[5][1];
-	A0B0 = lolo[5][1];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
-
-	A1B1 = hihi[6][0];
-	A1B0 = hilo[6][0];
-	A0B1 = lohi[6][0];
-	A0B0 = lolo[6][0];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[6] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[6], tmplo, Rlo + 6);
-
-	A1B1 = hihi[8][8] * LAMBDA;
-	A1B0 = hilo[8][8] * LAMBDA;
-	A0B1 = lohi[8][8] * LAMBDA;
-	A0B0 = lolo[8][8] * LAMBDA;
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
-
-	A1B1 = hihi[0][7];
-	A1B0 = hilo[0][7];
-	A0B1 = lohi[0][7];
-	A0B0 = lolo[0][7];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
-
-	A1B1 = hihi[1][6];
-	A1B0 = hilo[1][6];
-	A0B1 = lohi[1][6];
-	A0B0 = lolo[1][6];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
-
-	A1B1 = hihi[2][5];
-	A1B0 = hilo[2][5];
-	A0B1 = lohi[2][5];
-	A0B0 = lolo[2][5];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
-
-	A1B1 = hihi[3][4];
-	A1B0 = hilo[3][4];
-	A0B1 = lohi[3][4];
-	A0B0 = lolo[3][4];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
-
-	A1B1 = hihi[4][3];
-	A1B0 = hilo[4][3];
-	A0B1 = lohi[4][3];
-	A0B0 = lolo[4][3];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
-
-	A1B1 = hihi[5][2];
-	A1B0 = hilo[5][2];
-	A0B1 = lohi[5][2];
-	A0B0 = lolo[5][2];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
-
-	A1B1 = hihi[6][1];
-	A1B0 = hilo[6][1];
-	A0B1 = lohi[6][1];
-	A0B0 = lolo[6][1];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
-
-	A1B1 = hihi[7][0];
-	A1B0 = hilo[7][0];
-	A0B1 = lohi[7][0];
-	A0B0 = lolo[7][0];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[7] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[7], tmplo, Rlo + 7);
-
-	A1B1 = hihi[0][8];
-	A1B0 = hilo[0][8];
-	A0B1 = lohi[0][8];
-	A0B0 = lolo[0][8];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
-
-	A1B1 = hihi[1][7];
-	A1B0 = hilo[1][7];
-	A0B1 = lohi[1][7];
-	A0B0 = lolo[1][7];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
-
-	A1B1 = hihi[2][6];
-	A1B0 = hilo[2][6];
-	A0B1 = lohi[2][6];
-	A0B0 = lolo[2][6];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
-
-	A1B1 = hihi[3][5];
-	A1B0 = hilo[3][5];
-	A0B1 = lohi[3][5];
-	A0B0 = lolo[3][5];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
-
-	A1B1 = hihi[4][4];
-	A1B0 = hilo[4][4];
-	A0B1 = lohi[4][4];
-	A0B0 = lolo[4][4];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
-
-	A1B1 = hihi[5][3];
-	A1B0 = hilo[5][3];
-	A0B1 = lohi[5][3];
-	A0B0 = lolo[5][3];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
-
-	A1B1 = hihi[6][2];
-	A1B0 = hilo[6][2];
-	A0B1 = lohi[6][2];
-	A0B0 = lolo[6][2];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
-
-	A1B1 = hihi[7][1];
-	A1B0 = hilo[7][1];
-	A0B1 = lohi[7][1];
-	A0B0 = lolo[7][1];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
-
-	A1B1 = hihi[8][0];
-	A1B0 = hilo[8][0];
-	A0B1 = lohi[8][0];
-	A0B0 = lolo[8][0];
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	Rhi[8] += (__int128) aux2 + A1B1 +
-		__builtin_add_overflow(Rlo[8], tmplo, Rlo + 8);
+		add_overflow(Rlo + 8, tmplo);
 
 }
 
