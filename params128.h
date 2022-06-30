@@ -47,6 +47,8 @@ static const int64_t Mhi[] = {-287932041058164, -14457312270234, -13979751094725
 		{888428567686705, 1422833685094392, 938016002148773, 1033632283766632, 448348480485566, -169386010462110, -483839435557457, 101988233769700, 669031537371765}
 	};
 
+static const __int128 M1[] = { ((__int128) LOW(M1hi[0]) << 64) | M1lo[0], ((__int128) LOW(M1hi[1]) << 64) | M1lo[1], ((__int128) LOW(M1hi[2]) << 64) | M1lo[2], ((__int128) LOW(M1hi[3]) << 64) | M1lo[3], ((__int128) LOW(M1hi[4]) << 64) | M1lo[4], ((__int128) LOW(M1hi[5]) << 64) | M1lo[5], ((__int128) LOW(M1hi[6]) << 64) | M1lo[6], ((__int128) LOW(M1hi[7]) << 64) | M1lo[7], ((__int128) LOW(M1hi[8]) << 64) | M1lo[8] },
+	M1Lambda[] = { ((__int128) LOW(M1Lambdahi[0]) << 64) | M1Lambdalo[0], ((__int128) LOW(M1Lambdahi[1]) << 64) | M1Lambdalo[1], ((__int128) LOW(M1Lambdahi[2]) << 64) | M1Lambdalo[2], ((__int128) LOW(M1Lambdahi[3]) << 64) | M1Lambdalo[3], ((__int128) LOW(M1Lambdahi[4]) << 64) | M1Lambdalo[4], ((__int128) LOW(M1Lambdahi[5]) << 64) | M1Lambdalo[5], ((__int128) LOW(M1Lambdahi[6]) << 64) | M1Lambdalo[6], ((__int128) LOW(M1Lambdahi[7]) << 64) | M1Lambdalo[7], ((__int128) LOW(M1Lambdahi[8]) << 64) | M1Lambdalo[8] };
 static _poly __P__ = { .deg = 9,
 		.t = (int64_t[]) {0xffffffffffffff4d, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff} },
 	Gi[] = { { .deg = 16,

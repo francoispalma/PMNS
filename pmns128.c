@@ -229,6 +229,26 @@ static inline void mm1_multadd128(__int128* restrict Rhi,
 	*Rhi += (__int128) aux2 + A1B1 + add_overflow(Rlo, tmplo);
 }
 
+static inline void mm1_multadd128x(unsigned __int128* restrict Rhi,
+	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,
+	const int64_t Bhi, const uint64_t Blo)
+{
+	// multiplies A and B and adds the result to R for mult by M or M1 use;
+	unsigned __int128 A0B0, A1B0, A0B1, tmplo;
+	__int128 A1B1, aux2, aux3;
+	
+	A1B1 = (__int128) Ahi * Bhi;
+	A1B0 = (__int128) Ahi * Blo;
+	A0B1 = (__int128) Alo * Bhi;
+	A0B0 = (__int128) Alo * Blo;
+	
+	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
+	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
+	
+	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
+	*Rhi += (__int128) aux2 + A1B1 + add_overflow(Rlo, tmplo);
+}
+
 /*static inline void mm1_multadd128__(__int128* restrict Rhi,*/
 /*	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,*/
 /*	const int64_t Bhi, const uint64_t Blo)*/
@@ -258,20 +278,113 @@ static inline void mm1_multadd128(__int128* restrict Rhi,
 /*	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);*/
 /*}*/
 
-static inline void m1_multadd128(unsigned __int128* restrict Rlo,
+static inline void OLD_m1_multadd128(unsigned __int128* restrict Rlo,
 	const uint64_t Ahi, const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
 {
 	// multiplies A and B and adds the result to R for mult by M1 use;
 	*Rlo += (__int128) Alo * Blo + ((__int128) (LOW(Alo * Bhi) + LOW(Ahi * Blo)) << 64);
 }
 
-static inline void m1_multadd128x(unsigned __int128* restrict Rlo,
+static inline void m1_multadd128(unsigned __int128* restrict Rlo,
 	unsigned __int128 A, __int128 B)
 {
+	// multiplies A and B and adds the result to R for mult by M1 use;
 	*Rlo += (__int128) A * B;
 }
 
 inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
+	unsigned __int128* restrict Rlo, const restrict poly128 A,
+	const restrict poly128 B)
+{
+	// Function that multiplies A by B and applies external reduction using
+	// E(X) = X^n - lambda as a polynomial used for reduction.
+	register uint16_t i, j;
+	unsigned __int128 aux, aux1, aux2;
+	
+	for(i = 0; i < N; i++)
+	{
+		for(j = 1; j < N - i; j++)
+			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
+				B->hi[N - j], B->lo[N - j]);
+		
+		aux1 = (unsigned __int128) LOW(Rlo[i]) * (LAMBDA);
+		aux2 = (unsigned __int128) HI(Rlo[i]) * (LAMBDA) + HIGH(aux1);
+		Rlo[i] = ((__int128) aux2 << 64) | aux1;
+		Rhi[i] = (__int128) Rhi[i] * (LAMBDA) + HIGH(aux2);
+		
+		for(j = 0; j < i + 1; j++)
+			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
+				B->hi[i - j], B->lo[i - j]);
+		
+		// Small trick for later
+		Rhi[i] += Rlo[i] != 0;
+	}
+}
+
+static inline void m_mns128_mod_mult_ext_red(unsigned __int128* restrict Rhi, 
+	unsigned __int128* restrict Rlo, unsigned __int128* restrict A)
+{
+	// Same as above but with some pre calculations done in the case of M being
+	// the second operand.
+	
+	register uint16_t i, j;
+	
+	for(i = 0; i < N; i++)
+	{
+		//Rhi[i] = 0;
+		Rlo[i] = 0;
+		for(j = 1; j < N - i; j++)
+			mm1_multadd128x(Rhi + i, Rlo + i, HIGH(A[i + j]), LOW(A[i + j]),
+				MLambdahi[N - j], MLambdalo[N - j]);
+		
+		for(j = 0; j < i + 1; j++)
+			mm1_multadd128x(Rhi + i, Rlo + i, HIGH(A[j]), LOW(A[j]),
+				Mhi[i - j], Mlo[i - j]);
+	}
+}
+
+static inline void m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
+	unsigned __int128* restrict A)
+{
+	// Same as above but with some pre calculations done in the case of M1 being
+	// the second operand (in pmns128 we only care about the lower 128 bits for
+	// this operation).
+	
+	register uint16_t i, j;
+	
+	for(i = 0; i < N; i++)
+	{
+		Rlo[i] = 0;
+		for(j = 1; j < N - i; j++)
+			m1_multadd128(Rlo + i, A[i+j], M1Lambda[N - j]);
+				//((__int128) M1Lambdahi[N - j] << 64) | M1Lambdalo[N - j]);
+		
+		for(j = 0; j < i + 1; j++)
+			m1_multadd128(Rlo + i, A[j], M1[i - j]);
+				//((__int128) M1hi[i - j] << 64) | M1lo[i - j]);
+	}
+}
+
+static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
+	unsigned __int128* restrict Rlo)
+{
+	// Function that reduces the internal coefficient contained in R to be lower
+	// than the chosen Rho.
+	unsigned __int128 V[N];
+	register uint16_t i;
+	
+	m1_mns128_mod_mult_ext_red(V, Rlo);
+	
+	m_mns128_mod_mult_ext_red(Rhi, Rlo, V);
+	
+	for(i = 0; i < N; i++)
+	{
+		res->lo[i] = LOW(Rhi[i]);
+		res->hi[i] = HIGH(Rhi[i]);
+	}
+}
+
+static inline void OLD_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A,
 	const restrict poly128 B)
 {
@@ -297,7 +410,7 @@ inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	}
 }
 
-static inline void m_mns128_mod_mult_ext_red(__int128* restrict Rhi, 
+static inline void OLD_m_mns128_mod_mult_ext_red(__int128* restrict Rhi, 
 	unsigned __int128* restrict Rlo, const restrict poly128 A)
 {
 	// Same as above but with some pre calculations done in the case of M being
@@ -317,7 +430,7 @@ static inline void m_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	}
 }
 
-static inline void m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
+static inline void OLD_m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
 	const restrict poly128 A)
 {
 	// Same as above but with some pre calculations done in the case of M1 being
@@ -329,16 +442,16 @@ static inline void m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			m1_multadd128(Rlo + i, A->hi[i + j], A->lo[i + j],
+			OLD_m1_multadd128(Rlo + i, A->hi[i + j], A->lo[i + j],
 				M1Lambdahi[N - j], M1Lambdalo[N - j]);
 		
 		for(j = 0; j < i + 1; j++)
-			m1_multadd128x(Rlo + i, ((__int128) A->hi[j] << 64)| A->lo[j],
-				((__int128) M1hi[i - j] << 64) | M1lo[i - j]);
+			OLD_m1_multadd128(Rlo + i, A->hi[j], A->lo[j],
+				M1hi[i - j], M1lo[i - j]);
 	}
 }
 
-static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
+static inline void OLD_mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
 	unsigned __int128* restrict Rlo)
 {
 	// Function that reduces the internal coefficient contained in R to be lower
@@ -356,7 +469,7 @@ static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
 		Rlo[i] = 0;
 	}
 	
-	m1_mns128_mod_mult_ext_red(Rlo, res);
+	OLD_m1_mns128_mod_mult_ext_red(Rlo, res);
 	
 	for(i = 0; i < N; i++)
 	{
@@ -366,7 +479,7 @@ static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
 		Rhi[i] = 0;
 	}
 	
-	m_mns128_mod_mult_ext_red(Rhi, Rlo, res);
+	OLD_m_mns128_mod_mult_ext_red(Rhi, Rlo, res);
 	
 	for(i = 0; i < N; i++)
 	{

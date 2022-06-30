@@ -126,6 +126,15 @@ static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned _
 		print("\t\t{" + str([elem >> 64 for elem in Pi[i]])[1:-1] + "},")
 	print("\t\t{" + str([elem >> 64 for elem in Pi[-1]])[1:-1] + "}\n\t};\n")
 
+	print("static const __int128 M1[] = { ", end="")
+	for i in range(n - 1):
+		print(f"((__int128) LOW(M1hi[{i}]) << 64) | M1lo[{i}], ", end="")
+	print(f"((__int128) LOW(M1hi[{n - 1}]) << 64) | M1lo[{n - 1}] }},")
+	print("\tM1Lambda[] = { ", end="")
+	for i in range(n - 1):
+		print(f"((__int128) LOW(M1Lambdahi[{i}]) << 64) | M1Lambdalo[{i}], ", end="")
+	print(f"((__int128) LOW(M1Lambdahi[{n - 1}]) << 64) | M1Lambdalo[{n - 1}] }};")
+
 	# Powers of gamma next
 #	string = "G"
 #	print("static const _poly ", end="")

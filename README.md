@@ -16,6 +16,9 @@ To display various graphics and results in a visual format:
 For details as to the generated PMNS degrees and lambda values:
 > python3 deghisto.py
 
+To load a specific PMNS of size PSIZE and index INDEX:
+> make loadpmns [PSIZE=size] [INDEX=index]
+
 To display a benchmark of the current version with the currently loaded PMNS:
 > make bench
 

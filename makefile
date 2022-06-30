@@ -81,6 +81,10 @@ bench128: bench128.exe
 prebench128: bench128.exe
 	./bench128.exe pre
 
+loadpmns:
+	python3 precalcs128.py > params128.h $(PSIZE) $(INDEX)
+	python3 precalcs.py > params.h $(PSIZE) $(INDEX)
+
 progress: *.c *.py *.h makefile
 	git add .
 	git commit -m "progress"
