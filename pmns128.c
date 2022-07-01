@@ -229,7 +229,7 @@ static inline void mm1_multadd128(__int128* restrict Rhi,
 	*Rhi += (__int128) aux2 + A1B1 + add_overflow(Rlo, tmplo);
 }
 
-static inline void mm1_multadd128x(unsigned __int128* restrict Rhi,
+static inline void mm1_multadd128x(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,
 	const int64_t Bhi, const uint64_t Blo)
 {
@@ -299,7 +299,7 @@ inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	// Function that multiplies A by B and applies external reduction using
 	// E(X) = X^n - lambda as a polynomial used for reduction.
 	register uint16_t i, j;
-	unsigned __int128 aux, aux1, aux2;
+	unsigned __int128 aux1, aux2;
 	
 	for(i = 0; i < N; i++)
 	{
@@ -321,7 +321,7 @@ inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	}
 }
 
-static inline void m_mns128_mod_mult_ext_red(unsigned __int128* restrict Rhi, 
+static inline void m_mns128_mod_mult_ext_red(__int128* restrict Rhi, 
 	unsigned __int128* restrict Rlo, unsigned __int128* restrict A)
 {
 	// Same as above but with some pre calculations done in the case of M being
@@ -382,6 +382,22 @@ static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
 		res->lo[i] = LOW(Rhi[i]);
 		res->hi[i] = HIGH(Rhi[i]);
 	}
+}
+
+inline void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
+	const restrict poly128 B)
+{
+	// Function that multiplies A by B using the montgomery approach in an
+	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
+	// of the set of polynomials of that amns who have gamma as a root such that
+	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
+	
+	__int128 Rhi[N] = {0};
+	unsigned __int128 Rlo[N] = {0};
+	
+	mns128_mod_mult_ext_red(Rhi, Rlo, A, B);
+	
+	mns128_montg_int_red(res, Rhi, Rlo);
 }
 
 static inline void OLD_mns128_mod_mult_ext_red(__int128* restrict Rhi,
@@ -530,22 +546,6 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 	
 end:
 	free_poly(stok);
-}
-
-inline void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
-	const restrict poly128 B)
-{
-	// Function that multiplies A by B using the montgomery approach in an
-	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
-	// of the set of polynomials of that amns who have gamma as a root such that
-	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
-	
-	__int128 Rhi[N] = {0};
-	unsigned __int128 Rlo[N] = {0};
-	
-	mns128_mod_mult_ext_red(Rhi, Rlo, A, B);
-	
-	mns128_montg_int_red(res, Rhi, Rlo);
 }
 
 static inline void mns128_montg_int_red_pre(poly128 res, __int128* restrict Rhi,

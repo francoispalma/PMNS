@@ -128,12 +128,12 @@ static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned _
 
 	print("static const __int128 M1[] = { ", end="")
 	for i in range(n - 1):
-		print(f"((__int128) LOW(M1hi[{i}]) << 64) | M1lo[{i}], ", end="")
-	print(f"((__int128) LOW(M1hi[{n - 1}]) << 64) | M1lo[{n - 1}] }},")
+		print(f"((__int128) LOW({M1hi[i]}) << 64) | {M1lo[i]}u, ", end="")
+	print(f"((__int128) LOW({M1hi[n - 1]}) << 64) | {M1lo[n - 1]}u }},")
 	print("\tM1Lambda[] = { ", end="")
 	for i in range(n - 1):
-		print(f"((__int128) LOW(M1Lambdahi[{i}]) << 64) | M1Lambdalo[{i}], ", end="")
-	print(f"((__int128) LOW(M1Lambdahi[{n - 1}]) << 64) | M1Lambdalo[{n - 1}] }};")
+		print(f"((__int128) LOW({M1Lambdahi[i]}) << 64) | {M1Lambdalo[i]}u, ", end="")
+	print(f"((__int128) LOW({M1Lambdahi[n - 1]}) << 64) | {M1Lambdalo[n - 1]}u }};")
 
 	# Powers of gamma next
 #	string = "G"
