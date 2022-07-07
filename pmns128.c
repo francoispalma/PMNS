@@ -94,7 +94,7 @@ static inline __int128 signed_unsigned_mul128x(const uint64_t A, const int64_t B
 	return (__int128) ((__int128) q << 64) | r; 
 }
 
-static inline void multadd128(__int128* restrict Rhi,
+static inline void multadd128_old(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,
 	const int64_t Bhi, const uint64_t Blo)
 {
@@ -110,9 +110,40 @@ static inline void multadd128(__int128* restrict Rhi,
 	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
 	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
 	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
+	tmplo = (__int128) A0B0 + ((__int128)(LOW(A0B1) + LOW(A1B0)) << 64);
 	*Rhi += (__int128) aux2 + A1B1 + add_overflow(Rlo, tmplo);
 }
+
+static inline void multadd128(__int128* restrict Rhi,
+	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,
+	const int64_t Bhi, const uint64_t Blo)
+{
+	// multiplies A and B and adds the result to R.
+	unsigned __int128 A0B0, A1B0_A0B1, tmplo;
+	__int128 A1B1;
+	
+	A1B1 = (__int128) Ahi * Bhi;
+	A0B0 = (__int128) Alo * Blo;
+	A1B0_A0B1 = (__int128) ((__int128) ((__int128) Ahi * Blo) + ((__int128) Alo * Bhi)) + HIGH(A0B0);
+	
+	tmplo = (__int128) LOW(A0B0) | ((__int128)A1B0_A0B1 << 64);
+	*Rhi += (__int128) A1B1 + HIGH(A1B0_A0B1) + add_overflow(Rlo, tmplo);
+}
+
+/*static inline void multadd128_karatsuba(__int128* restrict Rhi,*/
+/*	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,*/
+/*	const int64_t Bhi, const uint64_t Blo)*/
+/*{*/
+/*	// multiplies A and B and adds the result to R using karatsuba.*/
+/*	unsigned __int128 A0B0, A1B0_A0B1;*/
+/*	__int128 A1B1;*/
+/*	*/
+/*	A1B1 = (__int128) Ahi * Bhi;*/
+/*	A0B0 = (__int128) Alo * Blo;*/
+/*	A1B0_A0B1 = (__int128) ((__int128) ((__int128) A1B1 + A0B0) - ((__int128) ((__int128) Alo - Ahi) * ((__int128) Blo - Bhi))) + HIGH(A0B0);*/
+/*	*/
+/*	*Rhi += (__int128) A1B1 + HIGH(A1B0_A0B1) + add_overflow(Rlo, (__int128) LOW(A0B0) + ((__int128)A1B0_A0B1 << 64));*/
+/*}*/
 
 /*static inline void multadd128a(__int128* restrict Rhi,*/
 /*	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,*/
@@ -145,28 +176,25 @@ static inline void multadd128(__int128* restrict Rhi,
 /*	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);*/
 /*}*/
 
-static inline void multadd128g(__int128* restrict Rhi,
-	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,
-	const int64_t Bhi, const uint64_t Blo)
-{
-	// multiplies A and B and adds the result to R, using gmp's mpn functions.
-	const uint64_t A[2] = { Alo, Ahi }, B[2] = { Blo, Bhi };
-	uint64_t C[4] = {0}, R[4] = { LOW(*Rlo), HIGH(*Rlo), LOW(Rhi), HIGH(*Rhi)};
-	//unsigned __int128 tmplo;
-	
-	
-	mpn_mul_n(C, A, B, 2);
-	
-	mpn_add_n(R, R, C, 4);
-	
-	*Rlo = (__int128) R[0] | ((__int128) R[1] << 64);
-	*Rhi = (__int128) R[2] | ((__int128) R[3] << 64);
-	
-	//tmplo = (__int128) C[0] | ((__int128) C[1] << 64);
-	//*Rhi += (__int128) (C[2] | ((__int128) C[3] << 64)) + __builtin_add_overflow(*Rlo, tmplo, Rlo);
-}
+/*static inline void multadd128g(__int128* restrict Rhi,*/
+/*	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,*/
+/*	const int64_t Bhi, const uint64_t Blo)*/
+/*{*/
+/*	// multiplies A and B and adds the result to R, using gmp's mpn functions.*/
+/*	const uint64_t A[2] = { Alo, Ahi }, B[2] = { Blo, Bhi };*/
+/*	uint64_t C[4] = {0}, R[4] = { LOW(*Rlo), HIGH(*Rlo), LOW(Rhi), HIGH(*Rhi)};*/
+/*	//unsigned __int128 tmplo;*/
+/*	*/
+/*	*/
+/*	mpn_mul_n(C, A, B, 2);*/
+/*	*/
+/*	mpn_add_n(R, R, C, 4);*/
+/*	*/
+/*	*Rlo = (__int128) R[0] | ((__int128) R[1] << 64);*/
+/*	*Rhi = (__int128) R[2] | ((__int128) R[3] << 64);*/
+/*}*/
 
-/*void multadd128k(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,*/
+/*void multadd128kara(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,*/
 /*	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)*/
 /*{*/
 /*	// multiplies A and B and adds the result to R using karatsuba;*/
@@ -185,7 +213,7 @@ static inline void multadd128g(__int128* restrict Rhi,
 /*	aux1 += (__int128) HIGH(A1B1);*/
 /*	*/
 /*	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);*/
-/*	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);*/
+/*	*Rhi += (__int128) aux2 + (aux1 << 64) + add_overflow(Rlo, tmplo);*/
 /*}*/
 
 /*void m_multadd128(__int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,*/
@@ -225,27 +253,7 @@ static inline void mm1_multadd128(__int128* restrict Rhi,
 	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
 	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
 	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
-	*Rhi += (__int128) aux2 + A1B1 + add_overflow(Rlo, tmplo);
-}
-
-static inline void mm1_multadd128x(__int128* restrict Rhi,
-	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,
-	const int64_t Bhi, const uint64_t Blo)
-{
-	// multiplies A and B and adds the result to R for mult by M or M1 use;
-	unsigned __int128 A0B0, A1B0, A0B1, tmplo;
-	__int128 A1B1, aux2, aux3;
-	
-	A1B1 = (__int128) Ahi * Bhi;
-	A1B0 = (__int128) Ahi * Blo;
-	A0B1 = (__int128) Alo * Bhi;
-	A0B0 = (__int128) Alo * Blo;
-	
-	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);
+	tmplo = (__int128) A0B0 + ((__int128)(LOW(A0B1) + LOW(A1B0)) << 64);
 	*Rhi += (__int128) aux2 + A1B1 + add_overflow(Rlo, tmplo);
 }
 
@@ -334,11 +342,11 @@ static inline void m_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 		//Rhi[i] = 0;
 		Rlo[i] = 0;
 		for(j = 1; j < N - i; j++)
-			mm1_multadd128x(Rhi + i, Rlo + i, HIGH(A[i + j]), LOW(A[i + j]),
+			mm1_multadd128(Rhi + i, Rlo + i, HIGH(A[i + j]), LOW(A[i + j]),
 				MLambdahi[N - j], MLambdalo[N - j]);
 		
 		for(j = 0; j < i + 1; j++)
-			mm1_multadd128x(Rhi + i, Rlo + i, HIGH(A[j]), LOW(A[j]),
+			mm1_multadd128(Rhi + i, Rlo + i, HIGH(A[j]), LOW(A[j]),
 				Mhi[i - j], Mlo[i - j]);
 	}
 }
@@ -666,8 +674,8 @@ void __main__(void)
 /*	const char RES[] = */
 /*	"0xf720e4b9bc91c7b14365a9592434dee8edbb60fd615d17fd17ab67202e5f1197";*/
 	
-	int64_t Ahi = 0xead7e6d770b694af, Bhi = 0xa3c338cf5fdb7ee7;
-	uint64_t  Alo = 0xcd3ad86ad0c870de, Blo = 0x83ed23c6860ab850;
+/*	int64_t Ahi = 0xead7e6d770b694af, Bhi = 0xa3c338cf5fdb7ee7;*/
+/*	uint64_t  Alo = 0xcd3ad86ad0c870de, Blo = 0x83ed23c6860ab850;*/
 	
 	const char RES[] =
 		"0x23fbe09528a6b4ada3fa9544c0b0b34f51d40d5578d6c57b14af738e2a3c5388";
@@ -681,7 +689,7 @@ void __main__(void)
 /*	__int128 R1 = (__int128) ((__int128) 0xffffffffffffffff << 64) + 0xffffffffffffffff;*/
 /*	unsigned __int128 R2 = (__int128) ((__int128) 0xffffffffffffffff << 64) + 0xffffffffffffffff;*/
 	
-	multadd128g(&R1, &R2, Ahi, Alo, Bhi, Blo);
+	//multadd128g(&R1, &R2, Ahi, Alo, Bhi, Blo);
 	
 	printf("%s\n", RES);
 	
