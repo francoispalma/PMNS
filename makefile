@@ -11,7 +11,7 @@ main.exe: main.c pmns.o structs.o utilitymp.o
 pmns.o: pmns.c pmns.h params.h
 	$(CC) -c $< $(FLAGS)
 
-params.h: precalcs.py pyparams.py
+params.h: precalcs.py
 	python3 $< > $@ $(PSIZE) $(INDEX)
 
 structs.o: structs.c structs.h
@@ -29,7 +29,7 @@ p128.exe: main128.c pmns128.o structs.o utilitymp.o
 pmns128.o: pmns128.c pmns128.h params128.h
 	$(CC) -c $< $(FLAGS) -lgmp
 
-params128.h: precalcs128.py pyparams128.py
+params128.h: precalcs128.py
 	python3 $< > $@ $(PSIZE) $(INDEX)
 
 bench.exe: intel-measurement.c pmns.o structs.o utilitymp.o
@@ -84,6 +84,8 @@ prebench128: bench128.exe
 loadpmns:
 	python3 precalcs128.py > params128.h $(PSIZE) $(INDEX)
 	python3 precalcs.py > params.h $(PSIZE) $(INDEX)
+	echo 'from commonpmns import pmnsdicts\nfrom commonpmns import primesdict\n\n(p, n, gamma, lam, rho, B) = pmnsdicts[$(PSIZE)128][primesdict[$(PSIZE)][$(INDEX)]]\nphi = 2**128' > pyparams128.py
+	echo 'from commonpmns import pmnsdicts\nfrom commonpmns import primesdict\n\n(p, n, gamma, lam, rho, B) = pmnsdicts[$(PSIZE)][primesdict[$(PSIZE)][$(INDEX)]]\nphi = 2**64' > pyparams.py
 
 progress: *.c *.py *.h makefile
 	git add .
