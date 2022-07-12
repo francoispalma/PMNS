@@ -155,8 +155,8 @@ static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned _
 #		g = g * gamma % p
 
 	# We now transcribe the value of P
-	print("static _poly __P__ = { .deg = " + str(n) + ",")
 	tmp = convert_to_int_tabs(p)
+	print("static _poly __P__ = { .deg = " + str(len(tmp)) + ",")
 	tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
 	print("\t\t.t = (int64_t[]) {" + tmp + "} },")
 #	print("\tGi[] = {" + string[:-3] + "};\n")

@@ -1,7 +1,10 @@
 from random import randrange
 from time import process_time
+from sage.all import matrix, ZZ, PolynomialRing, xgcd
+from sage.modules.free_module_integer import IntegerLattice
 
-from ops import montgomery_like_coefficient_reduction, horner_modulo, naive_convert_to_mns, amns_montg_mult
+from ops import montgomery_like_coefficient_reduction, horner_modulo, naive_convert_to_mns, amns_montg_mult, list_to_poly
+from pyparams128 import p, n, gamma, rho, lam, B, phi
 
 def norme_infinie(L):
 	return max([abs(elem) for elem in L])
@@ -36,6 +39,66 @@ def convert_to_rho_base(a, n, rho):
 		t[i] = a1 & (rho - 1)
 		a1 >>= RHO
 	return t
+
+if __name__ == "__main__":
+	RingPoly = PolynomialRing(ZZ, 'X')
+	E = RingPoly("X^" + str(n) + " - (" + str(lam) + ")")
+	rho = 2**rho
+	for lig in B:
+		# We check if something went wrong
+		for elem in lig:
+			if abs(elem) > rho:
+				print("Something wrong with LLL'd matrix")
+				exit()
+
+		# We set M as one line of the base matrix
+		M = RingPoly(list_to_poly(lig))
+		# We then get the d and u of the au + bv = d from extended euclid
+		val, M1, soak = xgcd(M, E)
+		# We make sure to get out of any sage specific field
+		val = ZZ(val)
+
+		if val & 1:  # if val is even it won't have a gcd of 1 with phi
+			M1 = (M1 * ZZ(pow(val, -1, phi)) % phi)
+			# We check that M1 is properly constructed, if it is we don't look further
+			if ((M * M1) % E) % phi == 1 and M(gamma) % p == 0:
+				break
+
+	# We convert out of the polynomial Ring
+	M = list(M)
+	M = M + (n - len(M)) * [0]
+	M1 = list(M1)
+	M1 = M1 + (n - len(M1)) * [0]
+
+	# We switch M1 from M^-1 to -M^-1
+	M1 = [(int(M1[i]) * -1) % phi for i in range(n)]
+
+	# We then reduce M1's coefficients
+	M1 = [int(M1[i]) - phi if M1[i] >= (phi >> 1) else M1[i] for i in range(n)]
+	
+	pmns = (p, n, gamma, rho, lam, phi, M, M1)
+	
+	phinmoinsun = pow(phi, n - 1, p)
+	
+	Pi = [montgomery_convert_to_mns((rho**i) * (phi**2), *pmns, phinmoinsun) for i in range(n)]
+	
+	
+	a = 0xeedad1f0fcbd8935abfccb2a2752c672db377b0575464c626bd4003dca25c7c80589ac8e48c02c2379c73d45d9558ba5e708e338ec0686a4ab1356e9ad34348859398e506895f6c321bc4f8d2e2f21783ff2e65030a968331c9829e17900a1af32f1b7a3131ab61c0ad9b9e98a23f932d2f8936bc32d06128b086e619a1e35c1
+	b = 0xa3442cfd10dcb1d9a20a8541a8551a37d23bbe02dff3faeaf4fd5253975bfad4c759b9101bf4ae5197a18385f0658f5e436644638cd923ef490a7251402fdc0ef87dd61af1f0dbc9b81ef7de744b062a0d5df758eb1c1c41fd4cf01255aba467f1f673c4e5b20540f9c77ae0e430a323225346fdcc804912a09c6728b5837935
+	
+	#A = rho_div_convert_to_mns(a, *pmns, Pi)
+	A = montgomery_convert_to_mns(a, *pmns, phinmoinsun)
+	
+	#B = rho_div_convert_to_mns(b, *pmns, Pi)
+	B = montgomery_convert_to_mns(b, *pmns, phinmoinsun)
+	
+	print(A)
+	print(hex(a))
+	print(hex(horner_modulo(A, gamma, p) * 1 % p))
+	print()
+	print(B)
+	print(hex(b))
+	print(hex(horner_modulo(B, gamma, p) * 1 % p))
 
 #if __name__ == "__main__":
 #	phisquared = [0, 0, 0, 512, 0]

@@ -556,6 +556,79 @@ end:
 	free_poly(stok);
 }
 
+void convert_amns128_to_poly(restrict poly* res, const restrict poly128 P)
+{
+	register uint16_t i;
+	poly aux, ag, tmp;
+	poly128 a;
+/*	__int128 Quitehi[N];*/
+/*	unsigned __int128 Quitelo[N];*/
+	
+	init_polys(2 * N, &ag, &tmp, NULL);
+	init_poly(2, &aux);
+	init_poly128(N, &a);
+	if((*res)->deg < 2 * N)
+	{
+		free_poly(*res);
+		init_poly(2 * N, res);
+	}
+	(*res)->deg = 2 * N;
+	for(i = 1; i < 2 * N; i++)
+		(*res)->t[i] = 0;
+	
+/*	for(i = 0; i < N; i++)*/
+/*	{*/
+/*		Quitehi[i] = (__int128) P->hi[i];*/
+/*		Quitelo[i] = (__int128) P->lo[i];*/
+/*	}*/
+	
+	// THIS DOESN'T WORK
+	// For an unknown reason, the result isn't times phi^-1 which disrupts things
+	// Instead we use a workaround by multiplying by "one".
+	// TODO: fix this problem
+	/*mns128_montg_int_red(a, Quitehi, Quitelo);*/
+	
+	
+	///////////////////////////// WORKAROUND ///////////////////////////////
+	
+	poly128 one;
+	init_poly128(N, &one);
+	for(i = 1; i < N; i++)
+	{
+		one->lo[i] = 0;
+		one->hi[i] = 0;
+	}
+	one->hi[0] = 0;
+	one->lo[0] = 1;
+	
+	amns128_montg_mult(a, P, one);
+	
+	p128_print(a);
+	
+	free_poly128(one);
+	
+	///////////////////////////// WORKAROUND ///////////////////////////////
+	
+	(*res)->t[0] = a->lo[0];
+	(*res)->t[1] = a->hi[0];
+	for(i = 1; i < N; i++)
+	{
+		aux->t[0] = a->lo[i];
+		aux->t[1] = a->hi[i];
+		mp_mult(&ag, aux, &Gi[i - 1]);
+		
+		mp_copy(&tmp, *res);
+		mp_add(res, tmp, ag);
+	}
+	
+	mp_copy(&tmp, *res);
+	mp_mod(res, tmp, &__P__);
+	
+	free_polys(aux, ag, tmp, NULL);
+	free_poly128(a);
+}
+
+
 static inline void mns128_montg_int_red_pre(poly128 res, __int128* restrict Rhi,
 	unsigned __int128* restrict Rlo)
 {
@@ -813,4 +886,38 @@ void __multbench__(void)
 	printf("%ld\n", sum);
 	
 	free_poly128s(a, b, c, soak1, soak2, NULL);
+}
+
+void __full_mult128_demo(void)
+{
+	const char a[] = "eedad1f0fcbd8935abfccb2a2752c672db377b0575464c626bd4003dca25c7c80589ac8e48c02c2379c73d45d9558ba5e708e338ec0686a4ab1356e9ad34348859398e506895f6c321bc4f8d2e2f21783ff2e65030a968331c9829e17900a1af32f1b7a3131ab61c0ad9b9e98a23f932d2f8936bc32d06128b086e619a1e35c1",
+		b[] = "a3442cfd10dcb1d9a20a8541a8551a37d23bbe02dff3faeaf4fd5253975bfad4c759b9101bf4ae5197a18385f0658f5e436644638cd923ef490a7251402fdc0ef87dd61af1f0dbc9b81ef7de744b062a0d5df758eb1c1c41fd4cf01255aba467f1f673c4e5b20540f9c77ae0e430a323225346fdcc804912a09c6728b5837935",
+		c[] = "f85d170fe1a19c62f1c527086d1166ad84330e32b2845c04c3241b5bd7ff0806da511a61e67ec3a8ab988f035ad03437ed79f85ea02d657f73994e62ca71b42ef0fbeb8cdc1ac744e96110dcb69af62a34b830814845938870e396e641ce6729ec6953e6639cc7ff0bd4fe4d34452caa974673fe52006821764b8e456d51779a";
+	
+	poly128 A, B, C;
+	poly aux;
+	
+	init_poly128s(N, &A, &B, &C, NULL);
+	init_poly(2 * N, &aux);
+	
+	
+	convert_string_to_amns128(A, a);
+	convert_string_to_amns128(B, b);
+	
+	printf("0x%s\n", a);
+	p128_print(A);
+	printf("\n0x%s\n", b);
+	p128_print(B);
+	
+/*	amns128_montg_mult(C, A, B);*/
+/*	*/
+/*	p128_print(C);*/
+/*	*/
+/*	convert_amns128_to_poly(&aux, C);*/
+/*	*/
+/*	mp_print(aux);*/
+/*	printf("%s\n", c);*/
+	
+	free_poly128s(A, B, C, NULL);
+	free_poly(aux);
 }
