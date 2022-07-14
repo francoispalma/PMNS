@@ -315,10 +315,10 @@ inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
 				B->hi[N - j], B->lo[N - j]);
 		
-		aux1 = (unsigned __int128) LOW(Rlo[i]) * (-LAMBDA);
-		aux2 = (unsigned __int128) HI(Rlo[i]) * (-LAMBDA) + HIGH(aux1);
+		aux1 = (unsigned __int128) LOW(Rlo[i]) * LAMBDA;
+		aux2 = (unsigned __int128) HI(Rlo[i]) * LAMBDA + HIGH(aux1);
 		Rlo[i] = ((__int128) aux2 << 64) | aux1;
-		Rhi[i] = (__int128) Rhi[i] * (-LAMBDA) + HIGH(aux2);
+		Rhi[i] = (__int128) Rhi[i] * LAMBDA + HIGH(aux2);
 		
 		for(j = 0; j < i + 1; j++)
 			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
