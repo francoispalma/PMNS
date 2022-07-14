@@ -1,12 +1,8 @@
 import sys
-from sage.all import matrix, ZZ, PolynomialRing, xgcd
-from sage.modules.free_module_integer import IntegerLattice
-from math import ceil
 
 from ops import list_to_poly, montgomery_like_coefficient_reduction, horner_modulo, amns_montg_mult
 from convert import montgomery_convert_to_mns, rho_div_convert_to_mns
-#from proof import p, n, gamma, lam, phi
-from pyparams128 import p, n, gamma, lam
+from pyparams128 import p, n, gamma, lam, M, M1
 from commonpmns import pmnsdicts, primesdict
 
 phi = 2**128
@@ -19,25 +15,8 @@ def convert_to_int_tabs(num):
 		string = string[:-16]
 	return L
 
-def do_precalcs(p, n, gamma, lam, rho=None, B=None):
+def do_precalcs(p, n, gamma, lam, rho, M, M1):
 	print("#ifndef PMNS_PARAMS128_H_INCLUDED\n#define PMNS_PARAMS128_H_INCLUDED\n")
-
-	if B is None:
-		# We calculate the base matrix
-		B = [[p if (i, j) == (0, 0) else -pow(gamma, i, p) if i != 0 and j == 0 else 1 if i == j else 0 for j in range(n)] for i in range(n)]
-
-		# We apply LLL to it
-		B = list(IntegerLattice(matrix(ZZ, B)).LLL())
-
-	# We define our external reduction polynomial
-	RingPoly = PolynomialRing(ZZ, 'X')
-	E = RingPoly("X^" + str(n) + " - (" + str(lam) + ")")
-
-	if rho is None:
-		# We find our w factor to get rho
-		w = 1 + (n - 1) * abs(lam)
-		__tmp = int(2 * w * max([max(Line) for Line in B]))
-		rho = ceil(__tmp.bit_length())
 
 	print("#define RHO", rho)
 	rho = 2**rho
@@ -55,39 +34,6 @@ static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned _
 """)
 	
 	print("// Various values you can get from precalc")
-
-	# We then try to find a valid M
-	for lig in B:
-		# We check if something went wrong
-		for elem in lig:
-			if abs(elem) > rho:
-				print("Something wrong with LLL'd matrix")
-				return
-
-		# We set M as one line of the base matrix
-		M = RingPoly(list_to_poly(lig))
-		# We then get the d and u of the au + bv = d from extended euclid
-		val, M1, soak = xgcd(M, E)
-		# We make sure to get out of any sage specific field
-		val = ZZ(val)
-
-		if val & 1:  # if val is even it won't have a gcd of 1 with phi
-			M1 = (M1 * ZZ(pow(val, -1, phi)) % phi)
-			# We check that M1 is properly constructed, if it is we don't look further
-			if ((M * M1) % E) % phi == 1 and M(gamma) % p == 0:
-				break
-
-	# We convert out of the polynomial Ring
-	M = list(M)
-	M = M + (n - len(M)) * [0]
-	M1 = list(M1)
-	M1 = M1 + (n - len(M1)) * [0]
-
-	# We switch M1 from M^-1 to -M^-1
-	M1 = [(int(M1[i]) * -1) % phi for i in range(n)]
-
-	# We then reduce M1's coefficients
-	M1 = [int(M1[i]) - phi if M1[i] >= (phi >> 1) else M1[i] for i in range(n)]
 
 	# We get M1Lambda
 	M1L = [(elem * lam) % phi for elem in M1]
@@ -372,7 +318,7 @@ if __name__ == "__main__":
 #	lam = 2
 #	phi = 2**128
 	if len(sys.argv) == 1:
-		do_precalcs(p, n, gamma, lam)
+		do_precalcs(p, n, gamma, lam, rho, M, M1)
 	else:
 		try:
 			psize = int(sys.argv[1])
