@@ -7,9 +7,9 @@ void __full_mult128_demo(void);
 int main(void)
 {
 	//__benchmult__();
-	//__multchecks__();
+	__multchecks__();
 	//__main__();
 	//__multbench__();
-	__full_mult128_demo();
+	//__full_mult128_demo();
 	return 0;
 }

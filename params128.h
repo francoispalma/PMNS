@@ -68,6 +68,10 @@ static _poly __P__ = { .deg = 16,
 	{ .deg = 16,
 		.t = (int64_t[]) {0x520d9668e6c7d838, 0x99e203ae57afe58a, 0x833b7a98f4092abe, 0xdd520fb5f95d8a8, 0x9d5b8744c96f44e4, 0x2b2a50c31906f394, 0xfd8fba3fc33ad773, 0x74c8c54431686be2, 0x47a26431fc5d2bf6, 0x6771b7c7fcab5f04, 0x9a4b982f97a974d, 0x3a7541a1f2e42c2b, 0x81934b8b35b13ae, 0x4f4b7164b8745d89, 0x55dd63d9622429a2, 0xa8bfde1d5fcdce7f} }};
 
+static _poly128 __theta__ = { .deg = 9,
+	.hi = (int64_t[]) { 0x22bc8cf3deabc, 0x3d584b2a7ce69, 0x25c6240b6bb5d, 0x32b1626c93796, 0x2b2e6f938fb1f, 0x208df7e520c83, -0x88b95912581d, 0x8c757e1892ca, 0xf0b5a9f58536 },
+	.lo = (uint64_t[]) { 0xa2efae20d2d7da17, 0x95fb782fc7d95916, 0x7930222db4f19830, 0x7d4899f8f18d95e6, 0x77595008d54e5e77, 0xa9c7c8d45754b358, 0x6bf60b155d46ebd3, 0x524c2321fb7718, 0xce654d1d19838cf1 } };
+
 static inline void m1_mns128_mod_mult_ext_red_pre(unsigned __int128* restrict Rlo,
 	const restrict poly128 A)
 {

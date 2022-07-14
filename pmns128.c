@@ -315,10 +315,10 @@ inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
 				B->hi[N - j], B->lo[N - j]);
 		
-		aux1 = (unsigned __int128) LOW(Rlo[i]) * (LAMBDA);
-		aux2 = (unsigned __int128) HI(Rlo[i]) * (LAMBDA) + HIGH(aux1);
+		aux1 = (unsigned __int128) LOW(Rlo[i]) * (-LAMBDA);
+		aux2 = (unsigned __int128) HI(Rlo[i]) * (-LAMBDA) + HIGH(aux1);
 		Rlo[i] = ((__int128) aux2 << 64) | aux1;
-		Rhi[i] = (__int128) Rhi[i] * (LAMBDA) + HIGH(aux2);
+		Rhi[i] = (__int128) Rhi[i] * (-LAMBDA) + HIGH(aux2);
 		
 		for(j = 0; j < i + 1; j++)
 			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
@@ -561,8 +561,8 @@ void convert_amns128_to_poly(restrict poly* res, const restrict poly128 P)
 	register uint16_t i;
 	poly aux, ag, tmp;
 	poly128 a;
-/*	__int128 Quitehi[N];*/
-/*	unsigned __int128 Quitelo[N];*/
+	__int128 Quitehi[N];
+	unsigned __int128 Quitelo[N];
 	
 	init_polys(2 * N, &ag, &tmp, NULL);
 	init_poly(2, &aux);
@@ -576,36 +576,36 @@ void convert_amns128_to_poly(restrict poly* res, const restrict poly128 P)
 	for(i = 1; i < 2 * N; i++)
 		(*res)->t[i] = 0;
 	
-/*	for(i = 0; i < N; i++)*/
-/*	{*/
-/*		Quitehi[i] = (__int128) P->hi[i];*/
-/*		Quitelo[i] = (__int128) P->lo[i];*/
-/*	}*/
+	for(i = 0; i < N; i++)
+	{
+		Quitehi[i] = (__int128) P->hi[i];
+		Quitelo[i] = (__int128) P->lo[i];
+	}
 	
 	// THIS DOESN'T WORK
 	// For an unknown reason, the result isn't times phi^-1 which disrupts things
 	// Instead we use a workaround by multiplying by "one".
 	// TODO: fix this problem
-	/*mns128_montg_int_red(a, Quitehi, Quitelo);*/
+	mns128_montg_int_red(a, Quitehi, Quitelo);
 	
 	
 	///////////////////////////// WORKAROUND ///////////////////////////////
 	
-	poly128 one;
-	init_poly128(N, &one);
-	for(i = 1; i < N; i++)
-	{
-		one->lo[i] = 0;
-		one->hi[i] = 0;
-	}
-	one->hi[0] = 0;
-	one->lo[0] = 1;
-	
-	amns128_montg_mult(a, P, one);
-	
-	p128_print(a);
-	
-	free_poly128(one);
+/*	poly128 one;*/
+/*	init_poly128(N, &one);*/
+/*	for(i = 1; i < N; i++)*/
+/*	{*/
+/*		one->lo[i] = 0;*/
+/*		one->hi[i] = 0;*/
+/*	}*/
+/*	one->hi[0] = 0;*/
+/*	one->lo[0] = 1;*/
+/*	*/
+/*	amns128_montg_mult(a, P, one);*/
+/*	*/
+/*	//p128_print(a);*/
+/*	*/
+/*	free_poly128(one);*/
 	
 	///////////////////////////// WORKAROUND ///////////////////////////////
 	
@@ -904,19 +904,23 @@ void __full_mult128_demo(void)
 	convert_string_to_amns128(A, a);
 	convert_string_to_amns128(B, b);
 	
-	printf("0x%s\n", a);
-	p128_print(A);
-	printf("\n0x%s\n", b);
-	p128_print(B);
+/*	printf("0x%s\n", a);*/
+/*	p128_print(A);*/
+/*	printf("\n0x%s\n", b);*/
+/*	p128_print(B);*/
+	
+	convert_string_to_amns128(C, "1");
+	p128_print(C);
+	p128_print(&__theta__);
 	
 /*	amns128_montg_mult(C, A, B);*/
-/*	*/
+	
 /*	p128_print(C);*/
-/*	*/
+	
 /*	convert_amns128_to_poly(&aux, C);*/
-/*	*/
+	
+/*	printf("\n%s\n", c);*/
 /*	mp_print(aux);*/
-/*	printf("%s\n", c);*/
 	
 	free_poly128s(A, B, C, NULL);
 	free_poly(aux);

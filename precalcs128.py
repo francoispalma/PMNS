@@ -175,6 +175,13 @@ static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned _
 		g = g * gamma % p
 	print("};")
 
+	theta = rho_div_convert_to_mns(1, p, n, gamma, rho, lam, phi, M, M1, Pi)
+	tmphi = str([hex(elem >> 64) for elem in theta])[1:-1].replace("'", "")
+	tmplo = str([hex(elem % 2**64) for elem in theta])[1:-1].replace("'", "")
+	print(f"\nstatic _poly128 __theta__ = {{ .deg = {n},")
+	print(f"\t.hi = (int64_t[]) {{ {tmphi} }},")
+	print(f"\t.lo = (uint64_t[]) {{ {tmplo} }} }};")
+
 	# From here on, precalc functions, first with the multiplication by M1
 	print("""
 static inline void m1_mns128_mod_mult_ext_red_pre(unsigned __int128* restrict Rlo,
