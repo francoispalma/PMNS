@@ -17,6 +17,11 @@ def convert_to_int_tabs(num):
 def do_precalcs(p, n, gamma, lam, rho, M, M1):
 	print("#ifndef PMNS_PARAMS_H_INCLUDED\n#define PMNS_PARAMS_H_INCLUDED\n")
 
+	print("#define RHO", rho)
+	rho = 2**rho
+
+	print("#define N", str(n) + "\n#define LAMBDA", str(lam) +"\n")
+
 	# We print
 	print("static const int64_t M[] = {" + str(M)[1:-1] + "},")
 	print("\tM1[] = {" + str(M1)[1:-1] + "},")
