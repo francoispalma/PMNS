@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "structs.h"
 
@@ -126,4 +127,10 @@ inline void p128_print(const restrict poly128 P)
 	for(int16_t i = 0; i < P->deg - 1; i++)
 		printf("0x%lx%016lx, ", P->hi[i], P->lo[i]);
 	printf("0x%lx%016lx]\n", P->hi[P->deg - 1], P->lo[P->deg - 1]);
+}
+
+inline void p128_copy(restrict poly128 copy, const restrict poly128 original)
+{
+	memcpy(copy->lo, original->lo, original->deg * sizeof(uint64_t));
+	memcpy(copy->hi, original->hi, original->deg * sizeof(uint64_t));
 }

@@ -81,31 +81,13 @@ static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned _
 		print(f"((__int128) LOW({M1Lambdahi[i]}) << 64) | {M1Lambdalo[i]}u, ", end="")
 	print(f"((__int128) LOW({M1Lambdahi[n - 1]}) << 64) | {M1Lambdalo[n - 1]}u }};")
 
-	# Powers of gamma next
-#	string = "G"
-#	print("static const _poly ", end="")
-#	g = gamma
-#	for i in range(1, n):
-#		string = string + str(i) + ", G"
-#		tmp = convert_to_int_tabs(int(g))
-#		if i != 1:
-#			print("\t", end="")
-#		print("G" + str(i) + " = { .deg = " + str(len(tmp)) + ",")
-#		print("\t\t.t = (int64_t[]) {", end="")
-#		tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
-#		print(tmp + "} }", end="")
-#		if i != n - 1:
-#			print(",")
-#		else:
-#			print(";")
-#		g = g * gamma % p
-
 	# We now transcribe the value of P
 	tmp = convert_to_int_tabs(p)
 	print("static _poly __P__ = { .deg = " + str(len(tmp)) + ",")
 	tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
 	print("\t\t.t = (int64_t[]) {" + tmp + "} },")
-#	print("\tGi[] = {" + string[:-3] + "};\n")
+
+	# Powers of gamma next
 	print("\tGi[] = { ", end="")
 	g = gamma
 	for i in range(1, n):

@@ -1,4 +1,4 @@
-FLAGS= -Wall -Wextra -g -O3 -funswitch-loops
+FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict
 CC = gcc
 PSIZE = 1024
 INDEX = 1

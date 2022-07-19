@@ -26,5 +26,6 @@ extern void free_poly128(restrict poly128 P);
 void free_poly128s(restrict poly128 P, ...);
 void p128_set_val(restrict poly128 P, __int128 val, ...);
 extern void p128_print(const restrict poly128 P);
+extern void p128_copy(restrict poly128 copy, const restrict poly128 original);
 
 #endif
