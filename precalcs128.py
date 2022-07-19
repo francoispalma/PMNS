@@ -222,14 +222,26 @@ static inline void m_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 
 #	print("}\n")
 
+	"""
+	unsigned __int128 A0B0, A1B0_A0B1, tmplo;
+	__int128 A1B1;
+
+	A1B1 = (__int128) Ahi * Bhi;
+	A0B0 = (__int128) Alo * Blo;
+	A1B0_A0B1 = (__int128) ((__int128) ((__int128) Ahi * Blo) + ((__int128) Alo * Bhi)) + HIGH(A0B0);
+	
+	tmplo = (__int128) LOW(A0B0) | ((__int128)A1B0_A0B1 << 64);
+	*Rhi += (__int128) A1B1 + HIGH(A1B0_A0B1) + add_overflow(Rlo, tmplo);
+	"""
+
 	# This one for the multiplication of A by B.
 	print("""
 static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A,
 	const restrict poly128 B)
 {
-	unsigned __int128 A0B0, tmplo;
-	__int128 A1B1, A1B0, A0B1, aux2, aux3;
+	unsigned __int128 A0B0, A1B0_A0B1, tmplo;
+	__int128 A1B1;
 """)
 
 	At = ["(__int128) A->lo[", "(__int128) A->hi["]
@@ -237,17 +249,28 @@ static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 
 	for i in range(n):
 		for j in range(1, n - i):
-			for k in range(3, -1, -1):
-				print(f"\tA{k//2}B{k&1} = {At[k//2]}{i + j}] * {Bt[k&1]}{n - j}] * LAMBDA;")
-			print(auxstring)
-			print(f"""\tRhi[{i}] += (__int128) aux2 + A1B1 +
+#			for k in range(3, -1, -1):
+#				print(f"\tA{k//2}B{k&1} = {At[k//2]}{i + j}] * {Bt[k&1]}{n - j}] * LAMBDA;")
+			print(f"\tA1B1 = {At[1]}{i + j}] * {Bt[1]}{n - j}] * LAMBDA;")
+			print(f"\tA0B0 = {At[0]}{i + j}] * {Bt[0]}{n - j}] * LAMBDA;")
+			print(f"\tA1B0_A0B1 = (__int128) ((__int128) ({At[1]}{i + j}] *")
+			print(f"\t\t{Bt[0]}{n - j}] * LAMBDA) + ({At[0]}{i + j}] *")
+			print(f"\t\t{Bt[1]}{n - j}] * LAMBDA)) + HIGH(A0B0);")
+			print(f"tmplo = (__int128) LOW(A0B0) | ((__int128)A1B0_A0B1 << 64);")
+			print(f"""\tRhi[{i}] += (__int128) A1B1 + HIGH(A1B0_A0B1) +
 		add_overflow(Rlo + {i}, tmplo);\n""")
 
 		for j in range(0, i + 1):
-			for k in range(3, -1, -1):
-				print(f"\tA{k//2}B{k&1} = {At[k//2]}{j}] * {Bt[k&1]}{i - j}];")
-			print(auxstring)
-			print(f"""\tRhi[{i}] += (__int128) aux2 + A1B1 +
+#			for k in range(3, -1, -1):
+#				print(f"\tA{k//2}B{k&1} = {At[k//2]}{j}] * {Bt[k&1]}{i - j}];")
+#			print(auxstring)
+			print(f"\tA1B1 = {At[1]}{j}] * {Bt[1]}{i - j}];")
+			print(f"\tA0B0 = {At[0]}{j}] * {Bt[0]}{i - j}];")
+			print(f"\tA1B0_A0B1 = (__int128) ((__int128) ({At[1]}{j}] *")
+			print(f"\t\t{Bt[0]}{i - j}]) + ({At[0]}{j}] *")
+			print(f"\t\t{Bt[1]}{i - j}])) + HIGH(A0B0);")
+			print(f"tmplo = (__int128) LOW(A0B0) | ((__int128)A1B0_A0B1 << 64);")
+			print(f"""\tRhi[{i}] += (__int128) A1B1 + HIGH(A1B0_A0B1) +
 		add_overflow(Rlo + {i}, tmplo);\n""")
 
 	print("}\n")
