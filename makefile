@@ -44,6 +44,9 @@ multbench.exe: multmeasurement.c pmns.o structs.o utilitymp.o
 multbench128.exe: multmeasurement128.c pmns128.o structs.o utilitymp.o
 	$(CC) -o $@ $^ $(FLAGS) -lgmp
 
+expbench128.exe: modexpmeasures128.c pmns128.o structs.o utilitymp.o
+	$(CC) -o $@ $^ $(FLAGS) -lgmp
+
 clean:
 	rm -rf *.o
 	rm -rf *.exe
