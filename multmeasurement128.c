@@ -35,7 +35,19 @@ unsigned long rdpmc_instructions(void) { return 1;}
 extern void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A,
 	const restrict poly128 B);
+extern void m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
+	unsigned __int128* restrict A);
 void randpoly128(poly128);
+
+void mns128_multab_andmultm1(unsigned __int128* restrict V,
+	__int128* restrict Rhi, unsigned __int128* restrict Rlo,
+	const restrict poly128 A, const restrict poly128 B)
+{
+	mns128_mod_mult_ext_red(Rhi, Rlo, A, B);
+	
+	m1_mns128_mod_mult_ext_red(V, Rlo);
+}
+
 
 // NTEST*NSAMPLES must be odd
 // it's easier to compute median value
@@ -149,11 +161,11 @@ int main(int argc, char** argv)
 	poly128 a, b, soak1, soak2;
 	init_poly128s(N, &a, &b, &soak1, &soak2, NULL);
 	__int128 Chi[N];
-	unsigned __int128 Clo[N];
+	unsigned __int128 Clo[N], V[N];
 	
 	void (*mult_func)(__int128* restrict, unsigned __int128* restrict, const restrict poly128, const restrict poly128);
 	if (argc > 1 && (strncmp(argv[1], "pre", 3) == 0))
-		mult_func = mns128_mod_mult_ext_red;
+		mult_func = mns128_mod_mult_ext_red_pre;
 	else
 		mult_func = mns128_mod_mult_ext_red;
 
@@ -167,6 +179,7 @@ int main(int argc, char** argv)
 		randpoly128(a);
 		randpoly128(b);
 		mult_func(Chi, Clo, a, b);
+		//mns128_multab_andmultm1(V, Chi, Clo, a, b);
   }
 
   for(int i=0;i<NSAMPLES;i++)
@@ -178,6 +191,7 @@ int main(int argc, char** argv)
 		for(int j=0;j<NTEST;j++)
 		{
 			mult_func(Chi, Clo, a, b);
+			//mns128_multab_andmultm1(V, Chi, Clo, a, b);
 		}
 		timermin1 = (unsigned long long int)0x1<<63;
 		timermax1 = 0;
@@ -187,6 +201,7 @@ int main(int argc, char** argv)
 			t1 = cpucyclesStart();
             // appel de la fonction a mesurer
 			mult_func(Chi, Clo, a, b);
+			//mns128_multab_andmultm1(V, Chi, Clo, a, b);
 			t2 = cpucyclesStop();
 			if (t2 < t1){
 				diff_t = 18446744073709551615ULL-t1;

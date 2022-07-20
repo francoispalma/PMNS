@@ -29,7 +29,29 @@ unsigned long rdpmc_instructions(void) { return 1;}
 
 extern void mns_mod_mult_ext_red(__int128* restrict R,
 	const restrict poly A, const restrict poly B);
+extern void m1_mns_mod_mult_ext_red(int64_t* restrict R,
+	const restrict poly A);
 void randpoly(poly);
+
+void mns_multab_andmultm1(int64_t* restrict V, __int128* restrict R,
+	const restrict poly A, const restrict poly B)
+{
+	poly tmp;
+	init_poly(N, &tmp);
+	
+	mns_mod_mult_ext_red(R, A, B);
+	
+	for(register int16_t i = 0; i < N; i++)
+	{
+		V[i] = R[i];
+		tmp->t[i] = R[i];
+		R[i] = 0;
+	}
+	
+	m1_mns_mod_mult_ext_red(V, tmp);
+	
+	free_poly(tmp);
+}
 
 // NTEST*NSAMPLES must be odd
 // it's easier to compute median value
@@ -143,10 +165,11 @@ int main(int argc, char** argv)
 	poly a, b, soak1, soak2;
 	init_polys(N, &a, &b, &soak1, &soak2, NULL);
 	__int128 c[N];
+	int64_t V[N];
 	
 	void (*mult_func)(__int128* restrict, const restrict poly, const restrict poly);
 	if (argc > 1 && (strncmp(argv[1], "pre", 3) == 0))
-		mult_func = mns_mod_mult_ext_red;
+		mult_func = mns_mod_mult_ext_red_pre;
 	else
 		mult_func = mns_mod_mult_ext_red;
 
@@ -160,6 +183,7 @@ int main(int argc, char** argv)
 		randpoly(a);
 		randpoly(b);
 		mult_func(c, a, b);
+		//mns_multab_andmultm1(V, c, a, b);
   }
 
   for(int i=0;i<NSAMPLES;i++)
@@ -171,6 +195,7 @@ int main(int argc, char** argv)
 		for(int j=0;j<NTEST;j++)
 		{
 			mult_func(c, a, b);
+			//mns_multab_andmultm1(V, c, a, b);
 		}
 		timermin1 = (unsigned long long int)0x1<<63;
 		timermax1 = 0;
@@ -180,6 +205,7 @@ int main(int argc, char** argv)
 			t1 = cpucyclesStart();
             // appel de la fonction a mesurer
 			mult_func(c, a, b);
+			//mns_multab_andmultm1(V, c, a, b);
 			t2 = cpucyclesStop();
 			if (t2 < t1){
 				diff_t = 18446744073709551615ULL-t1;

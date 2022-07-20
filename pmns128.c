@@ -349,7 +349,7 @@ static inline void m_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	}
 }
 
-static inline void m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
+inline void m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
 	unsigned __int128* restrict A)
 {
 	// Same as above but with some pre calculations done in the case of M1 being

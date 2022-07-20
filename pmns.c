@@ -73,7 +73,7 @@ static inline void m_mns_mod_mult_ext_red(__int128* restrict R,
 	}
 }
 
-static inline void m1_mns_mod_mult_ext_red(int64_t* restrict R,
+inline void m1_mns_mod_mult_ext_red(int64_t* restrict R,
 	const restrict poly A)
 {
 	// Same as above but with some pre calculations done in the case of M1 being
