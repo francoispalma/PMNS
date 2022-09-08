@@ -6,6 +6,7 @@ void __mod_tests(void);
 void __full_mult_demo(void);
 void __multbench__(void);
 void __multchecks__(void);
+void __sqandmultdemo(void);
 
 int main(void)
 {
@@ -14,8 +15,9 @@ int main(void)
 	//__mult_tests();
 	//__sub_tests();
 	//__mod_tests();
-	//__full_mult_demo();
+	__full_mult_demo();
 	//__multbench__();
-	__multchecks__();
+	//__multchecks__();
+	//__sqandmultdemo();
 	return 0;
 }

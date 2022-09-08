@@ -1072,6 +1072,6 @@ void __sqandmultdemo(void)
 	printf("\n%s\n", c);
 	mp_print(aux);
 	
-	free_poly(B);
+	free_polys(B, aux, NULL);
 	free_poly128s(A, C, NULL);
 }

@@ -8,13 +8,17 @@ The implementation itself is in C with utility functions in Python for generatio
 
 Currently a 64 bit and 128 bit versions are available. A 104 bit version using AVX512IFMA is possible in the future.
 
+## Requirements
+
+Installing sagemath is required to use the code generation.
+> sudo apt install sagemath-common
+then
+> sudo apt install sagemath
+
 ## Usage
 
-To display various graphics and results in a visual format:
-> python3 histo.py
-
-For details as to the generated PMNS degrees and lambda values:
-> python3 deghisto.py
+To generate all the code needed for operations with a specific prime p along with a demo code to calculate a^b % p and accompanying makefile:
+> python3 completegen {p}
 
 To load a specific PMNS of size PSIZE and index INDEX:
 > make loadpmns [PSIZE=size] [INDEX=index]
@@ -24,6 +28,12 @@ To display a benchmark of the current version with the currently loaded PMNS:
 
 Alternatively for the 128 bit version:
 > make bench128
+
+To display various graphics and results in a visual format:
+> python3 histo.py
+
+For details as to the generated PMNS degrees and lambda values:
+> python3 deghisto.py
 
 ### Additional utilities for coding purposes
 

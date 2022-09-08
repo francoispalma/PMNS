@@ -40,8 +40,8 @@ def do_precalcs(p, n, gamma, lam, rho, M, M1):
 	print("\t\t{" + str(Pi[-1])[1:-1] + "}\n\t};\n")
 
 	# We now transcribe the value of P	
-	print("static _poly __P__ = { .deg = " + str(n) + ",")
 	tmp = convert_to_int_tabs(p)
+	print("static _poly __P__ = { .deg = " + str(len(tmp)) + ",")
 	tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
 	print("\t\t.t = (int64_t[]) {" + tmp + "} },")
 
@@ -60,6 +60,11 @@ def do_precalcs(p, n, gamma, lam, rho, M, M1):
 			print(",")
 		g = g * gamma % p
 	print("};")
+
+	theta = rho_div_convert_to_mns(1, p, n, gamma, rho, lam, phi, M, M1, Pi)
+	tmp = str([hex(elem) for elem in theta])[1:-1].replace("'", "")
+	print(f"\nstatic _poly __theta__ = {{ .deg = {n},")
+	print(f"\t.t = (int64_t[]) {{ {tmp} }} }};")
 
 	# From here on, precalc functions, first with the multiplication by M1
 	print("""

@@ -257,6 +257,43 @@ void mp_sub(restrict poly* res, restrict const poly op1, restrict const poly op2
 	mp_reduce(*res);
 }
 
+void mp_usub(restrict poly* res, restrict const poly op1, restrict const poly op2)
+{
+	// Puts the result of op1 - |op2| in res.
+
+	const uint16_t MAXDEG = op1->deg < op2->deg ? op2->deg : op1->deg;
+	register uint16_t i, j;
+	const int8_t sign = op2->t[op2->deg - 1] >= 0 ? 1 : -1;
+	uint64_t stok;
+
+	// We check if the degree is high enough. If it isn't we fix the problem.
+	if((*res)->deg < MAXDEG)
+	{
+		free_poly(*res);
+		init_poly(MAXDEG, res);
+	}
+	(*res)->deg = MAXDEG;
+	
+	for(i = 0; i < op1->deg; i++)
+		(*res)->t[i] = op1->t[i];
+	
+	for(i = 0; i < op2->deg; i++)
+	{
+		stok = ((uint64_t) (*res)->t[i]);
+		(*res)->t[i] -= sign * op2->t[i];
+		
+		j = i;
+		while(stok < ((uint64_t) (*res)->t[j]) && j < MAXDEG - 1)
+		{
+			++j;
+			stok = ((uint64_t) (*res)->t[j]);
+			(*res)->t[j] = ((uint64_t) (*res)->t[j]) - 1;
+		}
+	}
+	
+	mp_reduce(*res);
+}
+
 void mp_mult(restrict poly* res, restrict const poly op1, restrict const poly op2)
 {
 	// Puts the result of op1 * op2 into res.
@@ -330,7 +367,16 @@ void mp_mod(restrict poly* res, restrict const poly op1, restrict const poly op2
 	while(mp_ucomp(op1, X) == -1)
 		mp_rightshift(X);
 	
-	mp_sub(res, op1, X);
+	if(op1->t[op1->deg - 1] > 0)
+		mp_sub(res, op1, X);
+	else
+	{
+		mp_leftshift(&X);
+		mp_print(X);
+		mp_print(op1);
+		mp_usub(res, X, op1);
+		mp_print(*res);
+	}
 	
 	while(mp_ucomp(*res, op2) == 1)
 	{

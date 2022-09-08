@@ -66,6 +66,11 @@ inline void print(const restrict poly P)
 	printf("%ld]\n", P->t[P->deg - 1]);
 }
 
+inline void poly_copy(restrict poly copy, const restrict poly original)
+{
+	memcpy(copy->t, original->t, original->deg * sizeof(int64_t));
+}
+
 inline void init_poly128(const uint16_t deg, restrict poly128* P)
 {
 	*P = malloc(sizeof(_poly128));

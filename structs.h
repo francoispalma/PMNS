@@ -21,6 +21,7 @@ void free_polys(restrict poly P, ...);
 extern void init_poly128(const uint16_t deg, restrict poly128* P);
 void set_val(restrict poly P, int64_t val, ...);
 extern void print(const restrict poly P);
+extern void poly_copy(restrict poly copy, const restrict poly original);
 void init_poly128s(const uint16_t deg, restrict poly128* P, ...);
 extern void free_poly128(restrict poly128 P);
 void free_poly128s(restrict poly128 P, ...);

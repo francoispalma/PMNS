@@ -50,6 +50,7 @@ expbench128.exe: modexpmeasures128.c pmns128.o structs.o utilitymp.o
 clean:
 	rm -rf *.o
 	rm -rf *.exe
+	rm -rf output/
 
 gedit: clean
 	gedit makefile &

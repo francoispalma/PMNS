@@ -131,6 +131,125 @@ inline void amns_montg_mult(restrict poly res, const restrict poly A,
 	mns_montg_int_red(res, R);
 }
 
+void amns_rtl_sqandmult(restrict poly res, const restrict poly base,
+	const restrict poly exponent)
+{
+	register uint16_t i;
+	register uint8_t j;
+	register uint64_t aux;
+	
+	poly tmp;
+	init_poly(N, &tmp);
+	
+	poly_copy(res, &__theta__);
+	
+	for(i = 0; i < exponent->deg - 1; i++)
+	{
+		aux = exponent->t[i];
+		for(j = 0; j < 64; j++)
+			{
+				if(aux & (1ULL << j))
+					amns_montg_mult(tmp, res, base);
+				else
+					amns_montg_mult(tmp, res, &__theta__);
+				amns_montg_mult(res, tmp, tmp);
+			}
+	}
+	aux = exponent->t[exponent->deg - 1];
+	while(aux)
+	{
+		if(aux & 1)
+			amns_montg_mult(tmp, res, base);
+		else
+			amns_montg_mult(tmp, res, &__theta__);
+		amns_montg_mult(res, tmp, tmp);
+		aux >>= 1;
+	}
+	
+	free_poly(tmp);
+}
+
+void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
+	const restrict poly exponent)
+{
+	register uint16_t i;
+	register uint8_t j;
+	register uint64_t aux;
+	
+	poly tmp;
+	init_poly(N, &tmp);
+	
+	poly_copy(res, &__theta__);
+	
+	aux = exponent->t[exponent->deg - 1];
+	for(j = __builtin_clz(aux) + 1; j < 64; j++)
+	{
+		amns_montg_mult(tmp, res, res);
+		if(aux & (1ULL << (63 - j)))
+			amns_montg_mult(res, tmp, base);
+		else
+			amns_montg_mult(res, tmp, &__theta__);
+	}
+	
+	for(i = 0; i < exponent->deg - 1; i++)
+	{
+		aux = exponent->t[exponent->deg - 2 - i];
+		for(j = 0; j < 64; j++)
+		{
+			amns_montg_mult(tmp, res, res);
+			if(aux & (1ULL << (63 - j)))
+				amns_montg_mult(res, tmp, base);
+			else
+				amns_montg_mult(res, tmp, &__theta__);
+		}
+	}
+	
+	free_poly(tmp);
+}
+
+void amns_sqandmult(restrict poly res, const restrict poly base,
+	const restrict poly exponent)
+{
+	amns_rtl_sqandmult(res, base, exponent);
+}
+
+void amns_montg_ladder(restrict poly res, const restrict poly base,
+	const restrict poly exponent)
+{
+	register uint16_t i;
+	register uint8_t j;
+	register uint64_t aux, b;
+	
+	poly tmp, R[2];
+	init_poly(N, &tmp);
+	R[0] = res;
+	R[1] = tmp;
+	
+	poly_copy(res, &__theta__);
+	poly_copy(tmp, base);
+	
+	aux = exponent->t[exponent->deg - 1];
+	for(j = __builtin_clz(aux) + 1; j < 64; j++)
+	{
+		b = (aux & (1ULL << (63 - j))) >> (63 - j);
+		amns_montg_mult(R[1 - b], R[1 - b], R[b]);
+		amns_montg_mult(R[b], R[b], R[b]);
+	}
+	
+	for(i = 0; i < exponent->deg - 1; i++)
+	{
+		aux = exponent->t[exponent->deg - 2 - i];
+		for(j = 0; j < 64; j++)
+		{
+			b = (aux & (1ULL << (63 - j))) >> (63 - j);
+			amns_montg_mult(R[1 - b], R[1 - b], R[b]);
+			amns_montg_mult(R[b], R[b], R[b]);
+		}
+	}
+	
+	free_poly(tmp);
+}
+
 static inline void mns_montg_int_red_pre(restrict poly res, __int128* restrict R)
 {
 	uint64_t V[N], V2[N];
@@ -253,7 +372,6 @@ void convert_amns_to_poly(restrict poly* res, const restrict poly P)
 	
 	mns_montg_int_red(a, Quite);
 	
-	
 	(*res)->t[0] = a->t[0];
 	for(i = 1; i < N; i++)
 	{
@@ -266,6 +384,16 @@ void convert_amns_to_poly(restrict poly* res, const restrict poly P)
 	
 	mp_copy(&tmp, *res);
 	mp_mod(res, tmp, &__P__);
+	
+	printf("tmp = 0x");
+	mp_print(tmp);
+	printf("\n");
+	printf("p = 0x");
+	mp_print(&__P__);
+	printf("\n");
+	printf("res = 0x");
+	mp_print(*res);
+	printf("\n");
 	
 	free_polys(a, aux, ag, tmp, NULL);
 }
@@ -416,8 +544,7 @@ void __full_mult_demo(void)
 {
 	const char a[] = "77f882926258fb5a293015e16fc961598939f9f328d4e316d02519d3f8d88412d787",
 		b[] = "b4399ccbab87f4f053d75a9dcc1c1fa8d2f4edd7bdf5eebc78fb4ea16a6fb02eb96d",
-/*		c[] = "199da60a1e7f5c5523c51230e885506efe15b08b191b981590b47c0567b3bb516da3";*/
-		c[] = "129cc51d3f86bb90b6cdf86018bf9bbb6353602a99c70e7e90305551f8e9d88c288277746a878ec690bad018212c4e7eaa2577215916addc79b7842c303898d5cf6";
+		c[] = "5475bb9ee1c1ea9bb15ef6fc9118d391a012ab14a4ae063bc8832426a1e5c0f555a8fb1e335846abcf0e969b6c942fe0bf34126cfb7f1477a28dc2147f1a74ba6408537b";
 	
 	poly A, B, C, aux;
 	
@@ -428,6 +555,18 @@ void __full_mult_demo(void)
 	amns_montg_mult(C, A, B);
 	
 	convert_amns_to_poly(&aux, C);
+	
+	poly tmp;
+	init_poly(1, &tmp);
+	
+	_poly tmp1 = { .deg = 1, .t = (int64_t[]) { -10 } },
+		tmp2 = { .deg = 1, .t = (int64_t[]) { 7 } };
+	
+	mp_mod(&tmp, &tmp1, &tmp2);
+	
+	mp_print(tmp);
+	
+	printf("\n\n");
 	
 	mp_print(aux);
 	printf("%s\n", c);
@@ -494,4 +633,31 @@ void __multchecks__(void)
 	}
 	
 	free_polys(a, b, c, NULL);
+}
+
+void __sqandmultdemo(void)
+{
+	const char a[] = "7609d69beaadb6de37a7b36cd193b33b120489bd4298534e830eeeaf9a65b15c12268aea1447f610377ea045afc463fb193a531e46cf70052ee6143d782b27aee363d426ad73085f7c24376b676070214cbf1b69f93fd5fdd70b8c77dd2268cbf3f210366b932c7351d9332608fb294ebb44bc7b17bfa3e115dd06c642670d67",
+		b[] = "78a5cc1a942f42e81aa0dc980d3b6a7f987bf9847fb30f8d17c327283745d1365e6bd495a6b4bc2f6a16dca99668ee8591b5b04d12e15d5c4f5f22aafca94fcc3973e7e7714c84b0fb514f862d3444fd36f82f54ccb6c2f2ac3510d3aaea94953533e511076ba29103afb13ba6387001f1055b400b5abfc5b7cd0cdb4b2ebf2a",
+		c[] = "606ddc8f63ff63abfacb0ced7fcef39d42f0831e9e84459bbffbc1a04b866aaf572571e876a087dc633ab189b40eb861be2f7e194ac5f24ad7886eeb070028bc91a3970ea828cdd5da8eea173d0a38da1bc072837e5835ff2bd266ebcc4788870c7dca82e5b87cd1a844a5120339d2ef1620f1484888538824c5474fe77014e6";
+	
+	poly A, B, C, aux;
+	init_polys(N, &A, &B, &C, &aux, NULL);
+	
+	convert_string_to_poly(&B, b);
+	convert_string_to_amns(A, a);
+	
+	amns_sqandmult(C, A, B);
+	//amns_montg_ladder(C, A, B);
+	
+	//p128_print(C);
+	
+	
+	convert_amns_to_poly(&aux, C);
+	
+	
+	printf("\n%s\n", c);
+	mp_print(aux);
+	
+	free_polys(A, B, C, aux, NULL);
 }
