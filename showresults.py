@@ -1,8 +1,9 @@
 from statistics import mean
 
 if __name__ == "__main__":
+	bitsizes = ["1024", "2048", "4096", "8192"]
 	meandict = {}
-	for bitsize in ["1024", "2048", "4096", "8192"]:
+	for bitsize in bitsizes:
 		for phisize in ["", "128"]:
 			for appendix in ["", "pre", "hyb"]:
 				if appendix == "hyb" and phisize == "":
@@ -19,7 +20,7 @@ if __name__ == "__main__":
 					pass
 			else:
 				print(f"pmns{'64' if phisize == '' else phisize}{' déroulée' if appendix == 'pre' else ' hybride' if appendix == 'hyb' else ''}", end=" ")
-				for bitsize in ["1024", "2048", "4096", "8192"]:
+				for bitsize in bitsizes:
 					suffix = bitsize + phisize + appendix
 					print(f"& {meandict[suffix]}", end=" ")
 				print("\\\\\n\\hline")
