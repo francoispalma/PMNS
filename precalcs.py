@@ -33,13 +33,18 @@ def do_precalcs(p, n, gamma, lam, rho, M, M1):
 
 	# We then get the Pi and print it
 	phinmoinsun = pow(phi, n - 1, p)
-	Pi = [montgomery_convert_to_mns((rho**i) * (phi**2), p, n, gamma, rho, lam, phi, M, M1, phinmoinsun) for i in range(n)]
+	Pi = [0] * n
+	stk = phi**2
+	for i in range(n):
+#		Pi[i] = [montgomery_convert_to_mns(stk, p, n, gamma, rho, lam, phi, M, M1, phinmoinsun)]
+#		stk *= rho
+		Pi[i] = [0] * n
 	print("\t__Pi__[N][N] = {")
 	for i in range(len(Pi) - 1):
 		print("\t\t{" + str(Pi[i])[1:-1] + "},")
 	print("\t\t{" + str(Pi[-1])[1:-1] + "}\n\t};\n")
 
-	# We now transcribe the value of P	
+	# We now transcribe the value of P
 	print("static _poly __P__ = { .deg = " + str(n) + ",")
 	tmp = convert_to_int_tabs(p)
 	tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
@@ -90,20 +95,33 @@ static inline void m_mns_mod_mult_ext_red_pre(__int128* restrict R,
 {
 """)
 
+#	print("}/*")
+
+#	for i in range(n):
+#		print(f"R[{i}] = (__int128)", end="")
+#		for j in range(1, n - i):
+#			print(f" ((__int128) ((uint64_t) A->t[{i + j}]) * {ML[n - j]})", end="")
+#			print(" +", end= "")
+
+#		for j in range(0, i + 1):
+#			print(f" ((__int128) ((uint64_t) A->t[{j}]) * {M[i - j]})", end="")
+#			if j != i:
+#				print(" +", end= "")
+
+#		print(";")
+
 	for i in range(n):
-		print(f"R[{i}] = (__int128)", end="")
 		for j in range(1, n - i):
-			print(f" ((__int128) ((uint64_t) A->t[{i + j}]) * {ML[n - j]})", end="")
-			print(" +", end= "")
+			print(f"R[{i}] " + ("+" * (j != 1)) + "= ", end="")
+			print(f"(__int128) ( A->t[{i + j}]) * {ML[n - j]};")
 
 		for j in range(0, i + 1):
-			print(f" ((__int128) ((uint64_t) A->t[{j}]) * {M[i - j]})", end="")
-			if j != i:
-				print(" +", end= "")
-
-		print(";")
+			print(f"R[{i}] " + ("+" * (not ((i == n - 1) and (j == 0)))) + "= ", end="")
+			print(f"(__int128) ( A->t[{j}]) * {M[i - j]};")
 
 	print("}\n")
+
+#	print("*/")
 
 	# This one for the multiplication of A by B.
 	print("""

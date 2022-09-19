@@ -66,10 +66,10 @@ static inline void m_mns_mod_mult_ext_red(__int128* restrict R,
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			R[i] += (__int128) ((uint64_t)A->t[i + j]) * MLambda[N - j];
+			R[i] += (__int128) (A->t[i + j]) * MLambda[N - j];
 		
 		for(j = 0; j < i + 1; j++)
-			R[i] += (__int128) ((uint64_t)A->t[j]) * M[i - j];
+			R[i] += (__int128) (A->t[j]) * M[i - j];
 	}
 }
 
