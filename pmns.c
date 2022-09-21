@@ -4,6 +4,7 @@
 #include "pmns.h"
 #include "utilitymp.h"
 
+#define AMNS_MONTG_MULT amns_montg_mult_pre
 
 __inline uint64_t mulx64(uint64_t x, uint64_t y, uint64_t* hi)
 {
@@ -149,20 +150,20 @@ void amns_rtl_sqandmult(restrict poly res, const restrict poly base,
 		for(j = 0; j < 64; j++)
 			{
 				if(aux & (1ULL << j))
-					amns_montg_mult(tmp, res, base);
+					AMNS_MONTG_MULT(tmp, res, base);
 				else
-					amns_montg_mult(tmp, res, &__theta__);
-				amns_montg_mult(res, tmp, tmp);
+					AMNS_MONTG_MULT(tmp, res, &__theta__);
+				AMNS_MONTG_MULT(res, tmp, tmp);
 			}
 	}
 	aux = exponent->t[exponent->deg - 1];
 	while(aux)
 	{
 		if(aux & 1)
-			amns_montg_mult(tmp, res, base);
+			AMNS_MONTG_MULT(tmp, res, base);
 		else
-			amns_montg_mult(tmp, res, &__theta__);
-		amns_montg_mult(res, tmp, tmp);
+			AMNS_MONTG_MULT(tmp, res, &__theta__);
+		AMNS_MONTG_MULT(res, tmp, tmp);
 		aux >>= 1;
 	}
 	
@@ -184,11 +185,11 @@ void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
 	aux = exponent->t[exponent->deg - 1];
 	for(j = __builtin_clz(aux) + 1; j < 64; j++)
 	{
-		amns_montg_mult(tmp, res, res);
+		AMNS_MONTG_MULT(tmp, res, res);
 		if(aux & (1ULL << (63 - j)))
-			amns_montg_mult(res, tmp, base);
+			AMNS_MONTG_MULT(res, tmp, base);
 		else
-			amns_montg_mult(res, tmp, &__theta__);
+			AMNS_MONTG_MULT(res, tmp, &__theta__);
 	}
 	
 	for(i = 0; i < exponent->deg - 1; i++)
@@ -196,11 +197,11 @@ void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
 		aux = exponent->t[exponent->deg - 2 - i];
 		for(j = 0; j < 64; j++)
 		{
-			amns_montg_mult(tmp, res, res);
+			AMNS_MONTG_MULT(tmp, res, res);
 			if(aux & (1ULL << (63 - j)))
-				amns_montg_mult(res, tmp, base);
+				AMNS_MONTG_MULT(res, tmp, base);
 			else
-				amns_montg_mult(res, tmp, &__theta__);
+				AMNS_MONTG_MULT(res, tmp, &__theta__);
 		}
 	}
 	
@@ -232,8 +233,8 @@ void amns_montg_ladder(restrict poly res, const restrict poly base,
 	for(j = __builtin_clz(aux) + 1; j < 64; j++)
 	{
 		b = (aux & (1ULL << (63 - j))) >> (63 - j);
-		amns_montg_mult(R[1 - b], R[1 - b], R[b]);
-		amns_montg_mult(R[b], R[b], R[b]);
+		AMNS_MONTG_MULT(R[1 - b], R[1 - b], R[b]);
+		AMNS_MONTG_MULT(R[b], R[b], R[b]);
 	}
 	
 	for(i = 0; i < exponent->deg - 1; i++)
@@ -242,8 +243,8 @@ void amns_montg_ladder(restrict poly res, const restrict poly base,
 		for(j = 0; j < 64; j++)
 		{
 			b = (aux & (1ULL << (63 - j))) >> (63 - j);
-			amns_montg_mult(R[1 - b], R[1 - b], R[b]);
-			amns_montg_mult(R[b], R[b], R[b]);
+			AMNS_MONTG_MULT(R[1 - b], R[1 - b], R[b]);
+			AMNS_MONTG_MULT(R[b], R[b], R[b]);
 		}
 	}
 	
@@ -565,6 +566,7 @@ void __full_mult_demo(void)
 	mp_mod(&tmp, &tmp1, &tmp2);
 	
 	mp_print(tmp);
+	free_poly(tmp);
 	
 	printf("\n\n");
 	
@@ -647,8 +649,8 @@ void __sqandmultdemo(void)
 	convert_string_to_poly(&B, b);
 	convert_string_to_amns(A, a);
 	
-	amns_sqandmult(C, A, B);
-	//amns_montg_ladder(C, A, B);
+	//amns_sqandmult(C, A, B);
+	amns_montg_ladder(C, A, B);
 	
 	//p128_print(C);
 	
@@ -656,7 +658,7 @@ void __sqandmultdemo(void)
 	convert_amns_to_poly(&aux, C);
 	
 	
-	printf("\n%s\n", c);
+	printf("\n%s\n\n", c);
 	mp_print(aux);
 	
 	free_polys(A, B, C, aux, NULL);

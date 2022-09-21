@@ -4,8 +4,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define LOW(X) ((uint64_t)X)
+#define LO(X) ((int64_t)X)
+#define HIGH(X) ((int64_t)(X>>64))
+#define HI(X) ((uint64_t)(X>>64))
+
 #include "structs.h"
 #include "params128.h"
+
+
+void convert_string_to_amns128(restrict poly128 res, const char* string);
+void convert_amns128_to_poly(restrict poly* res, const restrict poly128 P);
 
 extern void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A,
@@ -18,5 +27,7 @@ extern void amns128_montg_mult_pre(restrict poly128 res, const restrict poly128 
 	const restrict poly128 B);
 extern void amns128_montg_mult_hyb(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
+void amns128_montg_ladder(restrict poly128 res, const restrict poly128 base,
+	const restrict poly exponent);
 
 #endif

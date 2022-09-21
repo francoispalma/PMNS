@@ -15,9 +15,9 @@ int main(void)
 	//__mult_tests();
 	//__sub_tests();
 	//__mod_tests();
-	__full_mult_demo();
+	//__full_mult_demo();
 	//__multbench__();
-	//__multchecks__();
+	__multchecks__();
 	//__sqandmultdemo();
 	return 0;
 }

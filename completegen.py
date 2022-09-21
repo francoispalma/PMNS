@@ -53,7 +53,7 @@ if __name__ == "__main__":
 		os.system("cp structs.[ch] output/")
 		with open("output/makefile", "w+") as f:
 			with redirect_stdout(f):
-				print(f"""FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict -lgmp
+				print(f"""FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict -Wno-unused-variable -lgmp
 CC = gcc
 
 all: main.exe
@@ -80,12 +80,31 @@ demo: main.exe
 """)
 		with open("output/main.c", "w+") as f:
 			with redirect_stdout(f):
-				print("""#include <stdio.h>
+				print(f"""#include <stdio.h>
+#include \"pmns{sphi}.h\"
+#include \"utilitymp.h\"
 
 int main(int argc, char** argv)
-{
+{{
 	if(argc > 2)
-		printf("%s %s\\n", argv[1], argv[2]);
+	{{
+		poly{sphi} A, C;
+		poly B, aux;
+		init_polys(1, &B, &aux, NULL);
+		init_poly{sphi}s(N, &A, &C, NULL);
+		
+		convert_string_to_poly(&B, argv[2]);
+		convert_string_to_amns{sphi}(A, argv[1]);
+		
+		amns{sphi}_montg_ladder(C, A, B);
+		
+		convert_amns{sphi}_to_poly(&aux, C);
+		
+		mp_print(aux);
+		
+		free_polys(B, aux, NULL);
+		free_poly{sphi}s(A, C, NULL);""")
+				print("""\t}
 	else
 		printf("To output a^b %% p please call this executable with the numbers a and b as parameters\\n");
 	return 0;

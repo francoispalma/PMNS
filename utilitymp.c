@@ -372,10 +372,10 @@ void mp_mod(restrict poly* res, restrict const poly op1, restrict const poly op2
 	else
 	{
 		mp_leftshift(&X);
-		mp_print(X);
-		mp_print(op1);
+		//mp_print(X);
+		//mp_print(op1);
 		mp_usub(res, X, op1);
-		mp_print(*res);
+		//mp_print(*res);
 	}
 	
 	while(mp_ucomp(*res, op2) == 1)
