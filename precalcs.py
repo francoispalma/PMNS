@@ -23,23 +23,30 @@ def do_precalcs(p, n, gamma, lam, rho, M, M1):
 	print("#define N", str(n) + "\n#define LAMBDA", str(lam) +"\n")
 
 	# We print
-	print("static const int64_t M[] = {" + str(M)[1:-1] + "},")
-	print("\tM1[] = {" + str(M1)[1:-1] + "},")
+	M = M + [0] * (n - len(M))
+	print("static const int64_t M[N] = {" + str(M)[1:-1] + "},")
+	print("\tM1[N] = {" + str(M1)[1:-1] + "},")
 	ML = [elem * lam for elem in M]
-	print("\tMLambda[] = {" + str(ML)[1:-1] + "},")
+	print("\tMLambda[N] = {" + str(ML)[1:-1] + "},")
 	M1L = [(elem * lam) % phi for elem in M1]
 	M1L = [M1L[i] - phi if M1L[i] >= (phi >> 1) else M1L[i] for i in range(n)]
-	print("\tM1Lambda[] = {" + str(M1L)[1:-1] + "},")
+	print("\tM1Lambda[N] = {" + str(M1L)[1:-1] + "},")
 
 	# We then get the Pi and print it
 	phinmoinsun = pow(phi, n - 1, p)
-	Pi = [montgomery_convert_to_mns((rho**i) * (phi**2), p, n, gamma, rho, lam, phi, M, M1, phinmoinsun) for i in range(n)]
+	Pi = [0] * n
+	Prho = montgomery_convert_to_mns(rho * phi, p, n, gamma, rho, lam, phi, M, M1, phinmoinsun)
+	Pstk = montgomery_convert_to_mns(phi**2, p, n, gamma, rho, lam, phi, M, M1, phinmoinsun)
+	for i in range(n):
+		Pi[i] = Pstk
+		Pstk = amns_montg_mult(Pstk, Prho, p, n, gamma, rho, lam, phi, M, M1)
 	print("\t__Pi__[N][N] = {")
 	for i in range(len(Pi) - 1):
 		print("\t\t{" + str(Pi[i])[1:-1] + "},")
 	print("\t\t{" + str(Pi[-1])[1:-1] + "}\n\t};\n")
 
-	# We now transcribe the value of P	
+
+	# We now transcribe the value of P
 	tmp = convert_to_int_tabs(p)
 	print("static _poly __P__ = { .deg = " + str(len(tmp)) + ",")
 	tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
@@ -98,11 +105,11 @@ static inline void m_mns_mod_mult_ext_red_pre(__int128* restrict R,
 	for i in range(n):
 		print(f"R[{i}] = (__int128)", end="")
 		for j in range(1, n - i):
-			print(f" ((__int128) ((uint64_t) A->t[{i + j}]) * {ML[n - j]})", end="")
+			print(f" ((__int128) ( A->t[{i + j}]) * {ML[n - j]})", end="")
 			print(" +", end= "")
 
 		for j in range(0, i + 1):
-			print(f" ((__int128) ((uint64_t) A->t[{j}]) * {M[i - j]})", end="")
+			print(f" ((__int128) ( A->t[{j}]) * {M[i - j]})", end="")
 			if j != i:
 				print(" +", end= "")
 
@@ -135,10 +142,6 @@ static inline void mns_mod_mult_ext_red_pre(__int128* restrict R,
 	print("#endif")
 
 if __name__ == "__main__":
-#	p = 5524969863260095610495186344939419738027465949850580467176395575832917506871951737255621939342449907372936940924410124929668828406973361712220148691590192943
-#	n = 12
-#	gamma = 4636652768285458569062878611317602841499088282530798143147640460012527948722544350531006403703239417663454147165839392083945105225074778235517366830265723868
-#	lam = -3
 	if len(sys.argv) == 1:
 		do_precalcs(p, n, gamma, lam, rho, M, M1)
 	else:

@@ -12,11 +12,15 @@ from pyparams import p, n, gamma, lam, phi, rho, M, M1
 #M1 = [7045631417041842631, -6084863496536136821, 8006399337547548431, 1601279867509509692, 4355481239625866353]
 
 if __name__ == "__main__":
+	M = M + [0] * (n - len(M))
 	rho = 2**rho
 	counter = 0
+	visual = 0
 	print("Starting")
 	with open("log", "r") as f:
 		while True:
+			print("\b" + str(visual), end="\r")
+			visual += 1
 			try:
 				a = literal_eval(f.readline()[:-1])
 				a = [elem - phi if elem > (phi >> 1) else elem for elem in a]

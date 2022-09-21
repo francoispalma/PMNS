@@ -51,28 +51,33 @@ static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned _
 
 	# We then get the Pi
 	phinmoinsun = pow(phi, n - 1, p)
-	Pi = [montgomery_convert_to_mns((rho**i) * (phi**2), p, n, gamma, rho, lam, phi, M, M1, phinmoinsun) for i in range(n)]
+	Pi = [0] * n
+	Prho = montgomery_convert_to_mns(rho * phi, p, n, gamma, rho, lam, phi, M, M1, phinmoinsun)
+	Pstk = montgomery_convert_to_mns(phi**2, p, n, gamma, rho, lam, phi, M, M1, phinmoinsun)
+	for i in range(n):
+		Pi[i] = Pstk
+		Pstk = amns_montg_mult(Pstk, Prho, p, n, gamma, rho, lam, phi, M, M1)
 
 	# Then we print
 	print("static const uint64_t Mlo[] = {" + str(Mlo)[1:-1].replace(",", "u,") + "u},")
-	print("\tM1lo[] = {" + str(M1lo)[1:-1].replace(",", "u,") + "u},")
-	print("\tMLambdalo[] = {" + str(MLambdalo)[1:-1].replace(",", "u,") + "u},")
-	print("\tM1Lambdalo[] = {" + str(M1Lambdalo)[1:-1].replace(",", "u,") + "u},")
+	print("\tM1lo[N] = {" + str(M1lo)[1:-1].replace(",", "u,") + "u},")
+	print("\tMLambdalo[N] = {" + str(MLambdalo)[1:-1].replace(",", "u,") + "u},")
+	print("\tM1Lambdalo[N] = {" + str(M1Lambdalo)[1:-1].replace(",", "u,") + "u},")
 	print("\t__Pilo__[N][N] = {")
 	for i in range(len(Pi) - 1):
 		print("\t\t{" + str([elem % 2**64 for elem in Pi[i]])[1:-1].replace(",", "u,") + "u},")
 	print("\t\t{" + str([elem % 2**64 for elem in Pi[-1]])[1:-1].replace(",", "u,") + "u}\n\t};\n")
 
-	print("static const int64_t Mhi[] = {" + str(Mhi)[1:-1] + "},")
-	print("\tM1hi[] = {" + str(M1hi)[1:-1] + "},")
-	print("\tMLambdahi[] = {" + str(MLambdahi)[1:-1] + "},")
-	print("\tM1Lambdahi[] = {" + str(M1Lambdahi)[1:-1] + "},")
+	print("static const int64_t Mhi[N] = {" + str(Mhi)[1:-1] + "},")
+	print("\tM1hi[N] = {" + str(M1hi)[1:-1] + "},")
+	print("\tMLambdahi[N] = {" + str(MLambdahi)[1:-1] + "},")
+	print("\tM1Lambdahi[N] = {" + str(M1Lambdahi)[1:-1] + "},")
 	print("\t__Pihi__[N][N] = {")
 	for i in range(len(Pi) - 1):
 		print("\t\t{" + str([elem >> 64 for elem in Pi[i]])[1:-1] + "},")
 	print("\t\t{" + str([elem >> 64 for elem in Pi[-1]])[1:-1] + "}\n\t};\n")
 
-	print("static const __int128 M1[] = { ", end="")
+	print("static const __int128 M1[N] = { ", end="")
 	for i in range(n - 1):
 		print(f"((__int128) LOW({M1hi[i]}) << 64) | {M1lo[i]}u, ", end="")
 	print(f"((__int128) LOW({M1hi[n - 1]}) << 64) | {M1lo[n - 1]}u }},")

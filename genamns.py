@@ -81,7 +81,10 @@ def gen_amns(p, phi=64):
 					# We then get the d and u of the au + bv = d from extended euclid
 					val, M1, soak = xgcd(M, E)
 					# We make sure to get out of any sage specific field
-					val = ZZ(val)
+					try:
+						val = ZZ(val)
+					except TypeError:
+						val = 0
 
 					if val & 1:  # if val is even it won't have a gcd of 1 with phi
 						M1 = (M1 * ZZ(pow(val, -1, PHI)) % PHI)

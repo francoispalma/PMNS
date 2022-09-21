@@ -18,7 +18,7 @@ then
 ## Usage
 
 To generate all the code needed for operations with a specific prime p along with a demo code to calculate a^b % p and accompanying makefile:
-> python3 completegen {p}
+> python3 completegen.py {p}
 
 To load a specific PMNS of size PSIZE and index INDEX:
 > make loadpmns [PSIZE=size] [INDEX=index]

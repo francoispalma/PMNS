@@ -823,7 +823,10 @@ static inline int64_t randomint64(void)
 static inline int64_t __modrhohi(int64_t param)
 {
 	// Utility function to get a high part for a random poly128.
-	return param & ((1ULL<<(RHO - 64)) - 1);
+	if (RHO <= 64)
+		return 0;
+	else
+		return param & ((1ULL << (RHO - 64)) - 1);
 }
 
 void randpoly128(poly128 P)
