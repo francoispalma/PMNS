@@ -75,7 +75,7 @@ clean:
 	rm -rf *.exe
 
 demo: main.exe
-	./main.exe 41781314183145 734865131442
+	./main.exe 417a131f18c14b a348e5131d42
 
 """)
 		with open("output/main.c", "w+") as f:
@@ -112,6 +112,6 @@ int main(int argc, char** argv)
 """)
 		print("\nGenerated code can be found in the directory output.")
 		print("A demonstration can be launched with the command 'make demo'")
-		print("The demo executable outputs arg1^arg2 % p")
+		print("The demo executable outputs arg1^arg2 % p (arguments in hex)")
 		
 # 101446619888572739133666196758813369433960395136978547326876308901415794561163
