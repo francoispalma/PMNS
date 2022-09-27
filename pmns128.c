@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <time.h>
-#include <gmp.h>
+//#include <gmp.h>
 #include <string.h>
 
 #include "pmns128.h"

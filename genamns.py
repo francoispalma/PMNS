@@ -9,6 +9,12 @@ from commonpmns import primesdict, handledphis
 # ||M||inf <= phi/((lambda*n*2)**2)
 # min(||M||inf) = P^1/n
 
+def infinite_norm_of_matrix(Matrix):
+	return max([sum([abs(elem) for elem in Line]) for Line in Matrix])
+
+def norm_one_of_matrix(Matrix):
+	return max([sum([abs(Matrix[i][j]) for i in range(len(Matrix))]) for j in range(len(Matrix))])
+
 def maingen(power, sphi, start=0):
 	primes = primesdict[power]
 	if start == 0:
@@ -24,12 +30,12 @@ def maingen(power, sphi, start=0):
 		p, n, gamma, lamb, rho, M, M1 = gen_amns(p, phi)
 		print(f"pmns{sphi}dict[{p}] = ({p}, {n}, {gamma}, {lamb}, {rho}, {M}, {M1})")
 
-def gen_amns(p, phi=64):
+def gen_amns(p, phi=64, polyv=True):
 	PHI = 2**phi
 	power = int(log2(p))
-	n = (power // phi) | 1
-	while 2**(power/n) >= PHI/((2*n*2)**2):
-		n += 2
+	n = (power // phi)
+	while power >= n * phi - n * (4 + 2*log2(n)):
+		n += 1
 	K = GF(p)
 	polK = PolynomialRing(K, 'X')
 	flag = False
@@ -45,19 +51,21 @@ def gen_amns(p, phi=64):
 			E = polK("X^" + str(n) +" + " + str(lam))
 			fs = factor(E)
 			if fs[0][0].degree() == 1:  # if the degree is one, we have a solution
-				flag = True
 				lamb = lam
-				break
+				if(pow(fs[0][0][0], n, p) == lamb):
+					flag = True
+					break
 
 			# We also have to try with negative values
 			Eprime = polK("X^" + str(n) +" - " + str(lam))
 			fsprime = factor(Eprime)
 			if fsprime[0][0].degree() == 1:
-				flag = True
 				fs = fsprime
 				E = Eprime
 				lamb = -lam
-				break
+				if(pow(fs[0][0][0], n, p) == lamb):
+					flag = True
+					break
 
 		if flag == True:
 			flag = False
@@ -71,39 +79,50 @@ def gen_amns(p, phi=64):
 			B = list(IntegerLattice(matrix(ZZ, B)).LLL())
 
 			# Then we calculate rho
-			__tmp = int(2 * w * max([max(Line) for Line in B]))
-			rho = ceil(__tmp.bit_length())
-			if rho < phi - 1 - log2(w):
-				# We then try to find a valid M
-				for lig in B:
-					# We set M as one line of the base matrix
-					M = RingPoly(list_to_poly(lig))
-					# We then get the d and u of the au + bv = d from extended euclid
-					val, M1, soak = xgcd(M, E)
-					# We make sure to get out of any sage specific field
-					try:
-						val = ZZ(val)
-					except TypeError:
-						val = 0
+			#__tmp = int(2 * w * infinite_norm_of_matrix(B))
+			if polyv:
+				__tmp = int(2 * w * max([abs(B[i][j]) for i in range(n) for j in range(n)]))
+				rho = ceil(__tmp.bit_length())
+				if rho < phi - 1 - log2(w):
+					# We then try to find a valid M
+					for lig in B:
+						# We set M as one line of the base matrix
+						M = RingPoly(list_to_poly(lig))
+						# We then get the d and u of the au + bv = d from extended euclid
+						val, M1, soak = xgcd(M, E)
+						# We make sure to get out of any sage specific field
+						try:
+							val = ZZ(val)
+						except TypeError:
+							val = 0
 
-					if val & 1:  # if val is even it won't have a gcd of 1 with phi
-						M1 = (M1 * ZZ(pow(val, -1, PHI)) % PHI)
-						# We check that M1 is properly constructed, if it is we don't look further
-						if ((M * M1) % E) % PHI == 1 and M(gamma) % p == 0:
-							break
+						if val & 1:  # if val is even it won't have a gcd of 1 with phi
+							M1 = (M1 * ZZ(pow(val, -1, PHI)) % PHI)
+							# We check that M1 is properly constructed, if it is we don't look further
+							if ((M * M1) % E) % PHI == 1 and M(gamma) % p == 0:
+								break
 
-				# We convert out of the polynomial Ring
-				M = list(M)
-				M1 = list(M1)
+					# We convert out of the polynomial Ring
+					M = list(M)
+					M1 = list(M1)
 
-				# We switch M1 from M^-1 to -M^-1
-				M1 = [(int(M1[i]) * -1) % PHI for i in range(n)]
+					# We switch M1 from M^-1 to -M^-1
+					M1 = [(int(M1[i]) * -1) % PHI for i in range(n)]
 
-				# We then reduce M1's coefficients
-				M1 = [int(M1[i]) - PHI if M1[i] >= (PHI >> 1) else M1[i] for i in range(n)]
-				break
-		n += 2
-	return p, n, gamma, lamb, rho, M, M1
+					# We then reduce M1's coefficients
+					M1 = [int(M1[i]) - PHI if M1[i] >= (PHI >> 1) else M1[i] for i in range(n)]
+					__tmp = int(2 * w * max([abs(elem) for elem in M]))
+					rho = ceil(__tmp.bit_length())
+					return p, n, gamma, lamb, rho, M, M1
+
+			else:
+				__tmp = int(2 * norm_one_of_matrix(B))
+				rho = ceil(__tmp.bit_length())
+				B1 = list(matrix(B).inverse() % PHI)
+				return p, n, gamma, lamb, rho, B, B1
+
+		n += 1
+	
 
 if __name__ == "__main__":
 	if len(sys.argv) >= 2:
