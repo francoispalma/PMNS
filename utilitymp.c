@@ -33,6 +33,12 @@ void convert_string_to_poly(restrict poly* res, const char* string)
 	
 	store[16] = '\0';
 	
+	if(string[0] != '\0' && string[1] != '\0' && string[0] == '0' && string[1] == 'x')
+		string += 2;
+	
+	while(string[0] == '0')
+		string++;
+	
 	while(string[i] != '\0')
 	{
 		if(i % 16 == 0) ++tabsize;
@@ -188,8 +194,8 @@ void mp_add(restrict poly* res, restrict const poly op1, restrict const poly op2
 {
 	// Puts the result of op1 + op2 in res.
 
-	const uint16_t MAXDEG = (op1->deg < op2->deg ? op2->deg : op1->deg) + 1 -
-		((op1->t[op1->deg - 1] < 0) || (op2->t[op2->deg - 1] < 0));
+	const uint16_t MAXDEG = (op1->deg < op2->deg ? op2->deg : op1->deg) + 1; // -
+		//((op1->t[op1->deg - 1] < 0) || (op2->t[op2->deg - 1] < 0));
 	register uint16_t i, j;
 	uint64_t stok;
 
@@ -372,10 +378,7 @@ void mp_mod(restrict poly* res, restrict const poly op1, restrict const poly op2
 	else
 	{
 		mp_leftshift(&X);
-		//mp_print(X);
-		//mp_print(op1);
 		mp_usub(res, X, op1);
-		//mp_print(*res);
 	}
 	
 	while(mp_ucomp(*res, op2) == 1)

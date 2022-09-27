@@ -386,16 +386,6 @@ void convert_amns_to_poly(restrict poly* res, const restrict poly P)
 	mp_copy(&tmp, *res);
 	mp_mod(res, tmp, &__P__);
 	
-	printf("tmp = 0x");
-	mp_print(tmp);
-	printf("\n");
-	printf("p = 0x");
-	mp_print(&__P__);
-	printf("\n");
-	printf("res = 0x");
-	mp_print(*res);
-	printf("\n");
-	
 	free_polys(a, aux, ag, tmp, NULL);
 }
 
@@ -435,12 +425,12 @@ void __sub_tests(void)
 void __mult_tests(void)
 {
 	poly A, B, C, C_test;
-	init_polys(5, &A, &B, NULL);
-	init_polys(10, &C, &C_test, NULL);
+	init_polys(1, &A, &B, NULL);
+	init_polys(1, &C, &C_test, NULL);
 	
-	const char a[] = "163dbed3b4fbeee3bb542bc62983a51f4ecb077c3af9a6d451e1c4b6cd0a99563d55",
-		b[] = "c64be1b07fc889170737a3bbd0501940eb5cdffbb228d09f6c4527812aa64b8cde15",
-		c[] = "113a594a40463202213fb6a4f7f7c643b20e4efcf7206e5154247afe315d4d6c9a5f8dcd34573cc1b63874bccb81c44e190796da9afb9b7f144f1fe35456d916cebebdf9";
+	const char a[] =  "163dbed3b4fbeee3bb542bc62983a51f4ecb077c3af9a6d451e1c4b6cd0a99563d55",
+		b[] =  "c64be1b07fc889170737a3bbd0501940eb5cdffbb228d09f6c4527812aa64b8cde15",
+		c[] =  "113a594a40463202213fb6a4f7f7c643b20e4efcf7206e5154247afe315d4d6c9a5f8dcd34573cc1b63874bccb81c44e190796da9afb9b7f144f1fe35456d916cebebdf9";
 	
 	convert_string_to_poly(&A, a);
 	printf("%s\n", a);
@@ -639,8 +629,8 @@ void __multchecks__(void)
 
 void __sqandmultdemo(void)
 {
-	const char a[] = "7609d69beaadb6de37a7b36cd193b33b120489bd4298534e830eeeaf9a65b15c12268aea1447f610377ea045afc463fb193a531e46cf70052ee6143d782b27aee363d426ad73085f7c24376b676070214cbf1b69f93fd5fdd70b8c77dd2268cbf3f210366b932c7351d9332608fb294ebb44bc7b17bfa3e115dd06c642670d67",
-		b[] = "78a5cc1a942f42e81aa0dc980d3b6a7f987bf9847fb30f8d17c327283745d1365e6bd495a6b4bc2f6a16dca99668ee8591b5b04d12e15d5c4f5f22aafca94fcc3973e7e7714c84b0fb514f862d3444fd36f82f54ccb6c2f2ac3510d3aaea94953533e511076ba29103afb13ba6387001f1055b400b5abfc5b7cd0cdb4b2ebf2a",
+	const char a[] = "2", // "7609d69beaadb6de37a7b36cd193b33b120489bd4298534e830eeeaf9a65b15c12268aea1447f610377ea045afc463fb193a531e46cf70052ee6143d782b27aee363d426ad73085f7c24376b676070214cbf1b69f93fd5fdd70b8c77dd2268cbf3f210366b932c7351d9332608fb294ebb44bc7b17bfa3e115dd06c642670d67",
+		b[] = "1", // "78a5cc1a942f42e81aa0dc980d3b6a7f987bf9847fb30f8d17c327283745d1365e6bd495a6b4bc2f6a16dca99668ee8591b5b04d12e15d5c4f5f22aafca94fcc3973e7e7714c84b0fb514f862d3444fd36f82f54ccb6c2f2ac3510d3aaea94953533e511076ba29103afb13ba6387001f1055b400b5abfc5b7cd0cdb4b2ebf2a",
 		c[] = "606ddc8f63ff63abfacb0ced7fcef39d42f0831e9e84459bbffbc1a04b866aaf572571e876a087dc633ab189b40eb861be2f7e194ac5f24ad7886eeb070028bc91a3970ea828cdd5da8eea173d0a38da1bc072837e5835ff2bd266ebcc4788870c7dca82e5b87cd1a844a5120339d2ef1620f1484888538824c5474fe77014e6";
 	
 	poly A, B, C, aux;
@@ -652,11 +642,10 @@ void __sqandmultdemo(void)
 	//amns_sqandmult(C, A, B);
 	amns_montg_ladder(C, A, B);
 	
-	//p128_print(C);
-	
+	//printf("C = ");
+	//print(C);
 	
 	convert_amns_to_poly(&aux, C);
-	
 	
 	printf("\n%s\n\n", c);
 	mp_print(aux);

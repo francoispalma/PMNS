@@ -32,7 +32,7 @@ if __name__ == "__main__":
 				phi = 64
 		if phi not in [64, 128]:
 			phi = 64
-		print(f"Generating PMNS for integer of size {ceil(log2(p))}...\n")
+		print(f"Generating PMNS {phi} bits for integer of size {ceil(log2(p))}...\n")
 		STARTSTAMP = perf_counter()
 		pmns = gen_amns(p, phi)
 		STOPSTAMP = perf_counter()
@@ -75,7 +75,7 @@ clean:
 	rm -rf *.exe
 
 demo: main.exe
-	./main.exe 41781314183145 734865131442
+	./main.exe 0x417a131f18c14b 0xa348e5131d42
 
 """)
 		with open("output/main.c", "w+") as f:
@@ -100,6 +100,7 @@ int main(int argc, char** argv)
 		
 		convert_amns{sphi}_to_poly(&aux, C);
 		
+		printf("0x");
 		mp_print(aux);
 		
 		free_polys(B, aux, NULL);
@@ -112,6 +113,6 @@ int main(int argc, char** argv)
 """)
 		print("\nGenerated code can be found in the directory output.")
 		print("A demonstration can be launched with the command 'make demo'")
-		print("The demo executable outputs arg1^arg2 % p")
+		print("The demo executable outputs arg1^arg2 % p (arguments in hex)")
 		
 # 101446619888572739133666196758813369433960395136978547326876308901415794561163

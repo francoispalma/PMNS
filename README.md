@@ -17,8 +17,8 @@ then
 
 ## Usage
 
-To generate all the code needed for operations with a specific prime p along with a demo code to calculate a^b % p and accompanying makefile:
-> python3 completegen.py {p}
+To generate all the code with implementation 64bits or 128bits (PHI) needed for operations with a specific prime p along with a demo code to calculate a^b % p and accompanying makefile:
+> python3 completegen.py {p} [PHI=64 or 128]
 
 To load a specific PMNS of size PSIZE and index INDEX:
 > make loadpmns [PSIZE=size] [INDEX=index]
@@ -34,6 +34,10 @@ To display various graphics and results in a visual format:
 
 For details as to the generated PMNS degrees and lambda values:
 > python3 deghisto.py
+
+For a table of current results summarized:
+> python3 showresults.py
+
 
 ### Additional utilities for coding purposes
 
