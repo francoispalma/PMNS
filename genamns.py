@@ -15,7 +15,7 @@ def infinite_norm_of_matrix(Matrix):
 def norm_one_of_matrix(Matrix):
 	return max([sum([abs(Matrix[i][j]) for i in range(len(Matrix))]) for j in range(len(Matrix))])
 
-def maingen(power, sphi, start=0):
+def maingen(power, sphi, start=0, polyv=True):
 	primes = primesdict[power]
 	if start == 0:
 		print("pmns" + sphi + "dict = {}")
@@ -27,8 +27,8 @@ def maingen(power, sphi, start=0):
 		phi = int(sphi)
 	for i in range(start, len(primes)):
 		p = primes[i]
-		p, n, gamma, lamb, rho, M, M1 = gen_amns(p, phi)
-		print(f"pmns{sphi}dict[{p}] = ({p}, {n}, {gamma}, {lamb}, {rho}, {M}, {M1})")
+		p, n, gamma, lamb, rho, M_or_B, M1_or_B1 = gen_amns(p, phi, polyv)
+		print(f"pmns{sphi}dict[{p}] = ({p}, {n}, {gamma}, {lamb}, {rho}, {M_or_B}, {M1_or_B1})")
 
 def gen_amns(p, phi=64, polyv=True):
 	PHI = 2**phi
@@ -118,34 +118,41 @@ def gen_amns(p, phi=64, polyv=True):
 			else:
 				__tmp = int(2 * norm_one_of_matrix(B))
 				rho = ceil(__tmp.bit_length())
-				B1 = list(matrix(B).inverse() % PHI)
-				return p, n, gamma, lamb, rho, B, B1
+				if rho < phi - 1 - log2(w):
+					B1 = list(matrix(B).inverse() % PHI)
+					return p, n, gamma, lamb, rho, B, B1
 
 		n += 1
 	
 
 if __name__ == "__main__":
-	if len(sys.argv) >= 2:
+	arguments = sys.argv.copy()
+	opts = [arg for arg in arguments if arg.startswith("-")]
+	arguments = [arg for arg in arguments if not arg.startswith("-")]
+	if len(arguments) >= 2:
 		try:
-			psize = int(sys.argv[1])
+			psize = int(arguments[1])
 			if psize not in list(primesdict.keys()):
 				print("Prime Size not handled")
 				exit()
 			try:
-				phi = sys.argv[2]
+				phi = arguments[2]
 			except IndexError:
 				phi = ""
 			if phi not in handledphis:
-				print("Value of Phi not handled")
+				print("Value of Phi not handled:", phi)
 				exit()
 			elif phi == "64":
 				phi = ""
-			if len(sys.argv) >= 4:
-				start = int(sys.argv[3])
+			if len(arguments) >= 4:
+				start = int(arguments[3])
 			else:
 				start = 0
-			maingen(psize, phi, start)
+			if "-B" in opts or "--Base" in opts:
+				maingen(psize, phi, start, False)
+			else:
+				maingen(psize, phi, start, True)
 		except ValueError:
-			print("Invalid arguments")
+			print("Invalid arguments:", arguments[1:].__repr__().replace("'", "")[1:-1])
 	else:
-		print("Not enough arguments: Psize [Phi] [start]")
+		print("Not enough arguments: Psize [Phi] [start]\n\nOPTIONS\n\t--Base, -B: generate base reduction version instead of polynomial.")
