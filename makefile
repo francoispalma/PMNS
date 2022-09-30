@@ -86,8 +86,8 @@ prebench128: bench128.exe
 	./bench128.exe pre
 
 loadpmns:
-	echo 'from commonpmns import pmnsdicts\nfrom commonpmns import primesdict\n\n(p, n, gamma, lam, rho, M, M1) = pmnsdicts[$(PSIZE)128][primesdict[$(PSIZE)][$(INDEX)]]\nphi = 2**128' > pyparams128.py
-	echo 'from commonpmns import pmnsdicts\nfrom commonpmns import primesdict\n\n(p, n, gamma, lam, rho, M, M1) = pmnsdicts[$(PSIZE)][primesdict[$(PSIZE)][$(INDEX)]]\nphi = 2**64' > pyparams.py
+	echo 'from commonpmns import pmnsdicts\nfrom commonpmns import primesdict\n\n(p, n, gamma, lam, rho, M_or_B, M1_or_B1) = pmnsdicts[$(PSIZE)128][primesdict[$(PSIZE)][$(INDEX)]]\nphi = 2**128' > pyparams128.py
+	echo 'from commonpmns import pmnsdicts\nfrom commonpmns import primesdict\n\n(p, n, gamma, lam, rho, M_or_B, M1_or_B1) = pmnsdicts[$(PSIZE)][primesdict[$(PSIZE)][$(INDEX)]]\nphi = 2**64' > pyparams.py
 	python3 precalcs128.py > params128.h $(PSIZE) $(INDEX)
 	python3 precalcs.py > params.h $(PSIZE) $(INDEX)
 

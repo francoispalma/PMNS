@@ -56,7 +56,9 @@ inline void mns_mod_mult_ext_red(__int128* restrict R,
 	}
 }
 
-static inline void m_mns_mod_mult_ext_red(__int128* restrict R,
+#ifdef M_or_B_is_M
+
+static inline void m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
 	const restrict poly A)
 {
 	// Same as above but with some pre calculations done in the case of M being
@@ -74,7 +76,7 @@ static inline void m_mns_mod_mult_ext_red(__int128* restrict R,
 	}
 }
 
-inline void m1_mns_mod_mult_ext_red(int64_t* restrict R,
+static inline void m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
 	const restrict poly A)
 {
 	// Same as above but with some pre calculations done in the case of M1 being
@@ -92,6 +94,34 @@ inline void m1_mns_mod_mult_ext_red(int64_t* restrict R,
 	}
 }
 
+#endif
+
+#ifdef M_or_B_is_B
+
+static inline void m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
+	const restrict poly A)
+{
+	// Vector-Matrix multiplication between A and B, result in R.
+	register uint16_t i, j;
+	
+	for(i = 0; i < N; i++)
+		for(j = 0; j < N; j++)
+			R[i] += (__int128) A->t[j] * B[j][i];
+}
+
+static inline void m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
+	const restrict poly A)
+{
+	// Vector-Matrix multiplication between A and B1, result in R.
+	register uint16_t i, j;
+	
+	for(i = 0; i < N; i++)
+		for(j = 0; j < N; j++)
+			R[i] += ((uint64_t)A->t[j]) * B1[j][i];
+}
+
+#endif
+
 inline void mns_montg_int_red(restrict poly res, __int128* restrict R)
 {
 	uint64_t V[N], V2[N];
@@ -106,12 +136,12 @@ inline void mns_montg_int_red(restrict poly res, __int128* restrict R)
 		R[i] = 0;
 	}
 	
-	m1_mns_mod_mult_ext_red(T, res);
+	m1_or_b1_mns_mod_mult_ext_red(T, res);
 	
 	for(i = 0; i < N; i++)
 		res->t[i] = T[i];
 	
-	m_mns_mod_mult_ext_red(R, res);
+	m_or_b_mns_mod_mult_ext_red(R, res);
 	
 	for(i = 0; i < N; i++)
 		res->t[i] = V2[i] + (R[i] >> 64) + (V[i] != 0);
@@ -130,6 +160,46 @@ inline void amns_montg_mult(restrict poly res, const restrict poly A,
 	mns_mod_mult_ext_red(R, A, B);
 
 	mns_montg_int_red(res, R);
+}
+
+static inline void mns_montg_int_red_pre(restrict poly res, __int128* restrict R)
+{
+	uint64_t V[N], V2[N];
+	int64_t T[N] = {0};
+	register uint16_t i;
+	
+	for(i = 0; i < N; i++)
+	{
+		V[i] = R[i];
+		res->t[i] = R[i];
+		V2[i] = (R[i] >> 64);
+		R[i] = 0;
+	}
+	
+	m1_or_b1_mns_mod_mult_ext_red_pre(T, res);
+	
+	for(i = 0; i < N; i++)
+		res->t[i] = T[i];
+	
+	m_or_b_mns_mod_mult_ext_red_pre(R, res);
+	
+	for(i = 0; i < N; i++)
+		res->t[i] = V2[i] + (R[i] >> 64) + (V[i] != 0);
+}
+
+inline void amns_montg_mult_pre(restrict poly res, const restrict poly A,
+	const restrict poly B)
+{
+	// Function that multiplies A by B using the montgomery approach in an
+	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
+	// of the set of polynomials of that amns who have gamma as a root such that
+	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
+	
+	__int128 R[N] = {0};
+	
+	mns_mod_mult_ext_red_pre(R, A, B);
+
+	mns_montg_int_red_pre(res, R);
 }
 
 void amns_rtl_sqandmult(restrict poly res, const restrict poly base,
@@ -249,46 +319,6 @@ void amns_montg_ladder(restrict poly res, const restrict poly base,
 	}
 	
 	free_poly(tmp);
-}
-
-static inline void mns_montg_int_red_pre(restrict poly res, __int128* restrict R)
-{
-	uint64_t V[N], V2[N];
-	int64_t T[N] = {0};
-	register uint16_t i;
-	
-	for(i = 0; i < N; i++)
-	{
-		V[i] = R[i];
-		res->t[i] = R[i];
-		V2[i] = (R[i] >> 64);
-		R[i] = 0;
-	}
-	
-	m1_mns_mod_mult_ext_red_pre(T, res);
-	
-	for(i = 0; i < N; i++)
-		res->t[i] = T[i];
-	
-	m_mns_mod_mult_ext_red_pre(R, res);
-	
-	for(i = 0; i < N; i++)
-		res->t[i] = V2[i] + (R[i] >> 64) + (V[i] != 0);
-}
-
-inline void amns_montg_mult_pre(restrict poly res, const restrict poly A,
-	const restrict poly B)
-{
-	// Function that multiplies A by B using the montgomery approach in an
-	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
-	// of the set of polynomials of that amns who have gamma as a root such that
-	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
-	
-	__int128 R[N] = {0};
-	
-	mns_mod_mult_ext_red_pre(R, A, B);
-
-	mns_montg_int_red_pre(res, R);
 }
 
 static inline int64_t randomint64(void)

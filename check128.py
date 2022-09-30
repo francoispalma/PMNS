@@ -1,6 +1,6 @@
 from convert import rho_div_convert_to_mns as conv, montgomery_convert_to_mns
-from pyparams128 import p, n, gamma, lam, phi, rho, M, M1
-from ops import list_to_poly, horner_modulo, amns_montg_mult
+from pyparams128 import p, n, gamma, lam, phi, rho, M_or_B, M1_or_B1
+from ops import list_to_poly, horner_modulo
 from random import randrange
 from ast import literal_eval
 
@@ -44,8 +44,8 @@ if __name__ == "__main__":
 				b = [elem - phi if elem > (phi >> 1) else elem for elem in b]
 				c = literal_eval(f.readline()[:-1])
 				c = [elem - phi if elem > (phi >> 1) else elem for elem in c]
-				c_check = amns_montg_mult(a, b, p, n, gamma, rho, lam, phi, M, M1)
-				if horner_modulo(c, gamma, p) != horner_modulo(c_check, gamma, p):
+				c_check = (horner_modulo(a, gamma, p) * horner_modulo(b, gamma, p) * pow(phi, -1, p)) % p
+				if horner_modulo(c, gamma, p) != c_check:
 					counter += 1
 #					print("a:", [hex(elem) for elem in a])
 #					print("b:", [hex(elem) for elem in b])

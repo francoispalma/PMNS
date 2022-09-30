@@ -308,6 +308,19 @@ def amns_montg_mult(A, B, p, n, gamma, rho, lam, phi, M, M1):
 	return montgomery_like_coefficient_reduction(mns_mod_mult(A, B, *amns),
 		*amns, phi, M, M1)
 
+def montgomery_like_coefficient_reduction_base(A, p, n, gamma, rho, lam, phi, B, B1):
+	mA = matrix(A)
+	mB = matrix(B)
+	mB1 = matrix(B1)
+	nmA = (((mA % phi) * mB1) % phi) * mB
+	res = list(((mA - nmA) / phi)[0])
+	return res
+
+def amns_montg_mult_base(vA, vB, p, n, gamma, rho, lam, phi, B, B1):
+	amns = (p, n, gamma, rho, lam)
+	return montgomery_like_coefficient_reduction_base(mns_mod_mult(vA, vB, *amns),
+		*amns, phi, B, B1)
+
 if __name__ == "__main__":
 	n = 512
 	sum1 = 0

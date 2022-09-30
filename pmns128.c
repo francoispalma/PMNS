@@ -321,7 +321,9 @@ inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	}
 }
 
-static inline void m_mns128_mod_mult_ext_red(__int128* restrict Rhi, 
+#ifdef M_or_B_is_M
+
+static inline void m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rhi, 
 	unsigned __int128* restrict Rlo, unsigned __int128* restrict A)
 {
 	// Same as above but with some pre calculations done in the case of M being
@@ -344,7 +346,7 @@ static inline void m_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	}
 }
 
-inline void m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
+static inline void m1_or_b1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
 	unsigned __int128* restrict A)
 {
 	// Same as above but with some pre calculations done in the case of M1 being
@@ -364,6 +366,48 @@ inline void m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
 	}
 }
 
+#endif
+
+#ifdef M_or_B_is_B
+
+static inline void m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rhi, 
+	unsigned __int128* restrict Rlo, unsigned __int128* restrict A)
+{
+	// Same as above but with some pre calculations done in the case of M being
+	// the second operand.
+	
+	register uint16_t i, j;
+	
+	for(i = 0; i < N; i++)
+	{
+		//Rhi[i] = 0;
+		Rhi[i] += Rlo[i] != 0;
+		Rlo[i] = 0;
+		for(j = 0; j < N; j++)
+			mm1_multadd128(Rhi + i, Rlo + i, HIGH(A[j]), LOW(A[j]),
+				Bhi[j][i], Blo[j][i]);
+	}
+}
+
+static inline void m1_or_b1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
+	unsigned __int128* restrict A)
+{
+	// Same as above but with some pre calculations done in the case of M1 being
+	// the second operand (in pmns128 we only care about the lower 128 bits for
+	// this operation).
+	
+	register uint16_t i, j;
+	
+	for(i = 0; i < N; i++)
+	{
+		Rlo[i] = 0;
+		for(j = 0; j < N; j++)
+			m1_multadd128(Rlo + i, A[j], B1[j][i]);
+	}
+}
+
+#endif
+
 static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
 	unsigned __int128* restrict Rlo)
 {
@@ -372,9 +416,9 @@ static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
 	unsigned __int128 V[N];
 	register uint16_t i;
 	
-	m1_mns128_mod_mult_ext_red(V, Rlo);
+	m1_or_b1_mns128_mod_mult_ext_red(V, Rlo);
 	
-	m_mns128_mod_mult_ext_red(Rhi, Rlo, V);
+	m_or_b_mns128_mod_mult_ext_red(Rhi, Rlo, V);
 	
 	for(i = 0; i < N; i++)
 	{
@@ -397,6 +441,76 @@ inline void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	mns128_mod_mult_ext_red(Rhi, Rlo, A, B);
 	
 	mns128_montg_int_red(res, Rhi, Rlo);
+}
+
+static inline void mns128_montg_int_red_pre(poly128 res, __int128* restrict Rhi,
+	unsigned __int128* restrict Rlo)
+{
+	// Function that reduces the internal coefficient contained in R to be lower
+	// than the chosen Rho.
+	unsigned __int128 V[N], V2[N];
+	register uint16_t i;
+	
+	
+	memcpy(V, Rlo, N * sizeof(__int128));
+	memcpy(V2, Rhi, N * sizeof(__int128));
+	for(i = 0; i < N; i++)
+	{
+		res->lo[i] = LOW(Rlo[i]);
+		res->hi[i] = HI(Rlo[i]);
+		Rlo[i] = 0;
+	}
+	
+	m1_or_b1_mns128_mod_mult_ext_red_pre(Rlo, res);
+	
+	for(i = 0; i < N; i++)
+	{
+		res->lo[i] = LOW(Rlo[i]);
+		res->hi[i] = HIGH(Rlo[i]);
+		Rlo[i] = 0;
+		Rhi[i] = 0;
+	}
+	
+	m_or_b_mns128_mod_mult_ext_red_pre(Rhi, Rlo, res);
+	
+	for(i = 0; i < N; i++)
+	{
+		Rhi[i] = (__int128) V2[i] + Rhi[i] + (V[i] != 0);
+		res->lo[i] = LOW(Rhi[i]);
+		res->hi[i] = HIGH(Rhi[i]);
+	}
+}
+
+inline void amns128_montg_mult_pre(restrict poly128 res, const restrict poly128 A,
+	const restrict poly128 B)
+{
+	// Function that multiplies A by B using the montgomery approach in an
+	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
+	// of the set of polynomials of that amns who have gamma as a root such that
+	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
+	
+	__int128 Rhi[N] = {0};
+	unsigned __int128 Rlo[N] = {0};
+	
+	mns128_mod_mult_ext_red_pre(Rhi, Rlo, A, B);
+	
+	mns128_montg_int_red_pre(res, Rhi, Rlo);
+}
+
+inline void amns128_montg_mult_hyb(restrict poly128 res, const restrict poly128 A,
+	const restrict poly128 B)
+{
+	// Function that multiplies A by B using the montgomery approach in an
+	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
+	// of the set of polynomials of that amns who have gamma as a root such that
+	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
+	
+	__int128 Rhi[N] = {0};
+	unsigned __int128 Rlo[N] = {0};
+	
+	mns128_mod_mult_ext_red(Rhi, Rlo, A, B);
+	
+	mns128_montg_int_red_pre(res, Rhi, Rlo);
 }
 
 void amns128_rtl_sqandmult(restrict poly128 res, const restrict poly128 base,
@@ -518,110 +632,110 @@ void amns128_montg_ladder(restrict poly128 res, const restrict poly128 base,
 	free_poly128(tmp);
 }
 
-static inline void OLD_mns128_mod_mult_ext_red(__int128* restrict Rhi,
-	unsigned __int128* restrict Rlo, const restrict poly128 A,
-	const restrict poly128 B)
-{
-	// Function that multiplies A by B and applies external reduction using
-	// E(X) = X^n - lambda as a polynomial used for reduction.
-	register uint16_t i, j;
-	unsigned __int128 aux;
-	
-	for(i = 0; i < N; i++)
-	{
-		for(j = 1; j < N - i; j++)
-			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
-				B->hi[N - j], B->lo[N - j]);
-		
-		aux = (unsigned __int128) LOW(Rlo[i]) * (LAMBDA);
-		aux = (unsigned __int128) HI(Rlo[i]) * (LAMBDA) + HIGH(aux);
-		Rlo[i] = (__int128) Rlo[i] * (LAMBDA);
-		Rhi[i] = (__int128) Rhi[i] * (LAMBDA) + HIGH(aux);
-		
-		for(j = 0; j < i + 1; j++)
-			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
-				B->hi[i - j], B->lo[i - j]);
-	}
-}
+/*static inline void OLD_mns128_mod_mult_ext_red(__int128* restrict Rhi,*/
+/*	unsigned __int128* restrict Rlo, const restrict poly128 A,*/
+/*	const restrict poly128 B)*/
+/*{*/
+/*	// Function that multiplies A by B and applies external reduction using*/
+/*	// E(X) = X^n - lambda as a polynomial used for reduction.*/
+/*	register uint16_t i, j;*/
+/*	unsigned __int128 aux;*/
+/*	*/
+/*	for(i = 0; i < N; i++)*/
+/*	{*/
+/*		for(j = 1; j < N - i; j++)*/
+/*			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],*/
+/*				B->hi[N - j], B->lo[N - j]);*/
+/*		*/
+/*		aux = (unsigned __int128) LOW(Rlo[i]) * (LAMBDA);*/
+/*		aux = (unsigned __int128) HI(Rlo[i]) * (LAMBDA) + HIGH(aux);*/
+/*		Rlo[i] = (__int128) Rlo[i] * (LAMBDA);*/
+/*		Rhi[i] = (__int128) Rhi[i] * (LAMBDA) + HIGH(aux);*/
+/*		*/
+/*		for(j = 0; j < i + 1; j++)*/
+/*			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],*/
+/*				B->hi[i - j], B->lo[i - j]);*/
+/*	}*/
+/*}*/
 
-static inline void OLD_m_mns128_mod_mult_ext_red(__int128* restrict Rhi, 
-	unsigned __int128* restrict Rlo, const restrict poly128 A)
-{
-	// Same as above but with some pre calculations done in the case of M being
-	// the second operand.
-	
-	register uint16_t i, j;
-	
-	for(i = 0; i < N; i++)
-	{
-		for(j = 1; j < N - i; j++)
-			mm1_multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
-				MLambdahi[N - j], MLambdalo[N - j]);
-		
-		for(j = 0; j < i + 1; j++)
-			mm1_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
-				Mhi[i - j], Mlo[i - j]);
-	}
-}
+/*static inline void OLD_m_mns128_mod_mult_ext_red(__int128* restrict Rhi, */
+/*	unsigned __int128* restrict Rlo, const restrict poly128 A)*/
+/*{*/
+/*	// Same as above but with some pre calculations done in the case of M being*/
+/*	// the second operand.*/
+/*	*/
+/*	register uint16_t i, j;*/
+/*	*/
+/*	for(i = 0; i < N; i++)*/
+/*	{*/
+/*		for(j = 1; j < N - i; j++)*/
+/*			mm1_multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],*/
+/*				MLambdahi[N - j], MLambdalo[N - j]);*/
+/*		*/
+/*		for(j = 0; j < i + 1; j++)*/
+/*			mm1_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],*/
+/*				Mhi[i - j], Mlo[i - j]);*/
+/*	}*/
+/*}*/
 
-static inline void OLD_m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
-	const restrict poly128 A)
-{
-	// Same as above but with some pre calculations done in the case of M1 being
-	// the second operand (in pmns128 we only care about the lower 128 bits for
-	// this operation).
-	
-	register uint16_t i, j;
-	
-	for(i = 0; i < N; i++)
-	{
-		for(j = 1; j < N - i; j++)
-			OLD_m1_multadd128(Rlo + i, A->hi[i + j], A->lo[i + j],
-				M1Lambdahi[N - j], M1Lambdalo[N - j]);
-		
-		for(j = 0; j < i + 1; j++)
-			OLD_m1_multadd128(Rlo + i, A->hi[j], A->lo[j],
-				M1hi[i - j], M1lo[i - j]);
-	}
-}
+/*static inline void OLD_m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,*/
+/*	const restrict poly128 A)*/
+/*{*/
+/*	// Same as above but with some pre calculations done in the case of M1 being*/
+/*	// the second operand (in pmns128 we only care about the lower 128 bits for*/
+/*	// this operation).*/
+/*	*/
+/*	register uint16_t i, j;*/
+/*	*/
+/*	for(i = 0; i < N; i++)*/
+/*	{*/
+/*		for(j = 1; j < N - i; j++)*/
+/*			OLD_m1_multadd128(Rlo + i, A->hi[i + j], A->lo[i + j],*/
+/*				M1Lambdahi[N - j], M1Lambdalo[N - j]);*/
+/*		*/
+/*		for(j = 0; j < i + 1; j++)*/
+/*			OLD_m1_multadd128(Rlo + i, A->hi[j], A->lo[j],*/
+/*				M1hi[i - j], M1lo[i - j]);*/
+/*	}*/
+/*}*/
 
-static inline void OLD_mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
-	unsigned __int128* restrict Rlo)
-{
-	// Function that reduces the internal coefficient contained in R to be lower
-	// than the chosen Rho.
-	unsigned __int128 V[N], V2[N];
-	register uint16_t i;
-	
-	
-	memcpy(V, Rlo, N * sizeof(__int128));
-	memcpy(V2, Rhi, N * sizeof(__int128));
-	for(i = 0; i < N; i++)
-	{
-		res->lo[i] = LOW(Rlo[i]);
-		res->hi[i] = HI(Rlo[i]);
-		Rlo[i] = 0;
-	}
-	
-	OLD_m1_mns128_mod_mult_ext_red(Rlo, res);
-	
-	for(i = 0; i < N; i++)
-	{
-		res->lo[i] = LOW(Rlo[i]);
-		res->hi[i] = HIGH(Rlo[i]);
-		Rlo[i] = 0;
-		Rhi[i] = 0;
-	}
-	
-	OLD_m_mns128_mod_mult_ext_red(Rhi, Rlo, res);
-	
-	for(i = 0; i < N; i++)
-	{
-		Rhi[i] = (__int128) V2[i] + Rhi[i] + (V[i] != 0);
-		res->lo[i] = LOW(Rhi[i]);
-		res->hi[i] = HIGH(Rhi[i]);
-	}
-}
+/*static inline void OLD_mns128_montg_int_red(poly128 res, __int128* restrict Rhi,*/
+/*	unsigned __int128* restrict Rlo)*/
+/*{*/
+/*	// Function that reduces the internal coefficient contained in R to be lower*/
+/*	// than the chosen Rho.*/
+/*	unsigned __int128 V[N], V2[N];*/
+/*	register uint16_t i;*/
+/*	*/
+/*	*/
+/*	memcpy(V, Rlo, N * sizeof(__int128));*/
+/*	memcpy(V2, Rhi, N * sizeof(__int128));*/
+/*	for(i = 0; i < N; i++)*/
+/*	{*/
+/*		res->lo[i] = LOW(Rlo[i]);*/
+/*		res->hi[i] = HI(Rlo[i]);*/
+/*		Rlo[i] = 0;*/
+/*	}*/
+/*	*/
+/*	OLD_m1_mns128_mod_mult_ext_red(Rlo, res);*/
+/*	*/
+/*	for(i = 0; i < N; i++)*/
+/*	{*/
+/*		res->lo[i] = LOW(Rlo[i]);*/
+/*		res->hi[i] = HIGH(Rlo[i]);*/
+/*		Rlo[i] = 0;*/
+/*		Rhi[i] = 0;*/
+/*	}*/
+/*	*/
+/*	OLD_m_mns128_mod_mult_ext_red(Rhi, Rlo, res);*/
+/*	*/
+/*	for(i = 0; i < N; i++)*/
+/*	{*/
+/*		Rhi[i] = (__int128) V2[i] + Rhi[i] + (V[i] != 0);*/
+/*		res->lo[i] = LOW(Rhi[i]);*/
+/*		res->hi[i] = HIGH(Rhi[i]);*/
+/*	}*/
+/*}*/
 
 void convert_string_to_amns128(restrict poly128 res, const char* string)
 {
@@ -736,77 +850,6 @@ void convert_amns128_to_poly(restrict poly* res, const restrict poly128 P)
 	
 	free_polys(aux, ag, tmp, NULL);
 	free_poly128(a);
-}
-
-
-static inline void mns128_montg_int_red_pre(poly128 res, __int128* restrict Rhi,
-	unsigned __int128* restrict Rlo)
-{
-	// Function that reduces the internal coefficient contained in R to be lower
-	// than the chosen Rho.
-	unsigned __int128 V[N], V2[N];
-	register uint16_t i;
-	
-	
-	memcpy(V, Rlo, N * sizeof(__int128));
-	memcpy(V2, Rhi, N * sizeof(__int128));
-	for(i = 0; i < N; i++)
-	{
-		res->lo[i] = LOW(Rlo[i]);
-		res->hi[i] = HI(Rlo[i]);
-		Rlo[i] = 0;
-	}
-	
-	m1_mns128_mod_mult_ext_red_pre(Rlo, res);
-	
-	for(i = 0; i < N; i++)
-	{
-		res->lo[i] = LOW(Rlo[i]);
-		res->hi[i] = HIGH(Rlo[i]);
-		Rlo[i] = 0;
-		Rhi[i] = 0;
-	}
-	
-	m_mns128_mod_mult_ext_red_pre(Rhi, Rlo, res);
-	
-	for(i = 0; i < N; i++)
-	{
-		Rhi[i] = (__int128) V2[i] + Rhi[i] + (V[i] != 0);
-		res->lo[i] = LOW(Rhi[i]);
-		res->hi[i] = HIGH(Rhi[i]);
-	}
-}
-
-inline void amns128_montg_mult_pre(restrict poly128 res, const restrict poly128 A,
-	const restrict poly128 B)
-{
-	// Function that multiplies A by B using the montgomery approach in an
-	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
-	// of the set of polynomials of that amns who have gamma as a root such that
-	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
-	
-	__int128 Rhi[N] = {0};
-	unsigned __int128 Rlo[N] = {0};
-	
-	mns128_mod_mult_ext_red_pre(Rhi, Rlo, A, B);
-	
-	mns128_montg_int_red_pre(res, Rhi, Rlo);
-}
-
-inline void amns128_montg_mult_hyb(restrict poly128 res, const restrict poly128 A,
-	const restrict poly128 B)
-{
-	// Function that multiplies A by B using the montgomery approach in an
-	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
-	// of the set of polynomials of that amns who have gamma as a root such that
-	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
-	
-	__int128 Rhi[N] = {0};
-	unsigned __int128 Rlo[N] = {0};
-	
-	mns128_mod_mult_ext_red(Rhi, Rlo, A, B);
-	
-	mns128_montg_int_red_pre(res, Rhi, Rlo);
 }
 
 static inline int64_t randomint64(void)
