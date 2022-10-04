@@ -40,7 +40,6 @@ def gen_amns(p, phi=64, polyv=True):
 	polK = PolynomialRing(K, 'X')
 	flag = False
 	while True:
-		print("n:", n)
 		POWERN = 2**(power/n)
 		# We try for each value of lambda
 		for lam in range(2, 8):
