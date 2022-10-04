@@ -27,6 +27,8 @@ def do_precalcs(p, n, gamma, lam, rho, M_or_B, M1_or_B1):
 	if type(M_or_B[0]) == int:
 		print("#define M_or_B_is_M\n")
 		M = M_or_B
+		M = M + [0] * (n - len(M))
+		M_or_B = M
 		M1 = M1_or_B1
 
 		montgomery_convert_to_mns = montgomery_convert_to_mns_poly
@@ -34,7 +36,6 @@ def do_precalcs(p, n, gamma, lam, rho, M_or_B, M1_or_B1):
 		rho_div_convert_to_mns = rho_div_convert_to_mns_poly
 
 		# We print
-		M = M + [0] * (n - len(M))
 		print("static const int64_t M[N] = {" + str(M)[1:-1] + "},")
 		print("\tM1[N] = {" + str(M1)[1:-1] + "},")
 		ML = [elem * lam for elem in M]

@@ -40,6 +40,7 @@ def gen_amns(p, phi=64, polyv=True):
 	polK = PolynomialRing(K, 'X')
 	flag = False
 	while True:
+		print("n:", n)
 		POWERN = 2**(power/n)
 		# We try for each value of lambda
 		for lam in range(2, 8):
@@ -49,12 +50,15 @@ def gen_amns(p, phi=64, polyv=True):
 
 			# We define our external reduction polynomial
 			E = polK("X^" + str(n) +" + " + str(lam))
-			fs = factor(E)
-			if fs[0][0].degree() == 1:  # if the degree is one, we have a solution
-				lamb = lam
-				if(pow(fs[0][0][0], n, p) == lamb):
-					flag = True
-					break
+			try:
+				fs = factor(E)
+				if fs[0][0].degree() == 1:  # if the degree is one, we have a solution
+					lamb = lam
+					if(pow(fs[0][0][0], n, p) == lamb):
+						flag = True
+						break
+			except:
+				pass
 
 			# We also have to try with negative values
 			Eprime = polK("X^" + str(n) +" - " + str(lam))
@@ -81,7 +85,8 @@ def gen_amns(p, phi=64, polyv=True):
 			# Then we calculate rho
 			#__tmp = int(2 * w * infinite_norm_of_matrix(B))
 			if polyv:
-				__tmp = int(2 * w * max([abs(B[i][j]) for i in range(n) for j in range(n)]))
+#				__tmp = int(2 * w * max([abs(B[i][j]) for i in range(n) for j in range(n)]))
+				__tmp = int(2 * w * min([max(lig) for lig in B]))
 				rho = ceil(__tmp.bit_length())
 				if rho < phi - 1 - log2(w):
 					# We then try to find a valid M
