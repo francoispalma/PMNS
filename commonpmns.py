@@ -10,5 +10,7 @@ primesdict = {int(prime): getattr(importlib.import_module("generated." + filenam
 
 pmnsdicts = {int(prime + sphi): getattr(importlib.import_module("generated." + filename[:-3]), "pmns" + sphi + "dict") for filename in _filelist for prime in _primesizes for sphi in handledphis if "generated" + prime + "pmns" + sphi + ".py" in filename}
 
+pmnsWBdicts = {int(prime + sphi): getattr(importlib.import_module("generated." + filename[:-3]), "pmns" + sphi + "dict") for filename in _filelist for prime in _primesizes for sphi in handledphis if "generatedwithbase" + prime + "pmns" + sphi + ".py" in filename}
+
 
 handledphis += ["64"]

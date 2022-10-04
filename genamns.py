@@ -85,7 +85,7 @@ def gen_amns(p, phi=64, polyv=True):
 			#__tmp = int(2 * w * infinite_norm_of_matrix(B))
 			if polyv:
 #				__tmp = int(2 * w * max([abs(B[i][j]) for i in range(n) for j in range(n)]))
-				__tmp = int(2 * w * min([max(lig) for lig in B]))
+				__tmp = int(2 * w * min([max([abs(val) for val in lig]) for lig in B]))
 				rho = ceil(__tmp.bit_length())
 				if rho < phi - 1 - log2(w):
 					# We then try to find a valid M
