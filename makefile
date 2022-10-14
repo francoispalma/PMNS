@@ -94,8 +94,8 @@ loadpmns:
 loadpmnsWB:
 	echo 'from commonpmns import pmnsWBdicts\nfrom commonpmns import primesdict\n\n(p, n, gamma, lam, rho, M_or_B, M1_or_B1) = pmnsWBdicts[$(PSIZE)128][primesdict[$(PSIZE)][$(INDEX)]]\nphi = 2**128' > pyparams128.py
 	echo 'from commonpmns import pmnsWBdicts\nfrom commonpmns import primesdict\n\n(p, n, gamma, lam, rho, M_or_B, M1_or_B1) = pmnsWBdicts[$(PSIZE)][primesdict[$(PSIZE)][$(INDEX)]]\nphi = 2**64' > pyparams.py
-	python3 precalcs128.py > params128.h $(PSIZE) $(INDEX)
-	python3 precalcs.py > params.h $(PSIZE) $(INDEX)
+	python3 precalcs128.py > params128.h
+	python3 precalcs.py > params.h
 
 progress: *.c *.py *.h makefile
 	git add .

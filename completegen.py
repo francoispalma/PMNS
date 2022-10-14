@@ -2,7 +2,7 @@ import sys, os
 
 from sage.all import is_prime
 from math import log2, ceil
-from time import perf_counter
+from time import process_time
 from contextlib import redirect_stdout
 
 from genamns import gen_amns
@@ -33,9 +33,9 @@ if __name__ == "__main__":
 		if phi not in [64, 128]:
 			phi = 64
 		print(f"Generating PMNS {phi} bits for integer of size {ceil(log2(p))}...\n")
-		STARTSTAMP = perf_counter()
+		STARTSTAMP = process_time()
 		pmns = gen_amns(p, phi)
-		STOPSTAMP = perf_counter()
+		STOPSTAMP = process_time()
 		print(f"Generation done in {str(STOPSTAMP - STARTSTAMP)[:6]} seconds.")
 		p, n, gamma, lam, rho, M, M1 = pmns
 		print(f"The generated pmns has polynomials of degree {n}")

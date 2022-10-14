@@ -1,6 +1,6 @@
 from sage.all import next_prime, previous_prime, GF, PolynomialRing, factor, matrix, ZZ, xgcd
 from sage.modules.free_module_integer import IntegerLattice
-from math import ceil, log2
+from math import log2
 import sys
 
 from ops import list_to_poly
@@ -52,10 +52,8 @@ def gen_amns(p, phi=64, polyv=True):
 			try:
 				fs = factor(E)
 				if fs[0][0].degree() == 1:  # if the degree is one, we have a solution
-					lamb = lam
-					if(pow(fs[0][0][0], n, p) == lamb):
-						flag = True
-						break
+					flag = abs(int(((pow(fs[0][0][0], n, p) + 10) % p)) - 10) == lam
+					break
 			except:
 				pass
 
@@ -64,29 +62,28 @@ def gen_amns(p, phi=64, polyv=True):
 			fsprime = factor(Eprime)
 			if fsprime[0][0].degree() == 1:
 				fs = fsprime
-				E = Eprime
-				lamb = -lam
-				if(pow(fs[0][0][0], n, p) == lamb):
-					flag = True
-					break
+				flag = abs(int(((pow(fs[0][0][0], n, p) + 10) % p) - 10)) == lam
+				break
 
 		if flag == True:
 			flag = False
 			gamma = fs[0][0][0]
+			lamb = int(((pow(fs[0][0][0], n, p) + 10) % p)) - 10
+
 
 			RingPoly = PolynomialRing(ZZ, 'X')
-			E = RingPoly("X^" + str(n) + " - (" + str(lam) + ")")
+			E = RingPoly("X^" + str(n) + " - (" + str(lamb) + ")")
 
 			# We calculate the base matrix
 			B = [[p if (k, j) == (0, 0) else -pow(gamma, k, p) if k != 0 and j == 0 else 1 if k == j else 0 for j in range(n)] for k in range(n)]
-			B = list(IntegerLattice(matrix(ZZ, B)).LLL())
+			B = list(IntegerLattice(matrix(ZZ, B)).BKZ())
 
 			# Then we calculate rho
 			#__tmp = int(2 * w * infinite_norm_of_matrix(B))
 			if polyv:
 #				__tmp = int(2 * w * max([abs(B[i][j]) for i in range(n) for j in range(n)]))
 				__tmp = int(2 * w * min([max([abs(val) for val in lig]) for lig in B]))
-				rho = ceil(__tmp.bit_length())
+				rho = __tmp.bit_length()
 				if rho < phi - 1 - log2(w):
 					# We then try to find a valid M
 					for lig in B:
@@ -116,16 +113,15 @@ def gen_amns(p, phi=64, polyv=True):
 					# We then reduce M1's coefficients
 					M1 = [int(M1[i]) - PHI if M1[i] >= (PHI >> 1) else M1[i] for i in range(n)]
 					__tmp = int(2 * w * max([abs(elem) for elem in M]))
-					rho = ceil(__tmp.bit_length())
+					rho = __tmp.bit_length()
 					return p, n, gamma, lamb, rho, M, M1
 
 			else:
 				__tmp = int(2 * norm_one_of_matrix(B))
-				rho = ceil(__tmp.bit_length())
+				rho = __tmp.bit_length()
 				if rho < phi - 1 - log2(w):
 					B1 = list(matrix(B).inverse() % PHI)
 					return p, n, gamma, lamb, rho, B, B1
-
 		n += 1
 	
 
