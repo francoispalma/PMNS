@@ -20,9 +20,6 @@ structs.o: structs.c structs.h
 utilitymp.o: utilitymp.c utilitymp.h
 	$(CC) -c $< $(FLAGS)
 
-hardcode.exe: hardcode.c
-	$(CC) -o $@ $^ $(FLAGS)
-
 p128.exe: main128.c pmns128.o structs.o utilitymp.o
 	$(CC) -o $@ $^ $(FLAGS)
 

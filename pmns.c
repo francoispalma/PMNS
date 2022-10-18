@@ -25,34 +25,15 @@ inline void mns_mod_mult_ext_red(__int128* restrict R,
 	// E(X) = X^n - lambda as a polynomial used for reduction.
 	register uint16_t i, j;
 	
-/*	uint64_t *Rhi, *Rlo;*/
-/*	__int128 Rfull;*/
-/*	*/
-/*	Rlo = (uint64_t*) &Rfull;*/
-/*	Rhi = Rlo + 1;*/
-/*	uint64_t hi, lo;*/
-	
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
 			R[i] += (__int128) A->t[i + j] * B->t[N - j];
-/*		{*/
-/*			*Rlo = mulx64(A->t[i + j], B->t[N - j], Rhi);*/
-/*			R[i] += Rfull;*/
-/*			lo = mulx64(A->t[i + j], B->t[N - j], &hi);*/
-/*			R[i] += (__int128) lo | ((__int128) hi << 64);*/
-/*		}*/
 		
 		R[i] = R[i] * LAMBDA;
 		
 		for(j = 0; j < i + 1; j++)
 			R[i] += (__int128) A->t[j] * B->t[i - j];
-/*		{*/
-/*			*Rlo = mulx64(A->t[j], B->t[i - j], Rhi);*/
-/*			R[i] += Rfull;*/
-/*			lo = mulx64(A->t[j], B->t[i - j], &hi);*/
-/*			R[i] += (__int128) lo | ((__int128) hi << 64);*/
-/*		}*/
 	}
 }
 
@@ -205,6 +186,10 @@ inline void amns_montg_mult_pre(restrict poly res, const restrict poly A,
 void amns_rtl_sqandmult(restrict poly res, const restrict poly base,
 	const restrict poly exponent)
 {
+	// Function for fast exponentiation using the square and multiply algorithm.
+	// Returns base^exponent % p. Note that the exponent is a multiprecision
+	// number and not a polynomial despite using the poly structure.
+	
 	register uint16_t i;
 	register uint8_t j;
 	register uint64_t aux;
@@ -243,6 +228,10 @@ void amns_rtl_sqandmult(restrict poly res, const restrict poly base,
 void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
 	const restrict poly exponent)
 {
+	// Function for fast exponentiation using the square and multiply algorithm.
+	// Returns base^exponent % p. Note that the exponent is a multiprecision
+	// number and not a polynomial despite using the poly structure.
+	
 	register uint16_t i;
 	register uint8_t j;
 	register uint64_t aux;
@@ -281,12 +270,20 @@ void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
 void amns_sqandmult(restrict poly res, const restrict poly base,
 	const restrict poly exponent)
 {
+	// Function for fast exponentiation using the square and multiply algorithm.
+	// Returns base^exponent % p. Note that the exponent is a multiprecision
+	// number and not a polynomial despite using the poly structure.
+	
 	amns_rtl_sqandmult(res, base, exponent);
 }
 
 void amns_montg_ladder(restrict poly res, const restrict poly base,
 	const restrict poly exponent)
 {
+	// Function for fast exponentiation using the montgomery ladder.
+	// Returns base^exponent % p. Note that the exponent is a multiprecision
+	// number and not a polynomial despite using the poly structure.
+	
 	register uint16_t i;
 	register uint8_t j;
 	register uint64_t aux, b;
@@ -333,12 +330,18 @@ static inline int64_t __modrho(int64_t param)
 
 void randpoly(poly P)
 {
+	// Function that generates a random polynomial within our PMNS system.
+	
 	for(register uint16_t i = 0; i < P->deg; i++)
 		P->t[i] = __modrho(randomint64()) * (1 + (rand() & 1) * -2);
 }
 
 void convert_string_to_amns(restrict poly res, const char* string)
 {
+	// Function that converts a hexadecimal number given as a string into a
+	// polynomial in our representation system (we multiply it by PHI in the
+	// process).
+	
 	uint8_t counter;
 	register uint16_t i, j;
 	const uint64_t rho = (1ULL<<RHO);
@@ -382,6 +385,9 @@ end:
 
 void convert_amns_to_poly(restrict poly* res, const restrict poly P)
 {
+	// Function that converts out of the AMNS system and into a multiprecision
+	// number. Note that we use the poly structure but res is not a polynomial.
+	
 	register uint16_t i;
 	poly a, aux, ag, tmp;
 	__int128 Quite[N];

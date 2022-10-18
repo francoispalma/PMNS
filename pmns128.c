@@ -19,76 +19,6 @@ __inline uint64_t mulx64(uint64_t x, uint64_t y, uint64_t* hi)
     return x;
 }
 
-static inline void mult128(__int128* Rhi, unsigned __int128* Rlo,
-	const int64_t Ahi, const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
-{
-	unsigned __int128 aux, tmp;
-	*Rhi = (__int128) LOW(Ahi) * LOW(Bhi);
-	*Rlo = (__int128) Alo * Blo;
-	aux = (__int128) Alo * LOW(Bhi);
-	tmp = (__int128) *Rlo + (aux << 64);
-	*Rhi = (__int128) *Rhi + HI(aux) + (*Rlo > tmp);
-	aux = (__int128) LOW(Ahi) * Blo;
-	*Rlo = (__int128) tmp + (aux << 64);
-	*Rhi = (__int128) *Rhi + HI(aux) + (*Rlo < tmp);
-}
-
-static inline void umult128(unsigned __int128* Rhi, unsigned __int128* Rlo,
-	const uint64_t Ahi, const uint64_t Alo, const uint64_t Bhi,
-	const uint64_t Blo)
-{
-	unsigned __int128 aux, tmp;
-	*Rhi = (__int128) LOW(Ahi) * LOW(Bhi);
-	*Rlo = (__int128) Alo * Blo;
-	aux = (__int128) Alo * LOW(Bhi);
-	tmp = (__int128) *Rlo + (aux << 64);
-	*Rhi = (__int128) *Rhi + HI(aux) + (*Rlo > tmp);
-	aux = (__int128) LOW(Ahi) * Blo;
-	*Rlo = (__int128) tmp + (aux << 64);
-	*Rhi = (__int128) *Rhi + HI(aux) + (*Rlo < tmp);
-}
-
-static inline void umultadd128(unsigned __int128* Rhi, unsigned __int128* Rlo,
-	const uint64_t Ahi, const uint64_t Alo, const uint64_t Bhi,
-	const uint64_t Blo)
-{
-	unsigned __int128 auxlo, auxhi;
-	
-	umult128(&auxhi, &auxlo, Ahi, Alo, Bhi, Blo);
-	
-	*Rlo = (__int128) *Rlo + auxlo;
-	*Rhi = (__int128) *Rhi + auxhi + (*Rlo < auxlo);
-}
-
-static inline void multadd128x(__int128* Rhi, unsigned __int128* Rlo,
-	const int64_t Ahi, const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
-{
-	unsigned __int128 auxlo;
-	__int128 auxhi;
-	
-	mult128(&auxhi, &auxlo, Ahi, Alo, Bhi, Blo);
-	
-	*Rlo = (__int128) *Rlo + auxlo;
-	*Rhi = (__int128) *Rhi + auxhi + (*Rlo < auxlo);
-}
-
-static inline __int128 signed_unsigned_mul128(const uint64_t A, const int64_t B)
-{
-	return (__int128) A * B;
-}
-
-static inline __int128 signed_unsigned_mul128x(const uint64_t A, const int64_t B)
-{
-	int64_t q;
-	uint64_t r;
-	__int128 tmp;
-	tmp = (__int128) A * LOW(B);
-	r = tmp;
-	q = HIGH(tmp);
-	q -= A;
-	return (__int128) ((__int128) q << 64) | r; 
-}
-
 static inline void multadd128_old(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,
 	const int64_t Bhi, const uint64_t Blo)
@@ -125,113 +55,6 @@ static inline void multadd128(__int128* restrict Rhi,
 	*Rhi += (__int128) A1B1 + HIGH(A1B0_A0B1) + add_overflow(Rlo, tmplo);
 }
 
-/*static inline void multadd128_karatsuba(__int128* restrict Rhi,*/
-/*	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,*/
-/*	const int64_t Bhi, const uint64_t Blo)*/
-/*{*/
-/*	// multiplies A and B and adds the result to R using karatsuba.*/
-/*	unsigned __int128 A0B0, A1B0_A0B1;*/
-/*	__int128 A1B1;*/
-/*	*/
-/*	A1B1 = (__int128) Ahi * Bhi;*/
-/*	A0B0 = (__int128) Alo * Blo;*/
-/*	A1B0_A0B1 = (__int128) ((__int128) ((__int128) A1B1 + A0B0) - ((__int128) ((__int128) Alo - Ahi) * ((__int128) Blo - Bhi))) + HIGH(A0B0);*/
-/*	*/
-/*	*Rhi += (__int128) A1B1 + HIGH(A1B0_A0B1) + add_overflow(Rlo, (__int128) LOW(A0B0) + ((__int128)A1B0_A0B1 << 64));*/
-/*}*/
-
-/*static inline void multadd128a(__int128* restrict Rhi,*/
-/*	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,*/
-/*	const int64_t Bhi, const uint64_t Blo)*/
-/*{*/
-/*	// multiplies A and B and adds the result to R, using mulx64.*/
-/*	unsigned __int128 A0B0, tmplo;*/
-/*	__int128 A1B1, A1B0, A0B1, aux1, aux2, aux3;*/
-/*	*/
-/*	uint64_t *hi, *lo;*/
-/*	*/
-/*	lo = (uint64_t*) &A1B1;*/
-/*	hi = lo + 1;*/
-/*	*lo = mulx64(Ahi, Bhi, hi);*/
-/*	lo = (uint64_t*) &A1B0;*/
-/*	hi = lo + 1;*/
-/*	*lo = mulx64(Ahi, Blo, hi);*/
-/*	lo = (uint64_t*) &A0B1;*/
-/*	hi = lo + 1;*/
-/*	*lo = mulx64(Alo, Bhi, hi);*/
-/*	lo = (uint64_t*) &A0B0;*/
-/*	hi = lo + 1;*/
-/*	*lo = mulx64(Alo, Blo, hi);*/
-/*	*/
-/*	aux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);*/
-/*	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0) + LOW(A1B1);*/
-/*	aux1 = (__int128) HIGH(A1B1);*/
-/*	*/
-/*	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);*/
-/*	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);*/
-/*}*/
-
-/*static inline void multadd128g(__int128* restrict Rhi,*/
-/*	unsigned __int128* restrict Rlo, const int64_t Ahi, const uint64_t Alo,*/
-/*	const int64_t Bhi, const uint64_t Blo)*/
-/*{*/
-/*	// multiplies A and B and adds the result to R, using gmp's mpn functions.*/
-/*	const uint64_t A[2] = { Alo, Ahi }, B[2] = { Blo, Bhi };*/
-/*	uint64_t C[4] = {0}, R[4] = { LOW(*Rlo), HIGH(*Rlo), LOW(Rhi), HIGH(*Rhi)};*/
-/*	//unsigned __int128 tmplo;*/
-/*	*/
-/*	*/
-/*	mpn_mul_n(C, A, B, 2);*/
-/*	*/
-/*	mpn_add_n(R, R, C, 4);*/
-/*	*/
-/*	*Rlo = (__int128) R[0] | ((__int128) R[1] << 64);*/
-/*	*Rhi = (__int128) R[2] | ((__int128) R[3] << 64);*/
-/*}*/
-
-/*void multadd128kara(__int128* Rhi, unsigned __int128* Rlo, const int64_t Ahi,*/
-/*	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)*/
-/*{*/
-/*	// multiplies A and B and adds the result to R using karatsuba;*/
-/*	unsigned __int128 A0B0, tmplo;*/
-/*	__int128 A1B1, A1B0_A0B1, aux1, aux2, aux3;*/
-/*	*/
-/*	A1B1 = (__int128) Ahi * Bhi;*/
-/*	A0B0 = (__int128) Alo * Blo;*/
-/*	tmplo = (__int128) (Alo - Ahi) * (Blo - Bhi);*/
-/*	//A1B0_A0B1 = (__int128) A0B0 + A1B1 - tmplo;*/
-/*	aux1 = __builtin_add_overflow(A0B0, A1B1, &A1B0_A0B1);*/
-/*	aux1 -= __builtin_sub_overflow(A1B0_A0B1, tmplo, &A1B0_A0B1);*/
-/*	*/
-/*	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);*/
-/*	aux2 = (__int128) HIGH(aux3) + HIGH(A1B0_A0B1) + LOW(A1B1);*/
-/*	aux1 += (__int128) HIGH(A1B1);*/
-/*	*/
-/*	tmplo = (__int128) LOW(A0B0) | (aux3 << 64);*/
-/*	*Rhi += (__int128) aux2 + (aux1 << 64) + add_overflow(Rlo, tmplo);*/
-/*}*/
-
-/*void m_multadd128(__int128* Rhi, unsigned __int128* Rlo, const uint64_t Ahi,*/
-/*	const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)*/
-/*{*/
-/*	// multiplies A and B and adds the result to R for mult by M use;*/
-/*	unsigned __int128 A0B0, tmplo;*/
-/*	__int128 A1B1, A1B0_A0B1, aux1, aux2, aux3;*/
-/*	*/
-/*	A1B1 = (__int128) Ahi * Bhi;*/
-/*	A0B0 = (__int128) Alo * Blo;*/
-/*	aux3 = (__int128) (Alo - Ahi) * (Blo - Bhi);*/
-/*	A1B0_A0B1 = (__int128) A0B0 + A1B1 - aux3;*/
-/*	*/
-/*	aux3 = (__int128) HI(A0B0) + LOW(A1B0_A0B1);*/
-/*	aux2 = (__int128) HI(aux3) + HI(A1B0_A0B1) + LOW(A1B1);*/
-/*	aux1 = (__int128) HI(A1B1);*/
-/*	*/
-/*	tmplo = *Rlo;*/
-/*	*Rlo += (__int128) LOW(A0B0) + ((__int128)(HI(A0B0) + LOW(A1B0_A0B1)) << 64);*/
-/*	*Rhi += (__int128) aux2 + (aux1 << 64) + (*Rlo < tmplo);*/
-/*}*/
-
 static inline void mm1_multadd128(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,
 	const int64_t Bhi, const uint64_t Blo)
@@ -251,35 +74,6 @@ static inline void mm1_multadd128(__int128* restrict Rhi,
 	tmplo = (__int128) A0B0 + ((__int128)(LOW(A0B1) + LOW(A1B0)) << 64);
 	*Rhi += (__int128) aux2 + A1B1 + add_overflow(Rlo, tmplo);
 }
-
-/*static inline void mm1_multadd128__(__int128* restrict Rhi,*/
-/*	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,*/
-/*	const int64_t Bhi, const uint64_t Blo)*/
-/*{*/
-/*	*Rhi += (__int128) __builtin_add_overflow((__int128) Alo * Blo, *Rlo, Rlo)*/
-/*		+ __builtin_add_overflow(*Rlo, ((unsigned __int128) ((__int128) Alo * Bhi) << 64), Rlo)*/
-/*		+ __builtin_add_overflow(*Rlo, ((unsigned __int128) ((__int128) Ahi * Blo) << 64), Rlo)*/
-/*		+ HIGH((__int128) Alo * Bhi) + HI((unsigned __int128) Ahi * Blo) + ((__int128) Ahi * Bhi);*/
-/*}*/
-
-/*static inline void mm1_multadd128x(__int128* restrict Rhi,*/
-/*	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,*/
-/*	const int64_t Bhi, const uint64_t Blo)*/
-/*{*/
-/*	// multiplies A and B and adds the result to R for mult by M or M1 use;*/
-/*	unsigned __int128 A0B0, A1B0, tmplo;*/
-/*	__int128 aux1, aux2, aux3;*/
-/*	*/
-/*	A1B0 = (__int128) Ahi * Blo;*/
-/*	A0B0 = (__int128) Alo * Blo;*/
-/*	*/
-/*	aux3 = (__int128) HIGH(A0B0) + LOW(Alo * Bhi) + LOW(Ahi * Blo);*/
-/*	aux2 = (__int128) HIGH(aux3) + HIGH((__int128) Alo * Bhi) + HIGH(A1B0) + LOW(Ahi * Bhi);*/
-/*	aux1 = (__int128) HIGH((__int128) Ahi * Bhi);*/
-/*	*/
-/*	tmplo = (__int128) LOW(Alo * Blo) | (aux3 << 64);*/
-/*	*Rhi += (__int128) aux2 + (aux1 << 64) + __builtin_add_overflow(*Rlo, tmplo, Rlo);*/
-/*}*/
 
 static inline void OLD_m1_multadd128(unsigned __int128* restrict Rlo,
 	const uint64_t Ahi, const uint64_t Alo, const int64_t Bhi, const uint64_t Blo)
@@ -516,6 +310,10 @@ inline void amns128_montg_mult_hyb(restrict poly128 res, const restrict poly128 
 void amns128_rtl_sqandmult(restrict poly128 res, const restrict poly128 base,
 	const restrict poly exponent)
 {
+	// Function for fast exponentiation using the square and multiply algorithm.
+	// Returns base^exponent % p. Note that the exponent is a multiprecision
+	// number and not a polynomial despite using the poly structure.
+	
 	register uint16_t i;
 	register uint8_t j;
 	register uint64_t aux;
@@ -554,6 +352,10 @@ void amns128_rtl_sqandmult(restrict poly128 res, const restrict poly128 base,
 void amns128_ltr_sqandmult(restrict poly128 res, const restrict poly128 base,
 	const restrict poly exponent)
 {
+	// Function for fast exponentiation using the square and multiply algorithm.
+	// Returns base^exponent % p. Note that the exponent is a multiprecision
+	// number and not a polynomial despite using the poly structure.
+	
 	register uint16_t i;
 	register uint8_t j;
 	register uint64_t aux;
@@ -592,12 +394,20 @@ void amns128_ltr_sqandmult(restrict poly128 res, const restrict poly128 base,
 void amns128_sqandmult(restrict poly128 res, const restrict poly128 base,
 	const restrict poly exponent)
 {
+	// Function for fast exponentiation using the square and multiply algorithm.
+	// Returns base^exponent % p. Note that the exponent is a multiprecision
+	// number and not a polynomial despite using the poly structure.
+	
 	amns128_ltr_sqandmult(res, base, exponent);
 }
 
 void amns128_montg_ladder(restrict poly128 res, const restrict poly128 base,
 	const restrict poly exponent)
 {
+	// Function for fast exponentiation using the montgomery ladder.
+	// Returns base^exponent % p. Note that the exponent is a multiprecision
+	// number and not a polynomial despite using the poly structure.
+	
 	register uint16_t i;
 	register uint8_t j;
 	register uint64_t aux, b;
@@ -632,113 +442,12 @@ void amns128_montg_ladder(restrict poly128 res, const restrict poly128 base,
 	free_poly128(tmp);
 }
 
-/*static inline void OLD_mns128_mod_mult_ext_red(__int128* restrict Rhi,*/
-/*	unsigned __int128* restrict Rlo, const restrict poly128 A,*/
-/*	const restrict poly128 B)*/
-/*{*/
-/*	// Function that multiplies A by B and applies external reduction using*/
-/*	// E(X) = X^n - lambda as a polynomial used for reduction.*/
-/*	register uint16_t i, j;*/
-/*	unsigned __int128 aux;*/
-/*	*/
-/*	for(i = 0; i < N; i++)*/
-/*	{*/
-/*		for(j = 1; j < N - i; j++)*/
-/*			multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],*/
-/*				B->hi[N - j], B->lo[N - j]);*/
-/*		*/
-/*		aux = (unsigned __int128) LOW(Rlo[i]) * (LAMBDA);*/
-/*		aux = (unsigned __int128) HI(Rlo[i]) * (LAMBDA) + HIGH(aux);*/
-/*		Rlo[i] = (__int128) Rlo[i] * (LAMBDA);*/
-/*		Rhi[i] = (__int128) Rhi[i] * (LAMBDA) + HIGH(aux);*/
-/*		*/
-/*		for(j = 0; j < i + 1; j++)*/
-/*			multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],*/
-/*				B->hi[i - j], B->lo[i - j]);*/
-/*	}*/
-/*}*/
-
-/*static inline void OLD_m_mns128_mod_mult_ext_red(__int128* restrict Rhi, */
-/*	unsigned __int128* restrict Rlo, const restrict poly128 A)*/
-/*{*/
-/*	// Same as above but with some pre calculations done in the case of M being*/
-/*	// the second operand.*/
-/*	*/
-/*	register uint16_t i, j;*/
-/*	*/
-/*	for(i = 0; i < N; i++)*/
-/*	{*/
-/*		for(j = 1; j < N - i; j++)*/
-/*			mm1_multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],*/
-/*				MLambdahi[N - j], MLambdalo[N - j]);*/
-/*		*/
-/*		for(j = 0; j < i + 1; j++)*/
-/*			mm1_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],*/
-/*				Mhi[i - j], Mlo[i - j]);*/
-/*	}*/
-/*}*/
-
-/*static inline void OLD_m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,*/
-/*	const restrict poly128 A)*/
-/*{*/
-/*	// Same as above but with some pre calculations done in the case of M1 being*/
-/*	// the second operand (in pmns128 we only care about the lower 128 bits for*/
-/*	// this operation).*/
-/*	*/
-/*	register uint16_t i, j;*/
-/*	*/
-/*	for(i = 0; i < N; i++)*/
-/*	{*/
-/*		for(j = 1; j < N - i; j++)*/
-/*			OLD_m1_multadd128(Rlo + i, A->hi[i + j], A->lo[i + j],*/
-/*				M1Lambdahi[N - j], M1Lambdalo[N - j]);*/
-/*		*/
-/*		for(j = 0; j < i + 1; j++)*/
-/*			OLD_m1_multadd128(Rlo + i, A->hi[j], A->lo[j],*/
-/*				M1hi[i - j], M1lo[i - j]);*/
-/*	}*/
-/*}*/
-
-/*static inline void OLD_mns128_montg_int_red(poly128 res, __int128* restrict Rhi,*/
-/*	unsigned __int128* restrict Rlo)*/
-/*{*/
-/*	// Function that reduces the internal coefficient contained in R to be lower*/
-/*	// than the chosen Rho.*/
-/*	unsigned __int128 V[N], V2[N];*/
-/*	register uint16_t i;*/
-/*	*/
-/*	*/
-/*	memcpy(V, Rlo, N * sizeof(__int128));*/
-/*	memcpy(V2, Rhi, N * sizeof(__int128));*/
-/*	for(i = 0; i < N; i++)*/
-/*	{*/
-/*		res->lo[i] = LOW(Rlo[i]);*/
-/*		res->hi[i] = HI(Rlo[i]);*/
-/*		Rlo[i] = 0;*/
-/*	}*/
-/*	*/
-/*	OLD_m1_mns128_mod_mult_ext_red(Rlo, res);*/
-/*	*/
-/*	for(i = 0; i < N; i++)*/
-/*	{*/
-/*		res->lo[i] = LOW(Rlo[i]);*/
-/*		res->hi[i] = HIGH(Rlo[i]);*/
-/*		Rlo[i] = 0;*/
-/*		Rhi[i] = 0;*/
-/*	}*/
-/*	*/
-/*	OLD_m_mns128_mod_mult_ext_red(Rhi, Rlo, res);*/
-/*	*/
-/*	for(i = 0; i < N; i++)*/
-/*	{*/
-/*		Rhi[i] = (__int128) V2[i] + Rhi[i] + (V[i] != 0);*/
-/*		res->lo[i] = LOW(Rhi[i]);*/
-/*		res->hi[i] = HIGH(Rhi[i]);*/
-/*	}*/
-/*}*/
-
 void convert_string_to_amns128(restrict poly128 res, const char* string)
 {
+	// Function that converts a hexadecimal number given as a string into a
+	// polynomial in our representation system (we multiply it by PHI in the
+	// process).
+	
 	uint8_t counter;
 	register uint16_t i, j;
 	const unsigned __int128 rho = ((__int128)1) << RHO;
@@ -782,6 +491,9 @@ end:
 
 void convert_amns128_to_poly(restrict poly* res, const restrict poly128 P)
 {
+	// Function that converts out of the AMNS system and into a multiprecision
+	// number. Note that we use the poly structure but res is not a polynomial.
+	
 	register uint16_t i;
 	poly aux, ag, tmp;
 	poly128 a;
@@ -955,7 +667,7 @@ void __benchmult__(void)
 		lo1 = randomint64();
 		lo2 = randomint64();
 		c = clock();
-		multadd128x(&dummy11, &dummy12, hi1, lo1, hi2, lo2);
+		//multadd128x(&dummy11, &dummy12, hi1, lo1, hi2, lo2);
 		sum1 += clock() - c;
 		c = clock();
 		multadd128(&dummy21, &dummy22, hi1, lo1, hi2, lo2);
@@ -970,7 +682,7 @@ void __benchmult__(void)
 		lo1 = randomint64();
 		lo2 = randomint64();
 		c = clock();
-		multadd128x(&dummy11, &dummy12, hi1, lo1, hi2, lo2);
+		//multadd128x(&dummy11, &dummy12, hi1, lo1, hi2, lo2);
 		sum1 += clock() - c;
 		c = clock();
 		multadd128(&dummy21, &dummy22, hi1, lo1, hi2, lo2);

@@ -7,8 +7,6 @@ void __print128(register const __int128 Val)
 {
 	int64_t hi = Val >> 64;
 	uint64_t lo = Val;
-	//if (hi & 0x8000000000000000) printf("-");
-/*	printf("0x%lx%016lx\n", hi & 0x8000000000000000 ? -hi : hi, hi & 0x8000000000000000 ? -lo : lo);*/
 	printf("0x%lx%016lx\n", hi, lo);
 }
 
@@ -27,6 +25,10 @@ void mp_reduce(restrict poly A)
 
 void convert_string_to_poly(restrict poly* res, const char* string)
 {
+	// Function that converts a hexadecimal number given as a string into a
+	// multiprecision number. Despite the use of the poly structure, it is not
+	// a polynomial and is not in a PMNS system.
+	
 	uint16_t tabsize = 0, j;
 	int16_t i = 0;
 	char store[17];

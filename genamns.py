@@ -52,7 +52,7 @@ def gen_amns(p, phi=64, polyv=True):
 			try:
 				fs = factor(E)
 				if fs[0][0].degree() == 1:  # if the degree is one, we have a solution
-					flag = abs(int(((pow(fs[0][0][0], n, p) + 10) % p)) - 10) == lam
+					flag = abs(int(((pow(-fs[0][0][0], n, p) + 10) % p)) - 10) == lam
 					break
 			except:
 				pass
@@ -62,14 +62,13 @@ def gen_amns(p, phi=64, polyv=True):
 			fsprime = factor(Eprime)
 			if fsprime[0][0].degree() == 1:
 				fs = fsprime
-				flag = abs(int(((pow(fs[0][0][0], n, p) + 10) % p) - 10)) == lam
+				flag = abs(int(((pow(-fs[0][0][0], n, p) + 10) % p) - 10)) == lam
 				break
 
 		if flag == True:
 			flag = False
-			gamma = fs[0][0][0]
-			lamb = int(((pow(fs[0][0][0], n, p) + 10) % p)) - 10
-
+			gamma = -fs[0][0][0]
+			lamb = int(((pow(gamma, n, p) + 10) % p)) - 10
 
 			RingPoly = PolynomialRing(ZZ, 'X')
 			E = RingPoly("X^" + str(n) + " - (" + str(lamb) + ")")
