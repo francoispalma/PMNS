@@ -15,8 +15,8 @@ def infinite_norm_of_matrix(Matrix):
 def norm_one_of_matrix(Matrix):
 	return max([sum([abs(Matrix[i][j]) for i in range(len(Matrix))]) for j in range(len(Matrix))])
 
-def maingen(power, sphi, start=0, polyv=True):
-	primes = primesdict[power]
+def maingen(psize, sphi, start=0, polyv=True):
+	primes = primesdict[psize]
 	if start == 0:
 		print("pmns" + sphi + "dict = {}")
 	else:
@@ -32,42 +32,60 @@ def maingen(power, sphi, start=0, polyv=True):
 
 def gen_amns(p, phi=64, polyv=True):
 	PHI = 2**phi
-	power = int(log2(p))
-	n = (power // phi)
-	while power >= n * phi - n * (4 + 2*log2(n)):
+	psize = int(log2(p))
+	# We try to find the minimal n for a given p
+
+	# This is the smallest theoretical value
+	n = (psize // phi)
+
+	# We want to observe the bound given by 2**(psize/n) <= PHI/((2*n*lambda)**2)
+	# Assuming the smallest lambda = 2 this gives us:
+	# 2**(psize/n) <= PHI/((2*n*2)**2) or PHI/((4n)**2)
+	# We apply log2 on both sides which gives us psize/n <= phi - log2((4n)**2)
+	# We can then simplify this to psize <= n * (phi - (4 + 2 * log2(n)))
+	while psize >= n * (phi - (4 + 2 * log2(n))):
 		n += 1
 	K = GF(p)
 	polK = PolynomialRing(K, 'X')
 	flag = False
 	while True:
-		POWERN = 2**(power/n)
+		POWERN = 2**(psize/n)
 		# We try for each value of lambda
 		for lam in range(2, 8):
 			w = 1 + (n - 1) * lam
 			if PHI <= POWERN * 2 * w:
 				break
 
-			# We define our external reduction polynomial
-			E = polK("X^" + str(n) +" + " + str(lam))
+			# We define our external reduction polynomial X^n - lambda
+			E = polK("X^" + str(n) +" - " + str(lam))
 			try:
 				fs = factor(E)
-				if fs[0][0].degree() == 1:  # if the degree is one, we have a solution
-					flag = abs(int(((pow(-fs[0][0][0], n, p) + 10) % p)) - 10) == lam
+				i = 0
+				while i < len(fs) and fs[i][0].degree() == 1 and not flag:
+					fs = fsprime
+					gamma = -fs[i][0][0]
+					flag = abs(int(((pow(gamma, n, p) + 10) % p) - 10)) == lam
+					i += 1
+				if flag:
 					break
 			except:
 				pass
 
-			# We also have to try with negative values
-			Eprime = polK("X^" + str(n) +" - " + str(lam))
+			# We also have to try with negative values so X^n + lambda in effect
+			Eprime = polK("X^" + str(n) +" + " + str(lam))
 			fsprime = factor(Eprime)
-			if fsprime[0][0].degree() == 1:
-				fs = fsprime
-				flag = abs(int(((pow(-fs[0][0][0], n, p) + 10) % p) - 10)) == lam
+			i = 0
+			fs = fsprime
+			while i < len(fs) and fs[i][0].degree() == 1 and not flag:
+				gamma = -fs[i][0][0]
+				flag = abs(int(((pow(gamma, n, p) + 10) % p) - 10)) == lam
+				i += 1
+			if flag:
 				break
 
 		if flag == True:
 			flag = False
-			gamma = -fs[0][0][0]
+			# We do this so that we get negative values instead of p sized lambdas
 			lamb = int(((pow(gamma, n, p) + 10) % p)) - 10
 
 			RingPoly = PolynomialRing(ZZ, 'X')
@@ -78,12 +96,12 @@ def gen_amns(p, phi=64, polyv=True):
 			B = list(IntegerLattice(matrix(ZZ, B)).BKZ())
 
 			# Then we calculate rho
-			#__tmp = int(2 * w * infinite_norm_of_matrix(B))
-			if polyv:
-#				__tmp = int(2 * w * max([abs(B[i][j]) for i in range(n) for j in range(n)]))
-				__tmp = int(2 * w * min([max([abs(val) for val in lig]) for lig in B]))
-				rho = __tmp.bit_length()
-				if rho < phi - 1 - log2(w):
+			__tmp = int(2 * norm_one_of_matrix(B))
+			rho = __tmp.bit_length()
+			if rho <= phi - 1 - log2(w):
+
+				#TODO: delete it, this is the old method.
+				if polyv:
 					# We then try to find a valid M
 					for lig in B:
 						# We set M as one line of the base matrix
@@ -115,10 +133,7 @@ def gen_amns(p, phi=64, polyv=True):
 					rho = __tmp.bit_length()
 					return p, n, gamma, lamb, rho, M, M1
 
-			else:
-				__tmp = int(2 * norm_one_of_matrix(B))
-				rho = __tmp.bit_length()
-				if rho < phi - 1 - log2(w):
+				else:
 					B1 = list(matrix(B).inverse() % PHI)
 					return p, n, gamma, lamb, rho, B, B1
 		n += 1
