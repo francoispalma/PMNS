@@ -88,7 +88,7 @@ static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned _
 
 		# From here on, precalc functions, first with the multiplication by M1
 		print("""
-static inline void m1_or_b1_mns128_mod_mult_ext_red_pre(unsigned __int128* restrict Rlo,
+static inline void UNROLLED_m1_or_b1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
 	const restrict poly128 A)
 {
 """)
@@ -114,7 +114,7 @@ static inline void m1_or_b1_mns128_mod_mult_ext_red_pre(unsigned __int128* restr
 
 		# Next is the multiplication by M
 		print("""
-static inline void m_or_b_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi, 
+static inline void UNROLLED_m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rhi, 
 	unsigned __int128* restrict Rlo, const restrict poly128 A)
 {
 	unsigned __int128 A0B0, A1B0, A0B1, tmplo;
@@ -158,8 +158,8 @@ static inline void m_or_b_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 		B1hi = [[elem >> 64 for elem in lig] for lig in B1]
 		B1lo = [[elem % (2**64) for elem in lig] for lig in B1]
 
-		print(f"static const uint64_t Blo[N][N] = {{\n{str(Blo)[1:-1].replace('[',  '{').replace(']', '}').replace(', ', 'u, ').replace('}u,', 'u},')}\n\t\t}},")
-		print(f"\tB1lo[N][N] = {{\n{str(B1lo)[1:-1].replace('[',  '{').replace(']', '}').replace(', ', 'u, ').replace('}u,', 'u},')}\n\t\t}};")
+		print(f"static const uint64_t Blo[N][N] = {{\n{str(Blo)[1:-1].replace('[',  '{').replace(']', '}').replace(', ', 'u, ').replace('}u,', '},').replace('}', 'u}')}\n\t\t}},")
+		print(f"\tB1lo[N][N] = {{\n{str(B1lo)[1:-1].replace('[',  '{').replace(']', '}').replace(', ', 'u, ').replace('}u,', '},').replace('}', 'u}')}\n\t\t}};")
 
 		print(f"static const int64_t Bhi[N][N] = {{\n{str(Bhi)[1:-1].replace('[',  '{').replace(']', '}')}\n\t\t}},")
 		print(f"\tB1hi[N][N] = {{\n{str(B1hi)[1:-1].replace('[',  '{').replace(']', '}')}\n\t\t}};")
@@ -177,7 +177,7 @@ static inline void m_or_b_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 
 		# From here on, precalc functions
 		print("""
-static inline void m1_or_b1_mns128_mod_mult_ext_red_pre(unsigned __int128* restrict Rlo,
+static inline void UNROLLED_m1_or_b1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
 	const restrict poly128 A)
 {""")
 
@@ -195,7 +195,7 @@ static inline void m1_or_b1_mns128_mod_mult_ext_red_pre(unsigned __int128* restr
 		print("}\n")
 
 		print("""
-static inline void m_or_b_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi, 
+static inline void UNROLLED_m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rhi, 
 	unsigned __int128* restrict Rlo, const restrict poly128 A)
 {
 	unsigned __int128 A0B0, A1B0, A0B1, tmplo;
@@ -220,7 +220,7 @@ static inline void m_or_b_mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
 
 	# This one for the multiplication of A by B.
 	print("""
-static inline void mns128_mod_mult_ext_red_pre(__int128* restrict Rhi,
+static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A,
 	const restrict poly128 B)
 {

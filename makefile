@@ -1,7 +1,7 @@
 FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict
 CC = gcc
 PSIZE = 1024
-INDEX = 1
+INDEX = 0
 
 all: main.exe
 

@@ -1,5 +1,5 @@
-from commonpmns import pmnsdicts
+from commonpmns import pmnsWBdicts
 from commonpmns import primesdict
 
-(p, n, gamma, lam, rho, M_or_B, M1_or_B1) = pmnsdicts[1024128][primesdict[1024][1]]
+(p, n, gamma, lam, rho, M_or_B, M1_or_B1) = pmnsWBdicts[1024128][primesdict[1024][0]]
 phi = 2**128

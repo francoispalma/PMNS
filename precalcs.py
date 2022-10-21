@@ -46,7 +46,7 @@ def do_precalcs(p, n, gamma, lam, rho, M_or_B, M1_or_B1):
 
 		# From here on, precalc functions, first with the multiplication by M1
 		print("""
-static inline void m1_or_b1_mns_mod_mult_ext_red_pre(int64_t* restrict R,
+static inline void UNROLLED_m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
 	const restrict poly A)
 {
 """)
@@ -68,7 +68,7 @@ static inline void m1_or_b1_mns_mod_mult_ext_red_pre(int64_t* restrict R,
 
 		# Next is the multiplication by M
 		print("""
-static inline void m_or_b_mns_mod_mult_ext_red_pre(__int128* restrict R,
+static inline void UNROLLED_m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
 	const restrict poly A)
 {
 """)
@@ -102,7 +102,7 @@ static inline void m_or_b_mns_mod_mult_ext_red_pre(__int128* restrict R,
 
 		# From here on, precalc functions, first with the multiplication by B1
 		print("""
-static inline void m1_or_b1_mns_mod_mult_ext_red_pre(int64_t* restrict R,
+static inline void UNROLLED_m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
 	const restrict poly A)
 {
 """)
@@ -120,7 +120,7 @@ static inline void m1_or_b1_mns_mod_mult_ext_red_pre(int64_t* restrict R,
 
 		# Next is the multiplication by B
 		print("""
-static inline void m_or_b_mns_mod_mult_ext_red_pre(__int128* restrict R,
+static inline void UNROLLED_m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
 	const restrict poly A)
 {
 """)
@@ -141,7 +141,7 @@ static inline void m_or_b_mns_mod_mult_ext_red_pre(__int128* restrict R,
 
 	# Precalc for the multiplication of A by B.
 	print("""
-static inline void mns_mod_mult_ext_red_pre(__int128* restrict R,
+static inline void UNROLLED_mns_mod_mult_ext_red(__int128* restrict R,
 const restrict poly A, const restrict poly B)
 {
 """)

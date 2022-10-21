@@ -1,3 +1,6 @@
+// This module is to provide multiprecision operations without relying on gmp
+// This allows the code to compile even on gmp-less environments.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -23,7 +26,7 @@ void mp_reduce(restrict poly A)
 	while(A->deg > 1 && A->t[A->deg - 1] == 0) --A->deg;
 }
 
-void convert_string_to_poly(restrict poly* res, const char* string)
+void convert_string_to_multipre(restrict poly* res, const char* string)
 {
 	// Function that converts a hexadecimal number given as a string into a
 	// multiprecision number. Despite the use of the poly structure, it is not

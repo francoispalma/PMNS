@@ -34,9 +34,7 @@ unsigned long rdpmc_instructions(void) { return 1;}
 
 extern void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
-extern void amns128_montg_mult_pre(restrict poly128 res, const restrict poly128 A,
-	const restrict poly128 B);
-extern void amns128_montg_mult_hyb(restrict poly128 res, const restrict poly128 A,
+extern void UNROLLED_amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
 void randpoly128(poly128);
 
@@ -155,9 +153,7 @@ int main(int argc, char** argv)
 	void (*amns128_mult)(restrict poly128, const restrict poly128,
 		const restrict poly128);
 	if (argc > 1 && (strncmp(argv[1], "pre", 3) == 0))
-		amns128_mult = amns128_montg_mult_pre;
-	else if (argc > 1 && (strncmp(argv[1], "hyb", 3) == 0))
-		amns128_mult = amns128_montg_mult_hyb;
+		amns128_mult = UNROLLED_amns128_montg_mult;
 	else
 		amns128_mult = amns128_montg_mult;
 

@@ -29,7 +29,7 @@ unsigned long rdpmc_instructions(void) { return 1;}
 
 extern void amns_montg_mult(restrict poly res, const restrict poly A,
 	const restrict poly B);
-extern void amns_montg_mult_pre(restrict poly res, const restrict poly A,
+extern void UNROLLED_amns_montg_mult(restrict poly res, const restrict poly A,
 	const restrict poly B);
 void randpoly(poly);
 
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
 	
 	void (*amns_mult)(restrict poly, const restrict poly, const restrict poly);
 	if (argc > 1 && (strncmp(argv[1], "pre", 3) == 0))
-		amns_mult = amns_montg_mult_pre;
+		amns_mult = UNROLLED_amns_montg_mult;
 	else
 		amns_mult = amns_montg_mult;
 

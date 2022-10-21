@@ -3,7 +3,7 @@
 
 void __print128(__int128);
 void mp_print(const restrict poly);
-void convert_string_to_poly(restrict poly*, const char*);
+void convert_string_to_multipre(restrict poly*, const char*);
 void mp_copy(restrict poly*, restrict const poly);
 int8_t mp_comp(restrict poly, restrict poly);
 void mp_leftshift(restrict poly*);

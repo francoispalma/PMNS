@@ -16,7 +16,7 @@ extern void m1_mns_mod_mult_ext_red(int64_t* restrict R,
 	const restrict poly A);
 extern void amns_montg_mult(restrict poly res, const restrict poly A,
 	const restrict poly B);
-extern void amns_montg_mult_pre(restrict poly res, const restrict poly A,
+extern void UNROLLED_amns_montg_mult(restrict poly res, const restrict poly A,
 	const restrict poly B);
 extern void mns_montg_int_red(restrict poly res, __int128* R);
 void amns_montg_ladder(restrict poly res, const restrict poly base,

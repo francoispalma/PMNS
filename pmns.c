@@ -4,25 +4,13 @@
 #include "pmns.h"
 #include "utilitymp.h"
 
-#define AMNS_MONTG_MULT amns_montg_mult_pre
-
-__inline uint64_t mulx64(uint64_t x, uint64_t y, uint64_t* hi)
-{
-    __asm__(
-        "mulx %3, %0, %1    \n\t"
-        : "=&d"(x), "=&a"(y)
-        : "0"(x), "1"(y)
-    );
-
-    *hi = y;
-    return x;
-}
+#define AMNS_MONTG_MULT UNROLLED_amns_montg_mult
 
 inline void mns_mod_mult_ext_red(__int128* restrict R,
 	const restrict poly A, const restrict poly B)
 {
 	// Function that multiplies A by B and applies external reduction using
-	// E(X) = X^n - lambda as a polynomial used for reduction.
+	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R
 	register uint16_t i, j;
 	
 	for(i = 0; i < N; i++)
@@ -40,38 +28,39 @@ inline void mns_mod_mult_ext_red(__int128* restrict R,
 #ifdef M_or_B_is_M
 
 static inline void m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
-	const restrict poly A)
+	int64_t* restrict A)
 {
-	// Same as above but with some pre calculations done in the case of M being
-	// the second operand.
+	// Function that multiplies A by M and applies external reduction using
+	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.
 	
 	register uint16_t i, j;
 	
 	for(i = 0; i < N; i++)
 	{
 		for(j = 1; j < N - i; j++)
-			R[i] += (__int128) (A->t[i + j]) * MLambda[N - j];
+			R[i] += (__int128) (A[i + j]) * MLambda[N - j];
 		
 		for(j = 0; j < i + 1; j++)
-			R[i] += (__int128) (A->t[j]) * M[i - j];
+			R[i] += (__int128) (A[j]) * M[i - j];
 	}
 }
 
 static inline void m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
-	const restrict poly A)
+	__int128* restrict A)
 {
-	// Same as above but with some pre calculations done in the case of M1 being
-	// the second operand.
+	// Function that multiplies A by M1 and applies external reduction using
+	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.
 	
 	register uint16_t i, j;
 	
 	for(i = 0; i < N; i++)
 	{
+		R[i] = 0;
 		for(j = 1; j < N - i; j++)
-			R[i] += ((uint64_t)A->t[i + j]) * M1Lambda[N - j];
+			R[i] += ((uint64_t)A[i + j]) * M1Lambda[N - j];
 		
 		for(j = 0; j < i + 1; j++)
-			R[i] += ((uint64_t)A->t[j]) * M1[i - j];
+			R[i] += ((uint64_t)A[j]) * M1[i - j];
 	}
 }
 
@@ -80,61 +69,55 @@ static inline void m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
 #ifdef M_or_B_is_B
 
 static inline void m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
-	const restrict poly A)
+	int64_t* restrict A)
 {
 	// Vector-Matrix multiplication between A and B, result in R.
 	register uint16_t i, j;
 	
 	for(i = 0; i < N; i++)
+	{
 		for(j = 0; j < N; j++)
-			R[i] += (__int128) A->t[j] * B[j][i];
+			R[i] += (__int128) A[j] * B[j][i];
+	}
 }
 
 static inline void m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
-	const restrict poly A)
+	__int128* restrict A)
 {
 	// Vector-Matrix multiplication between A and B1, result in R.
 	register uint16_t i, j;
 	
 	for(i = 0; i < N; i++)
+	{
+		R[i] = 0;
 		for(j = 0; j < N; j++)
-			R[i] += ((uint64_t)A->t[j]) * B1[j][i];
+			R[i] += ((uint64_t)A[j]) * B1[j][i];
+	}
 }
 
 #endif
 
 inline void mns_montg_int_red(restrict poly res, __int128* restrict R)
 {
-	uint64_t V[N], V2[N];
-	int64_t T[N] = {0};
+	// Internal reduction of R via the Montgomery method.
+	int64_t T[N];
 	register uint16_t i;
 	
-	for(i = 0; i < N; i++)
-	{
-		V[i] = R[i];
-		res->t[i] = R[i];
-		V2[i] = (R[i] >> 64);
-		R[i] = 0;
-	}
+	m1_or_b1_mns_mod_mult_ext_red(T, R);
 	
-	m1_or_b1_mns_mod_mult_ext_red(T, res);
+	m_or_b_mns_mod_mult_ext_red(R, T);
 	
 	for(i = 0; i < N; i++)
-		res->t[i] = T[i];
-	
-	m_or_b_mns_mod_mult_ext_red(R, res);
-	
-	for(i = 0; i < N; i++)
-		res->t[i] = V2[i] + (R[i] >> 64) + (V[i] != 0);
+		res->t[i] = (R[i] >> 64) + ((int64_t) R[i] != 0);
 }
 
 inline void amns_montg_mult(restrict poly res, const restrict poly A,
 	const restrict poly B)
 {
-	// Function that multiplies A by B using the montgomery approach in an
-	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
-	// of the set of polynomials of that amns who have gamma as a root such that
-	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
+	// Function that multiplies A by B using the Montgomery approach in an
+	// amns. Puts the result in res. A and B have to be in the system and res
+	// will be in the pmns also such that if A(gamma) = a * phi mod p and 
+	// B(gamma) = b * phi mod p then res(gamma) = a * b * phi mod p
 	
 	__int128 R[N] = {0};
 	
@@ -143,8 +126,9 @@ inline void amns_montg_mult(restrict poly res, const restrict poly A,
 	mns_montg_int_red(res, R);
 }
 
-static inline void mns_montg_int_red_pre(restrict poly res, __int128* restrict R)
+static inline void UNROLLED_mns_montg_int_red(restrict poly res, __int128* restrict R)
 {
+	// Unrolled version
 	uint64_t V[N], V2[N];
 	int64_t T[N] = {0};
 	register uint16_t i;
@@ -157,30 +141,27 @@ static inline void mns_montg_int_red_pre(restrict poly res, __int128* restrict R
 		R[i] = 0;
 	}
 	
-	m1_or_b1_mns_mod_mult_ext_red_pre(T, res);
+	UNROLLED_m1_or_b1_mns_mod_mult_ext_red(T, res);
 	
 	for(i = 0; i < N; i++)
 		res->t[i] = T[i];
 	
-	m_or_b_mns_mod_mult_ext_red_pre(R, res);
+	UNROLLED_m_or_b_mns_mod_mult_ext_red(R, res);
 	
 	for(i = 0; i < N; i++)
 		res->t[i] = V2[i] + (R[i] >> 64) + (V[i] != 0);
 }
 
-inline void amns_montg_mult_pre(restrict poly res, const restrict poly A,
+inline void UNROLLED_amns_montg_mult(restrict poly res, const restrict poly A,
 	const restrict poly B)
 {
-	// Function that multiplies A by B using the montgomery approach in an
-	// amns. Puts the result in res. Needs M a line of the LLL'd base matrix
-	// of the set of polynomials of that amns who have gamma as a root such that
-	// gcd of M and E is equal to an odd number. M1 is -((M^-1) mod E) mod phi).
+	// Unrolled version
 	
 	__int128 R[N] = {0};
 	
-	mns_mod_mult_ext_red_pre(R, A, B);
+	UNROLLED_mns_mod_mult_ext_red(R, A, B);
 
-	mns_montg_int_red_pre(res, R);
+	UNROLLED_mns_montg_int_red(res, R);
 }
 
 void amns_rtl_sqandmult(restrict poly res, const restrict poly base,
@@ -280,7 +261,7 @@ void amns_sqandmult(restrict poly res, const restrict poly base,
 void amns_montg_ladder(restrict poly res, const restrict poly base,
 	const restrict poly exponent)
 {
-	// Function for fast exponentiation using the montgomery ladder.
+	// Function for fast exponentiation using the Montgomery ladder.
 	// Returns base^exponent % p. Note that the exponent is a multiprecision
 	// number and not a polynomial despite using the poly structure.
 	
@@ -349,7 +330,7 @@ void convert_string_to_amns(restrict poly res, const char* string)
 	poly stok;
 	init_poly(N, &stok);
 	
-	convert_string_to_poly(&stok, string);
+	convert_string_to_multipre(&stok, string);
 	
 	if(stok->deg > N)
 	{
@@ -383,7 +364,7 @@ end:
 	free_poly(stok);
 }
 
-void convert_amns_to_poly(restrict poly* res, const restrict poly P)
+void convert_amns_to_multipre(restrict poly* res, const restrict poly P)
 {
 	// Function that converts out of the AMNS system and into a multiprecision
 	// number. Note that we use the poly structure but res is not a polynomial.
@@ -425,225 +406,10 @@ void convert_amns_to_poly(restrict poly* res, const restrict poly P)
 	free_polys(a, aux, ag, tmp, NULL);
 }
 
-void __sub_tests(void)
-{
-	poly A, B, AmB, BmA, AmBmBmA, BmAmAmB, ApB, AmBpBmA, BmApAmB;
-	init_polys(5, &A, &B, &AmB, &BmA, &AmBmBmA, &BmAmAmB, NULL);
-	init_polys(6, &ApB, &AmBpBmA, &BmApAmB, NULL);
-
-	const char a[] = "163dbed3b4fbeee3bb542bc62983a51f4ecb077c3af9a6d451e1c4b6cd0a99563d55",
-		b[] = "c64be1b07fc889170737a3bbd0501940eb5cdffbb228d09f6c4527812aa64b8cde15";
-	convert_string_to_poly(&A, a);
-	mp_print(A);
-	convert_string_to_poly(&B, b);
-	mp_print(B);
-	mp_sub(&AmB, A, B);
-	mp_print(AmB);
-	mp_sub(&BmA, B, A);
-	mp_print(BmA);
-	mp_sub(&AmBmBmA, AmB, BmA);
-	mp_print(AmBmBmA);
-	mp_sub(&BmAmAmB, BmA, AmB);
-	mp_print(BmAmAmB);
-	mp_add(&ApB, A, B);
-	mp_print(ApB);
-	mp_add(&BmApAmB, BmA, AmB);
-	mp_print(BmApAmB);
-	mp_add(&AmBpBmA, AmB, BmA);
-	mp_print(AmBpBmA);
-	printf("%d %d %d %d\n", mp_comp(A, B), mp_comp(A, AmB), mp_comp(ApB, B),
-		mp_comp(AmBpBmA, BmApAmB));
-	printf("-1 1 1 0\n");
-
-	free_polys(A, B, AmB, BmA, AmBmBmA, BmAmAmB, ApB, AmBpBmA, BmApAmB, NULL);
-}
-
-void __mult_tests(void)
-{
-	poly A, B, C, C_test;
-	init_polys(1, &A, &B, NULL);
-	init_polys(1, &C, &C_test, NULL);
-	
-	const char a[] =  "163dbed3b4fbeee3bb542bc62983a51f4ecb077c3af9a6d451e1c4b6cd0a99563d55",
-		b[] =  "c64be1b07fc889170737a3bbd0501940eb5cdffbb228d09f6c4527812aa64b8cde15",
-		c[] =  "113a594a40463202213fb6a4f7f7c643b20e4efcf7206e5154247afe315d4d6c9a5f8dcd34573cc1b63874bccb81c44e190796da9afb9b7f144f1fe35456d916cebebdf9";
-	
-	convert_string_to_poly(&A, a);
-	printf("%s\n", a);
-	mp_print(A);
-	convert_string_to_poly(&B, b);
-	printf("%s\n", b);
-	mp_print(B);
-	convert_string_to_poly(&C_test, c);
-	printf("%s\n", c);
-	mp_print(C_test);
-	mp_mult(&C, A, B);
-	mp_print(C);
-		
-	free_polys(A, B, C, C_test, NULL);
-}
-
-void __mod_tests(void)
-{
-	poly A, B, C, ST;
-	init_polys(0, &A, &B, &C, &ST, NULL);
-	
-	const char a[] = "163dbed3b4fbeee3bb542bc62983a51f4ecb077c3af9a6d451e1c4b6cd0a99563d55",
-	b[] = "a84c8a29612d9545394797803178257e7e72af34d038e704ca1d0e2000ad0f01e8e03f441888cdbcf393542b3f896520e3f53e37e98e4e7dfe83645e74d239315d054901",
-	c[] = "be42745e4e6c627ae20e738fdf363efa5ad0c8cc844644528d71ac55ab9d69baa36";
-	convert_string_to_poly(&A, a);
-	mp_print(A);
-	convert_string_to_poly(&B, b);
-	mp_print(B);
-	convert_string_to_poly(&ST, "1");
-	for(int i = 0; i < 75; i++)
-	{
-		mp_leftshift(&ST);
-		ST->t[0] |= 1;
-	}
-	for(int i = 0; i < 75; i++)
-		mp_rightshift(ST);
-	
-	mp_mod(&C, B, A);
-	printf("%s\n", c);
-	mp_print(C);
-	
-	free_polys(A, B, C, ST, NULL);
-}
-
-void __init_tests__(void)
-{
-	poly a, b, c, c_check, Phisquared;
-	init_polys(N, &a, &b, &c, &c_check, &Phisquared, NULL);
-	
-	const char A[] = "9b6afe91a6e17ff3e5b7331bc220a825e6bbe48687ca568a0873800b48471d633375";
-	poly converted;
-	init_poly(N, &converted);
-	convert_string_to_amns(converted, A);
-	printf("%s\n", A);
-	print(converted);
-	free_poly(converted);	
-	
-	set_val(a, 3175695016735605, 20859843725, -123954529873808582, 541629668316248009, -29410447444707128);
-	set_val(b, 1061418265038816869, 20374760404, -477028757217305698, 161008708292031432, -62502744134330068);
-	//set_val(b, 1, 0, 0, 0, 0);
-	//set_val(c_check, 2302327877203981, 25683149970777821, -1798382075251775, 52479742770215631, 21994577573493812);
-	set_val(Phisquared, 0, 0, 0, 512, 0);
-	
-	//amns_montg_mult(c, a, b);
-	amns_montg_mult(c_check, a, Phisquared);
-	amns_montg_mult(c, c_check, b);
-	
-	//print(Mlambda);
-	//print(M1lambda);
-	print(a);
-	print(b);
-	//print(c_check);
-	print(c);
-	
-	free_polys(a, b, c, c_check, Phisquared, NULL);
-}
-
-void __proof_of_accuracy(void)
-{
-	time_t seed;
-	poly a, aphi, b, c, Phisquared;
-	init_polys(N, &a, &aphi, &b, &c, &Phisquared, NULL);
-	set_val(Phisquared, 0, 0, 0, 512, 0);
-	srand((unsigned)time(&seed));
-	
-		for(register int64_t i = 0; i < 100; i++)
-	{
-		randpoly(a);
-		amns_montg_mult(aphi, a, Phisquared);
-		randpoly(b);
-		amns_montg_mult(c, aphi, b);
-		
-		print(a);
-		print(b);
-		print(c);
-	}
-	
-	free_polys(a, aphi, b, c, Phisquared, NULL);
-}
-
-void __full_mult_demo(void)
-{
-	const char a[] = "77f882926258fb5a293015e16fc961598939f9f328d4e316d02519d3f8d88412d787",
-		b[] = "b4399ccbab87f4f053d75a9dcc1c1fa8d2f4edd7bdf5eebc78fb4ea16a6fb02eb96d",
-		c[] = "5475bb9ee1c1ea9bb15ef6fc9118d391a012ab14a4ae063bc8832426a1e5c0f555a8fb1e335846abcf0e969b6c942fe0bf34126cfb7f1477a28dc2147f1a74ba6408537b";
-	
-	poly A, B, C, aux;
-	
-	init_polys(N, &A, &B, &C, &aux, NULL);
-	
-	convert_string_to_amns(A, a);
-	convert_string_to_amns(B, b);
-	amns_montg_mult(C, A, B);
-	
-	convert_amns_to_poly(&aux, C);
-	
-	poly tmp;
-	init_poly(1, &tmp);
-	
-	_poly tmp1 = { .deg = 1, .t = (int64_t[]) { -10 } },
-		tmp2 = { .deg = 1, .t = (int64_t[]) { 7 } };
-	
-	mp_mod(&tmp, &tmp1, &tmp2);
-	
-	mp_print(tmp);
-	free_poly(tmp);
-	
-	printf("\n\n");
-	
-	mp_print(aux);
-	printf("%s\n", c);
-	
-	free_polys(A, B, C, aux, NULL);
-}
-
-void __multbench__(void)
-{
-	uint64_t c1 = 0, sum;
-	poly a, b, c, soak1, soak2;
-	init_polys(N, &a, &b, &c, &soak1, &soak2, NULL);
-	
-	srand((unsigned) (time(((int64_t*)(&c1)))));
-	
-	c1 = clock();
-	
-	randpoly(soak2);
-	soak2->t[0] += Gi[0].t[0];
-	soak2->t[0] += __P__.t[0];
-	
-	for(int i = 0; i < 1000; i++)
-	{
-		randpoly(a);
-		randpoly(b);
-		amns_montg_mult(c, a, b);
-		amns_montg_mult(soak1, c, soak2);
-		amns_montg_mult(soak2, c, soak1);
-	}
-	
-	sum = 0;
-	for(int i = 0; i < 10000; i++)
-	{
-		randpoly(a);
-		randpoly(b);
-		c1 = clock();
-		amns_montg_mult(c, a, b);
-		sum += clock() - c1;
-		amns_montg_mult(soak1, c, soak2);
-		amns_montg_mult(soak2, c, soak1);
-	}
-	
-	printf("%ld\n", sum);
-	
-	free_polys(a, b, c, soak1, soak2, NULL);
-}
-
 void __multchecks__(void)
 {
+	// Used as a debug tool to see if the PMNS correctly gives us the proper
+	// results with a few random values.
 	poly a, b, c;
 	init_polys(N, &a, &b, &c, NULL);
 	int64_t seed;
@@ -665,6 +431,7 @@ void __multchecks__(void)
 
 void __sqandmultdemo(void)
 {
+	// TODO: delete it, used to check point to point process.
 	const char a[] = "2", // "7609d69beaadb6de37a7b36cd193b33b120489bd4298534e830eeeaf9a65b15c12268aea1447f610377ea045afc463fb193a531e46cf70052ee6143d782b27aee363d426ad73085f7c24376b676070214cbf1b69f93fd5fdd70b8c77dd2268cbf3f210366b932c7351d9332608fb294ebb44bc7b17bfa3e115dd06c642670d67",
 		b[] = "1", // "78a5cc1a942f42e81aa0dc980d3b6a7f987bf9847fb30f8d17c327283745d1365e6bd495a6b4bc2f6a16dca99668ee8591b5b04d12e15d5c4f5f22aafca94fcc3973e7e7714c84b0fb514f862d3444fd36f82f54ccb6c2f2ac3510d3aaea94953533e511076ba29103afb13ba6387001f1055b400b5abfc5b7cd0cdb4b2ebf2a",
 		c[] = "606ddc8f63ff63abfacb0ced7fcef39d42f0831e9e84459bbffbc1a04b866aaf572571e876a087dc633ab189b40eb861be2f7e194ac5f24ad7886eeb070028bc91a3970ea828cdd5da8eea173d0a38da1bc072837e5835ff2bd266ebcc4788870c7dca82e5b87cd1a844a5120339d2ef1620f1484888538824c5474fe77014e6";
@@ -672,7 +439,7 @@ void __sqandmultdemo(void)
 	poly A, B, C, aux;
 	init_polys(N, &A, &B, &C, &aux, NULL);
 	
-	convert_string_to_poly(&B, b);
+	convert_string_to_multipre(&B, b);
 	convert_string_to_amns(A, a);
 	
 	//amns_sqandmult(C, A, B);
@@ -681,7 +448,7 @@ void __sqandmultdemo(void)
 	//printf("C = ");
 	//print(C);
 	
-	convert_amns_to_poly(&aux, C);
+	convert_amns_to_multipre(&aux, C);
 	
 	printf("\n%s\n\n", c);
 	mp_print(aux);

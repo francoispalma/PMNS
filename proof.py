@@ -6,11 +6,6 @@ from convert import rho_div_convert_to_mns as conv, montgomery_convert_to_mns
 from ops import list_to_poly, horner_modulo, amns_montg_mult
 from pyparams import p, n, gamma, lam, phi, rho, M_or_B as M, M1_or_B1 as M1
 
-#amns = (p, n, gamma, rho, lam) = (6152896135288560374679945371974689688835168151742564408104565373600581564260451457, 5, 220855883097298041197912187592864814478435487109452369765200775161577472, 2305843009213693952, 2)
-#phi = 2**64
-#M = [9446094647596025, -89344859775265, 366378001529314, -4558175830143501, 19231042282234940]
-#M1 = [7045631417041842631, -6084863496536136821, 8006399337547548431, 1601279867509509692, 4355481239625866353]
-
 if __name__ == "__main__":
 	M = M + [0] * (n - len(M))
 	rho = 2**rho
@@ -19,7 +14,7 @@ if __name__ == "__main__":
 	print("Starting")
 	with open("log", "r") as f:
 		while True:
-			print("\b" + str(visual), end="\r")
+			print("\btested:" + str(visual) + "\terrors: " + str(counter), end="\r")
 			visual += 1
 			try:
 				a = literal_eval(f.readline()[:-1])
@@ -31,11 +26,10 @@ if __name__ == "__main__":
 				c_check = (horner_modulo(a, gamma, p) * horner_modulo(b, gamma, p) * pow(phi, -1, p)) % p
 				if horner_modulo(c, gamma, p) != c_check:
 					counter += 1
-					#print("False")
 				for elem in c:
 					if abs(elem) >= rho:
-						print("More than Rho")
+						print("More than Rho:", abs(elem), rho)
+						exit()
 			except SyntaxError:
 				break
-	print("Finished")
-	print("counter:", counter)
+	print("")

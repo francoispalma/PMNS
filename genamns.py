@@ -56,26 +56,28 @@ def gen_amns(p, phi=64, polyv=True):
 			if PHI <= POWERN * 2 * w:
 				break
 
+			if (n & 1):
+				d, u, v = xgcd(n, p-1)
+				if d == 1:
+					flag = True
+					gamma = pow(2, u, p)
+					break
+
 			# We define our external reduction polynomial X^n - lambda
 			E = polK("X^" + str(n) +" - " + str(lam))
-			try:
-				fs = factor(E)
-				i = 0
-				while i < len(fs) and fs[i][0].degree() == 1 and not flag:
-					fs = fsprime
-					gamma = -fs[i][0][0]
-					flag = abs(int(((pow(gamma, n, p) + 10) % p) - 10)) == lam
-					i += 1
-				if flag:
-					break
-			except:
-				pass
+			fs = factor(E)
+			i = 0
+			while i < len(fs) and fs[i][0].degree() == 1 and not flag:
+				gamma = -fs[i][0][0]
+				flag = abs(int(((pow(gamma, n, p) + 10) % p) - 10)) == lam
+				i += 1
+			if flag:
+				break
 
 			# We also have to try with negative values so X^n + lambda in effect
-			Eprime = polK("X^" + str(n) +" + " + str(lam))
-			fsprime = factor(Eprime)
+			E = polK("X^" + str(n) +" + " + str(lam))
+			fs = factor(E)
 			i = 0
-			fs = fsprime
 			while i < len(fs) and fs[i][0].degree() == 1 and not flag:
 				gamma = -fs[i][0][0]
 				flag = abs(int(((pow(gamma, n, p) + 10) % p) - 10)) == lam
@@ -100,8 +102,12 @@ def gen_amns(p, phi=64, polyv=True):
 			rho = __tmp.bit_length()
 			if rho <= phi - 1 - log2(w):
 
+				if not polyv:
+					B1 = list(matrix(B).inverse() % PHI)
+					return p, n, gamma, lamb, rho, B, B1
+
 				#TODO: delete it, this is the old method.
-				if polyv:
+				elif polyv:
 					# We then try to find a valid M
 					for lig in B:
 						# We set M as one line of the base matrix
@@ -133,9 +139,7 @@ def gen_amns(p, phi=64, polyv=True):
 					rho = __tmp.bit_length()
 					return p, n, gamma, lamb, rho, M, M1
 
-				else:
-					B1 = list(matrix(B).inverse() % PHI)
-					return p, n, gamma, lamb, rho, B, B1
+				
 		n += 1
 	
 
@@ -146,27 +150,28 @@ if __name__ == "__main__":
 	if len(arguments) >= 2:
 		try:
 			psize = int(arguments[1])
-			if psize not in list(primesdict.keys()):
-				print("Prime Size not handled")
-				exit()
-			try:
-				phi = arguments[2]
-			except IndexError:
-				phi = ""
-			if phi not in handledphis:
-				print("Value of Phi not handled:", phi)
-				exit()
-			elif phi == "64":
-				phi = ""
-			if len(arguments) >= 4:
-				start = int(arguments[3])
-			else:
-				start = 0
-			if "-B" in opts or "--Base" in opts:
-				maingen(psize, phi, start, False)
-			else:
-				maingen(psize, phi, start, True)
 		except ValueError:
 			print("Invalid arguments:", arguments[1:].__repr__().replace("'", "")[1:-1])
+			exit()
+		if psize not in list(primesdict.keys()):
+			print("Prime Size not handled")
+			exit()
+		try:
+			phi = arguments[2]
+		except IndexError:
+			phi = ""
+		if phi not in handledphis:
+			print("Value of Phi not handled:", phi)
+			exit()
+		elif phi == "64":
+			phi = ""
+		if len(arguments) >= 4:
+			start = int(arguments[3])
+		else:
+			start = 0
+		if "-B" in opts or "--Base" in opts:
+			maingen(psize, phi, start, False)
+		else:
+			maingen(psize, phi, start, True)
 	else:
 		print("Not enough arguments: Psize [Phi] [start]\n\nOPTIONS\n\t--Base, -B: generate base reduction version instead of polynomial.")
