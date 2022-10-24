@@ -95,13 +95,15 @@ def gen_amns(p, phi=64, polyv=True):
 			B = [[p if (k, j) == (0, 0) else -pow(gamma, k, p) if k != 0 and j == 0 else 1 if k == j else 0 for j in range(n)] for k in range(n)]
 			B = list(IntegerLattice(matrix(ZZ, B)).BKZ())
 
-			# Then we calculate rho
-			__tmp = int(2 * norm_one_of_matrix(B))
-			rho = __tmp.bit_length()
-			if rho <= phi - 1 - log2(w):
+			# We want PHI => 4wnorm1(B) because we want PHI => 2wrho
+			# and rho => 2norm1(B)
+			n1B = norm_one_of_matrix(B)
+			if PHI >= 4 * w * n1B:
 
 				if not polyv:
 					B1 = list(matrix(B).inverse() % PHI)
+					__tmp = int(2 * n1B)
+					rho = __tmp.bit_length()  # We take a bigger rho for now
 					return p, n, gamma, lamb, rho, B, B1
 
 				#TODO: delete it, this is the old method.
