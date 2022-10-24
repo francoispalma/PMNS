@@ -13,5 +13,6 @@ void mp_add(restrict poly*, restrict const poly, restrict const poly);
 void mp_sub(restrict poly*, restrict const poly, restrict const poly);
 void mp_mult(restrict poly*, restrict const poly, restrict const poly);
 void mp_mod(restrict poly*, restrict const poly, restrict const poly);
+void mp_utmod(restrict poly*, restrict const poly, restrict const poly);
 
 #endif

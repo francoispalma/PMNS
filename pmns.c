@@ -327,10 +327,18 @@ void convert_string_to_amns(restrict poly res, const char* string)
 	register uint16_t i, j;
 	const uint64_t rho = (1ULL<<RHO);
 	__int128 R[N] = {0};
-	poly stok;
-	init_poly(N, &stok);
+	poly stok, tmp;
+	init_polys(N, &stok, &tmp, NULL);
 	
-	convert_string_to_multipre(&stok, string);
+	if(string[0] == '-')
+	{
+		printf("ERROR: negative numbers not handled.");
+		exit(1);
+	}
+	
+	convert_string_to_multipre(&tmp, string);
+	
+	mp_utmod(&stok, tmp, &__P__);
 	
 	if(stok->deg > N)
 	{
@@ -401,7 +409,7 @@ void convert_amns_to_multipre(restrict poly* res, const restrict poly P)
 	}
 	
 	mp_copy(&tmp, *res);
-	mp_mod(res, tmp, &__P__);
+	mp_utmod(res, tmp, &__P__);
 	
 	free_polys(a, aux, ag, tmp, NULL);
 }
@@ -432,26 +440,33 @@ void __multchecks__(void)
 void __sqandmultdemo(void)
 {
 	// TODO: delete it, used to check point to point process.
-	const char a[] = "2", // "7609d69beaadb6de37a7b36cd193b33b120489bd4298534e830eeeaf9a65b15c12268aea1447f610377ea045afc463fb193a531e46cf70052ee6143d782b27aee363d426ad73085f7c24376b676070214cbf1b69f93fd5fdd70b8c77dd2268cbf3f210366b932c7351d9332608fb294ebb44bc7b17bfa3e115dd06c642670d67",
+	const char a[] = "0xffffffffffff", // "7609d69beaadb6de37a7b36cd193b33b120489bd4298534e830eeeaf9a65b15c12268aea1447f610377ea045afc463fb193a531e46cf70052ee6143d782b27aee363d426ad73085f7c24376b676070214cbf1b69f93fd5fdd70b8c77dd2268cbf3f210366b932c7351d9332608fb294ebb44bc7b17bfa3e115dd06c642670d67",
 		b[] = "1", // "78a5cc1a942f42e81aa0dc980d3b6a7f987bf9847fb30f8d17c327283745d1365e6bd495a6b4bc2f6a16dca99668ee8591b5b04d12e15d5c4f5f22aafca94fcc3973e7e7714c84b0fb514f862d3444fd36f82f54ccb6c2f2ac3510d3aaea94953533e511076ba29103afb13ba6387001f1055b400b5abfc5b7cd0cdb4b2ebf2a",
-		c[] = "606ddc8f63ff63abfacb0ced7fcef39d42f0831e9e84459bbffbc1a04b866aaf572571e876a087dc633ab189b40eb861be2f7e194ac5f24ad7886eeb070028bc91a3970ea828cdd5da8eea173d0a38da1bc072837e5835ff2bd266ebcc4788870c7dca82e5b87cd1a844a5120339d2ef1620f1484888538824c5474fe77014e6";
+		c[] = "4"; // "606ddc8f63ff63abfacb0ced7fcef39d42f0831e9e84459bbffbc1a04b866aaf572571e876a087dc633ab189b40eb861be2f7e194ac5f24ad7886eeb070028bc91a3970ea828cdd5da8eea173d0a38da1bc072837e5835ff2bd266ebcc4788870c7dca82e5b87cd1a844a5120339d2ef1620f1484888538824c5474fe77014e6";
 	
 	poly A, B, C, aux;
 	init_polys(N, &A, &B, &C, &aux, NULL);
 	
 	convert_string_to_multipre(&B, b);
+	
+/*	mp_print(B);*/
+	
+	printf("A = ");
 	convert_string_to_amns(A, a);
+	
+	print(A);
 	
 	//amns_sqandmult(C, A, B);
 	amns_montg_ladder(C, A, B);
 	
-	//printf("C = ");
-	//print(C);
+	printf("\nC = ");
+	print(C);
 	
 	convert_amns_to_multipre(&aux, C);
 	
 	printf("\n%s\n\n", c);
 	mp_print(aux);
+	printf("\n");
 	
 	free_polys(A, B, C, aux, NULL);
 }

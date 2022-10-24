@@ -6,8 +6,6 @@ import sys
 from ops import list_to_poly
 from commonpmns import primesdict, handledphis
 
-# ||M||inf <= phi/((lambda*n*2)**2)
-# min(||M||inf) = P^1/n
 
 def infinite_norm_of_matrix(Matrix):
 	return max([sum([abs(elem) for elem in Line]) for Line in Matrix])
@@ -137,7 +135,8 @@ def gen_amns(p, phi=64, polyv=True):
 					M1 = [int(M1[i]) - PHI if M1[i] >= (PHI >> 1) else M1[i] for i in range(n)]
 					__tmp = int(2 * w * max([abs(elem) for elem in M]))
 					rho = __tmp.bit_length()
-					return p, n, gamma, lamb, rho, M, M1
+					if rho <= phi - 1 - log2(w):
+						return p, n, gamma, lamb, rho, M, M1
 
 				
 		n += 1
