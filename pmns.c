@@ -398,17 +398,54 @@ void convert_amns_to_multipre(restrict poly* res, const restrict poly P)
 	
 	mns_montg_int_red(a, Quite);
 	
-	(*res)->t[0] = a->t[0];
+	
+/*		printf("a = "); print(a); printf("\n");*/
+	
+/*	(*res)->t[0] = a->t[0];*/
+/*	for(i = 1; i < N; i++)*/
+/*	{*/
+/*		aux->t[0] = a->t[i];*/
+/*		mp_mult(&ag, aux, &Gi[i - 1]);*/
+/*		*/
+/*		mp_copy(&tmp, *res);*/
+/*		mp_add(res, tmp, ag);*/
+/*	}*/
+/*	*/
+/*	mp_copy(&tmp, *res);*/
+/*	mp_utmod(res, tmp, &__P__);*/
+	
+	//(*res)->t[0] = a->t[N - 1];
+	tmp->t[0] = a->t[N - 1] * (1 - 2 * (a->t[N - 1] < 0));
+/*	mp_mult(res, tmp, &Gi[0]);*/
+/*	printf("tmp%d = 0x", i); mp_print(*res); printf("\n");*/
+/*	aux->t[0] = a->t[N - 2];*/
+/*	if(a->t[N - 1] < 0)*/
+/*		mp_usub(&tmp, aux, *res);*/
+/*	else*/
+/*		mp_add(&tmp, *res, aux);*/
+/*	printf("tmp1 = 0x"); mp_print(tmp); printf("\n");*/
+/*	mp_utmod(res, tmp, &__P__);*/
+/*	printf("a%d = 0x", i); mp_print(*res); printf("\n");*/
+/*	*/
+/*	mp_copy(&tmp, *res);*/
+	
+	int64_t stk;
+	
 	for(i = 1; i < N; i++)
 	{
-		aux->t[0] = a->t[i];
-		mp_mult(&ag, aux, &Gi[i - 1]);
-		
+/*		aux->t[0] = a->t[N - 1 - i];*/
+		mp_mult(res, tmp, &Gi[0]);
+/*		printf("tmp%d = 0x", i); mp_print(*res); printf("\n");*/
+		stk = a->t[N - 1 - i] * (1 - 2 * (a->t[N - 1] < 0));
 		mp_copy(&tmp, *res);
-		mp_add(res, tmp, ag);
+		tmp->t[0] = ((uint64_t)tmp->t[0]) + stk;
+		if(stk < 0 && ((uint64_t)(*res)->t[0]) < ((uint64_t) tmp->t[0]))
+			tmp->t[1] -= 1;
+		else if (stk > 0 && ((uint64_t)(*res)->t[0]) > ((uint64_t) tmp->t[0]))
+			tmp->t[1] += 1;
+/*		mp_add(&tmp, *res, aux);*/
+/*		printf("a%d = 0x", i); mp_print(*res); printf("\n");*/
 	}
-	
-	mp_copy(&tmp, *res);
 	mp_utmod(res, tmp, &__P__);
 	
 	free_polys(a, aux, ag, tmp, NULL);
@@ -450,6 +487,8 @@ void __sqandmultdemo(void)
 	convert_string_to_multipre(&B, b);
 	
 /*	mp_print(B);*/
+	
+/*	printf("from generated.primes1024 import PRIMES1024\nfrom ops import horner_modulo\nfrom generated.generatedwithbase1024pmns import pmnsdict\np = PRIMES1024[0]\ngamma = pmnsdict[p][2]\n");*/
 	
 	printf("A = ");
 	convert_string_to_amns(A, a);
