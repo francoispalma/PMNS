@@ -12,7 +12,7 @@ pmns.o: pmns.c pmns.h params.h
 	$(CC) -c $< $(FLAGS)
 
 params.h: precalcs.py
-	python3 $< > $@ $(PSIZE) $(INDEX)
+	python3 $< > $@
 
 structs.o: structs.c structs.h
 	$(CC) -c $< $(FLAGS)
@@ -27,7 +27,7 @@ pmns128.o: pmns128.c pmns128.h params128.h
 	$(CC) -c $< $(FLAGS)
 
 params128.h: precalcs128.py
-	python3 $< > $@ $(PSIZE) $(INDEX)
+	python3 $< > $@
 
 bench.exe: intel-measurement.c pmns.o structs.o utilitymp.o
 	$(CC) -o $@ $^ $(FLAGS)

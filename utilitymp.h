@@ -2,17 +2,18 @@
 #define UTILITYMP_CORE_H
 
 void __print128(__int128);
-void mp_print(const restrict poly);
-void convert_string_to_multipre(restrict poly*, const char*);
-void mp_copy(restrict poly*, restrict const poly);
-int8_t mp_comp(restrict poly, restrict poly);
-void mp_leftshift(restrict poly*);
-void mp_rightshift(restrict poly);
-void mp_alignleft(restrict poly*, uint16_t);
-void mp_add(restrict poly*, restrict const poly, restrict const poly);
-void mp_sub(restrict poly*, restrict const poly, restrict const poly);
-void mp_mult(restrict poly*, restrict const poly, restrict const poly);
-void mp_mod(restrict poly*, restrict const poly, restrict const poly);
-void mp_utmod(restrict poly*, restrict const poly, restrict const poly);
+void convert_string_to_multipre(restrict mpnum*, const char*);
+_Bool mp_iszero(const restrict mpnum);
+int8_t mp_comp(restrict mpnum, restrict mpnum);
+void mp_leftshift(restrict mpnum*);
+void mp_rightshift(restrict mpnum);
+void mp_alignleft(restrict mpnum*, uint16_t);
+void mp_add(restrict mpnum*, restrict const mpnum, restrict const mpnum);
+void mp_sub(restrict mpnum*, restrict const mpnum, restrict const mpnum);
+void mp_uadd(restrict mpnum*, restrict const mpnum, restrict const mpnum);
+void mp_usub(restrict mpnum*, restrict const mpnum, restrict const mpnum);
+void mp_mult(restrict mpnum*, restrict const mpnum, restrict const mpnum);
+void mp_mod(restrict mpnum*, restrict const mpnum, restrict const mpnum);
+void mp_utmod(restrict mpnum*, restrict const mpnum, restrict const mpnum);
 
 #endif

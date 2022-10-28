@@ -20,6 +20,6 @@ extern void UNROLLED_amns_montg_mult(restrict poly res, const restrict poly A,
 	const restrict poly B);
 extern void mns_montg_int_red(restrict poly res, __int128* R);
 void amns_montg_ladder(restrict poly res, const restrict poly base,
-	const restrict poly exponent);
+	const restrict mpnum exponent);
 
 #endif

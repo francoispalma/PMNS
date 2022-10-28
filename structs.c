@@ -58,7 +58,7 @@ void set_val(restrict poly P, int64_t val, ...)
 	va_end(args);
 }
 
-inline void print(const restrict poly P)
+inline void poly_print(const restrict poly P)
 {
 	printf("[");
 	for(int16_t i = 0; i < P->deg - 1; i++)
@@ -69,6 +69,72 @@ inline void print(const restrict poly P)
 inline void poly_copy(restrict poly copy, const restrict poly original)
 {
 	memcpy(copy->t, original->t, original->deg * sizeof(int64_t));
+}
+
+inline void init_mpnum(const uint16_t deg, restrict mpnum* P)
+{
+	*P = malloc(sizeof(_mpnum));
+	(*P)->deg = deg;
+	(*P)->t = calloc(deg, sizeof(uint64_t));
+	(*P)->sign = 1;
+}
+
+void init_mpnums(const uint16_t deg, restrict mpnum* P, ...)
+{
+	va_list args;
+	
+	va_start(args, P);
+	do
+	{
+		init_mpnum(deg, P);
+		P = va_arg(args, mpnum*);
+	} while(P != NULL);
+	va_end(args);
+}
+
+inline void free_mpnum(restrict mpnum P)
+{
+	free(P->t);
+	free(P);
+}
+
+void free_mpnums(restrict mpnum P, ...)
+{
+	va_list args;
+	
+	va_start(args, P);
+	do
+	{
+		free_mpnum(P);
+		P = va_arg(args, mpnum);
+	} while(P != NULL);
+	va_end(args);
+}
+
+void mp_print(const restrict mpnum P)
+{
+	if(P->sign == -1)
+		printf("-");
+	printf("0x%lx", P->t[P->deg - 1]);
+	for(register uint16_t i = 1; i < P->deg; i++)
+		printf("%016lx", P->t[P->deg - 1 - i]);
+	printf("\n"); 
+}
+
+void mp_copy(restrict mpnum* A, restrict const mpnum B)
+{
+	// Copy B into A.
+	if((*A)->deg != B->deg)
+	{
+		free_mpnum(*A);
+		init_mpnum(B->deg, A);
+	}
+	
+	(*A)->sign = B->sign;
+	
+	// Copy values in each limb.
+	for(register uint16_t i = 0; i < B->deg; i++)
+		(*A)->t[i] = B->t[i];
 }
 
 inline void init_poly128(const uint16_t deg, restrict poly128* P)

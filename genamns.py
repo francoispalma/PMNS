@@ -13,7 +13,7 @@ def infinite_norm_of_matrix(Matrix):
 def norm_one_of_matrix(Matrix):
 	return max([sum([abs(Matrix[i][j]) for i in range(len(Matrix))]) for j in range(len(Matrix))])
 
-def maingen(psize, sphi, start=0, polyv=True):
+def maingen(psize, sphi, start=0, polyv=True, delta=0):
 	primes = primesdict[psize]
 	if start == 0:
 		print("pmns" + sphi + "dict = {}")
@@ -25,10 +25,10 @@ def maingen(psize, sphi, start=0, polyv=True):
 		phi = int(sphi)
 	for i in range(start, len(primes)):
 		p = primes[i]
-		p, n, gamma, lamb, rho, M_or_B, M1_or_B1 = gen_amns(p, phi, polyv)
+		p, n, gamma, lamb, rho, M_or_B, M1_or_B1 = gen_amns(p, phi, polyv, delta)
 		print(f"pmns{sphi}dict[{p}] = ({p}, {n}, {gamma}, {lamb}, {rho}, {M_or_B}, {M1_or_B1})")
 
-def gen_amns(p, phi=64, polyv=True):
+def gen_amns(p, phi=64, polyv=True, delta=0):
 	PHI = 2**phi
 	psize = int(log2(p))
 	# We try to find the minimal n for a given p
@@ -98,7 +98,7 @@ def gen_amns(p, phi=64, polyv=True):
 			# We want PHI => 4wnorm1(B) because we want PHI => 2wrho
 			# and rho => 2norm1(B)
 			n1B = norm_one_of_matrix(B)
-			if PHI >= 4 * w * n1B:
+			if PHI >= 4 * w * n1B * ((delta + 1)**2):
 
 				if not polyv:
 					B1 = list(matrix(B).inverse() % PHI)
@@ -145,9 +145,27 @@ def gen_amns(p, phi=64, polyv=True):
 	
 
 if __name__ == "__main__":
-	arguments = sys.argv.copy()
-	opts = [arg for arg in arguments if arg.startswith("-")]
-	arguments = [arg for arg in arguments if not arg.startswith("-")]
+	args = sys.argv.copy()
+	opts = [arg for arg in args if arg.startswith("-")]
+	if "-d" not in opts and "--delta" not in opts:
+		delta = 0
+	else:
+		if "-d" in opts:
+			op = "-d"
+		else:
+			op = "--delta"
+		try:
+			delta = int(args[args.index(op) + 1])
+		except IndexError:
+			print("Error in use of option:", op)
+			print("Not enough arguments")
+			exit()
+		except ValueError:
+			print("Invalid value for delta:", args[args.index(op) + 1])
+			exit()
+		args.pop(args.index(op) + 1)
+	assert delta >= 0, f"Invalid value for delta: {delta}"
+	arguments = [arg for arg in args if not arg.startswith("-")]
 	if len(arguments) >= 2:
 		try:
 			psize = int(arguments[1])
@@ -171,8 +189,10 @@ if __name__ == "__main__":
 		else:
 			start = 0
 		if "-B" in opts or "--Base" in opts:
-			maingen(psize, phi, start, False)
+			maingen(psize, phi, start, False, delta)
 		else:
-			maingen(psize, phi, start, True)
+			maingen(psize, phi, start, True, delta)
 	else:
-		print("Not enough arguments: Psize [Phi] [start]\n\nOPTIONS\n\t--Base, -B: generate base reduction version instead of polynomial.")
+		print("Not enough arguments: Psize [Phi] [start]\n\nOPTIONS")
+		print("\t--Base, -B: generate base reduction version instead of polynomial.")
+		print("\t--delta, -d: use specified delta for number of free additions.")

@@ -13,50 +13,54 @@ void __print128(register const __int128 Val)
 	printf("0x%lx%016lx\n", hi, lo);
 }
 
-void mp_print(const restrict poly P)
-{
-	printf("%lx", P->t[P->deg - 1]);
-	for(register uint16_t i = 1; i < P->deg; i++)
-		printf("%016lx", P->t[P->deg - 1 - i]);
-	printf("\n"); 
-}
-
-void mp_reduce(restrict poly A)
+void mp_reduce(restrict mpnum A)
 {
 	while(A->deg > 1 && A->t[A->deg - 1] == 0) --A->deg;
 }
 
-void convert_string_to_multipre(restrict poly* res, const char* string)
+void convert_string_to_multipre(restrict mpnum* res, const char* string)
 {
 	// Function that converts a hexadecimal number given as a string into a
-	// multiprecision number. Despite the use of the poly structure, it is not
-	// a polynomial and is not in a PMNS system.
+	// multiprecision number.
 	
 	uint16_t tabsize = 0, j;
 	int16_t i = 0;
-	char store[17];
+	char store[17], sign = 1;
 	
 	store[16] = '\0';
 	
+	// We deal with potential negative numbers.
+	if(string[0] == '-')
+	{
+		sign = -1;
+		string++;
+	}
+	
+	// We accept 0x in front but will treat it as hex anyway so we remove it.
 	if(string[0] != '\0' && string[1] != '\0' && string[0] == '0' && string[1] == 'x')
 		string += 2;
 	
+	// We remove any 0 in front of it.
 	while(string[0] == '0')
 		string++;
 	
+	// We check how many limbs will be needed.
 	while(string[i] != '\0')
 	{
 		if(i % 16 == 0) ++tabsize;
 		++i;
 	}
+	
+	// We reallocate if needed.
 	if (tabsize > (*res)->deg)
 	{
-		free_poly(*res);
-		init_poly(tabsize, res);
+		free_mpnum(*res);
+		init_mpnum(tabsize, res);
 	}
 	(*res)->deg = tabsize;
+	(*res)->sign = sign;
 	
-	// we keep i from the end of the last loop on purpose.
+	// We keep i from the end of the last loop on purpose for the fill order.
 	for(i = i - 1; i > -1; i -= 16)
 	{
 		for(j = 0; j < 16; j++)
@@ -72,33 +76,27 @@ void convert_string_to_multipre(restrict poly* res, const char* string)
 	mp_reduce(*res);
 }
 
-void mp_copy(restrict poly* A, restrict const poly B)
+_Bool mp_iszero(const restrict mpnum A)
 {
-	// Copy B into A.
-	if((*A)->deg < B->deg)
-	{
-		free_poly(*A);
-		init_poly(B->deg, A);
-	}
+	// Returns 1 if A = 0 else returns 0.
+	mp_reduce(A);
 	
-	// In case of deg(A) > deg(B)
-	(*A)->deg = B->deg;
-	
-	// Copy values in each limb.
-	for(register uint16_t i = 0; i < B->deg; i++)
-		(*A)->t[i] = B->t[i];
+	if(A->deg == 1 && A->t[0] == 0)
+		return 1;
+	else
+		return 0;
 }
 
-int8_t mp_ucomp(restrict poly A, restrict poly B)
+int8_t mp_ucomp(restrict mpnum A, restrict mpnum B)
 {
-	// compares A and B. Returns 0 if equal, 1 if A > B and -1 if B < A.
-	// doesn't check sign.
+	// Compares |A| and |B|. Returns 0 if equal, 1 if |A| > |B| and -1 if 
+	// |B| < |A|.
 	
 	register int32_t i;
 	
 	mp_reduce(A);
 	mp_reduce(B);
-
+	
 	if(A->deg > B->deg)
 		return 1;
 	else
@@ -109,9 +107,9 @@ int8_t mp_ucomp(restrict poly A, restrict poly B)
 		{			
 			for(i = A->deg - 1; i > -1; i--)
 			{
-				if(((uint64_t)A->t[i]) > ((uint64_t)B->t[i]))
+				if(A->t[i] > B->t[i])
 					return 1;
-				if(((uint64_t)A->t[i]) < ((uint64_t)B->t[i]))
+				if(A->t[i] < B->t[i])
 					return -1;
 			}
 			return 0;
@@ -119,39 +117,35 @@ int8_t mp_ucomp(restrict poly A, restrict poly B)
 	}
 }
 
-int8_t mp_comp(restrict poly A, restrict poly B)
+int8_t mp_comp(restrict mpnum A, restrict mpnum B)
 {
 	// compares A and B. Returns 0 if equal, 1 if A > B and -1 if B < A.
-	// checks sign.
 	
 	mp_reduce(A);
 	mp_reduce(B);
-
-	if((A->t[A->deg - 1] & 0x8000000000000000) &&
-			(!(B->t[B->deg - 1] & 0x8000000000000000)))
-		return -1;
-	if((!(A->t[A->deg - 1] & 0x8000000000000000)) &&
-			(B->t[B->deg - 1] & 0x8000000000000000))
-		return 1;
-
-	return mp_ucomp(A, B);
+	
+	if(A->sign == B->sign)
+		return mp_ucomp(A, B) * A->sign;
+	else
+		return A->sign;
 }
 
-void mp_leftshift(restrict poly* A)
+void mp_leftshift(restrict mpnum* A)
 {
 	// Shifts *A to the left once.
 	
-	poly aux;
-	init_poly(0, &aux);
+	mpnum aux;
+	init_mpnum(0, &aux);
 	
 	mp_reduce(*A);
 	mp_copy(&aux, *A);
 	
 	if((*A)->t[(*A)->deg - 1] & 0x8000000000000000)
 	{
-		free_poly(*A);
-		init_poly(aux->deg + 1, A);
+		free_mpnum(*A);
+		init_mpnum(aux->deg + 1, A);
 		(*A)->t[(*A)->deg - 1] = 1;
+		(*A)->sign = aux->sign;
 	}
 	
 	for(register uint16_t i = 0; i < aux->deg - 1; i++)
@@ -160,10 +154,10 @@ void mp_leftshift(restrict poly* A)
 	
 	(*A)->t[0] = aux->t[0] << 1;
 	
-	free_poly(aux);
+	free_mpnum(aux);
 }
 
-void mp_rightshift(restrict poly A)
+void mp_rightshift(restrict mpnum A)
 {
 	// Shifts A to the right once.
 	
@@ -176,185 +170,139 @@ void mp_rightshift(restrict poly A)
 	mp_reduce(A);
 }
 
-void mp_alignleft(restrict poly* A, uint16_t deg)
+void mp_alignleft(restrict mpnum* A, uint16_t deg)
 {
-	poly aux;
+	mpnum aux;
 	
 	mp_reduce(*A);
-	init_poly((*A)->deg, &aux);
+	init_mpnum((*A)->deg, &aux);
 	
 	if((*A)->deg < deg)
 	{
 		mp_copy(&aux, *A);
-		free_poly(*A);
-		init_poly(deg, A);
+		free_mpnum(*A);
+		init_mpnum(deg, A);
+		(*A)->sign = aux->sign;
 		for(register uint16_t i = 0; i < aux->deg; i++)
 			(*A)->t[i + deg - aux->deg] = aux->t[i];
 	}
 	
-	free_poly(aux);
+	free_mpnum(aux);
 }
 
-void mp_add(restrict poly* res, restrict const poly op1, restrict const poly op2)
+void mp_uadd(restrict mpnum* res, restrict const mpnum op1, restrict const mpnum op2)
 {
-	// Puts the result of op1 + op2 in res.
-
-	const uint16_t MAXDEG = (op1->deg < op2->deg ? op2->deg : op1->deg) + 1; // -
-		//((op1->t[op1->deg - 1] < 0) || (op2->t[op2->deg - 1] < 0));
+	// Puts the result of |op1| + |op2| in res.
+	
+	const uint16_t MAXDEG = (op1->deg < op2->deg ? op2->deg : op1->deg) + 1;
 	register uint16_t i, j;
 	uint64_t stok;
-
-	// We check if the degree is high enough. If it isn't we fix the problem.
-	if((*res)->deg < MAXDEG)
-	{
-		free_poly(*res);
-		init_poly(MAXDEG, res);
-	}
-	(*res)->deg = MAXDEG;
+	
+	// We put res at 0 with the right size.
+	free_mpnum(*res);
+	init_mpnum(MAXDEG, res);
+	(*res)->sign = 1;
 	
 	for(i = 0; i < op1->deg; i++)
 		(*res)->t[i] = op1->t[i];
 	
 	for(i = 0; i < op2->deg; i++)
 	{
-		stok = ((uint64_t) (*res)->t[i]);
+		stok = (*res)->t[i];
 		(*res)->t[i] += op2->t[i];
 		
+		// We deal with the carry.
 		j = i;
-		while(stok > ((uint64_t) (*res)->t[j]) && j < MAXDEG - 1)
+		while(j < MAXDEG - 1 && stok > (*res)->t[j])
 		{
 			++j;
-			stok = ((uint64_t) (*res)->t[j]);
-			(*res)->t[j] = ((uint64_t) (*res)->t[j]) + 1;
+			stok = (*res)->t[j];
+			(*res)->t[j] += 1;
 		}
 	}
 	
 	mp_reduce(*res);
 }
 
-void mp_sub(restrict poly* res, restrict const poly op1, restrict const poly op2)
+void mp_usub(restrict mpnum* res, restrict const mpnum op1, restrict const mpnum op2)
 {
-	// Puts the result of op1 - op2 in res.
-
+	// Puts the result of |op1| - |op2| in res.
+	
 	const uint16_t MAXDEG = op1->deg < op2->deg ? op2->deg : op1->deg;
 	register uint16_t i, j;
 	uint64_t stok;
-
+	
 	// We check if the degree is high enough. If it isn't we fix the problem.
-	if((*res)->deg < MAXDEG)
-	{
-		free_poly(*res);
-		init_poly(MAXDEG, res);
-	}
-	(*res)->deg = MAXDEG;
+	free_mpnum(*res);
+	init_mpnum(MAXDEG, res);
+	(*res)->sign = mp_ucomp(op1, op2);
+	(*res)->sign += ((*res)->sign == 0);
 	
 	for(i = 0; i < op1->deg; i++)
 		(*res)->t[i] = op1->t[i];
 	
 	for(i = 0; i < op2->deg; i++)
 	{
-		stok = ((uint64_t) (*res)->t[i]);
+		stok = (*res)->t[i];
 		(*res)->t[i] -= op2->t[i];
 		
 		j = i;
-		while(stok < ((uint64_t) (*res)->t[j]) && j < MAXDEG - 1)
+		while(j < MAXDEG - 1 && stok < (*res)->t[j])
 		{
 			++j;
-			stok = ((uint64_t) (*res)->t[j]);
-			(*res)->t[j] = ((uint64_t) (*res)->t[j]) - 1;
+			stok = (*res)->t[j];
+			(*res)->t[j] -= 1;
 		}
 	}
 	
 	mp_reduce(*res);
 }
 
-void mp_usub(restrict poly* res, restrict const poly op1, restrict const poly op2)
+void mp_add(restrict mpnum* res, restrict const mpnum op1, restrict const mpnum op2)
 {
-	// Puts the result of op1 - |op2| in res.
-
-	const uint16_t MAXDEG = op1->deg < op2->deg ? op2->deg : op1->deg;
-	register uint16_t i, j;
-	const int8_t sign = op2->t[op2->deg - 1] >= 0 ? 1 : -1;
-	uint64_t stok;
-
-	// We check if the degree is high enough. If it isn't we fix the problem.
-	if((*res)->deg < MAXDEG)
+	// Puts the result of op1 + op2 in res.
+	
+	if(op1->sign == op2->sign)
 	{
-		free_poly(*res);
-		init_poly(MAXDEG, res);
+		mp_uadd(res, op1, op2);
+		(*res)->sign = op1->sign;
 	}
-	(*res)->deg = MAXDEG;
-	
-	for(i = 0; i < op1->deg; i++)
-		(*res)->t[i] = op1->t[i];
-	
-	for(i = 0; i < op2->deg; i++)
+	else
 	{
-		stok = ((uint64_t) (*res)->t[i]);
-		(*res)->t[i] -= sign * op2->t[i];
-		
-		j = i;
-		while(stok < ((uint64_t) (*res)->t[j]) && j < MAXDEG - 1)
+		if(mp_ucomp(op1, op2) == 1)
 		{
-			++j;
-			stok = ((uint64_t) (*res)->t[j]);
-			(*res)->t[j] = ((uint64_t) (*res)->t[j]) - 1;
+			mp_usub(res, op1, op2);
+			(*res)->sign *= op1->sign;
+		}
+		else
+		{
+			mp_usub(res, op2, op1);
+			(*res)->sign *= op2->sign;
 		}
 	}
-	
-	mp_reduce(*res);
 }
 
-void mp_abssub(restrict poly* res, restrict const poly op1, restrict const poly op2)
+void mp_sub(restrict mpnum* res, restrict const mpnum op1, restrict const mpnum op2)
 {
-	// Puts the result of |op1| - |op2| in res.
-
-	const uint16_t MAXDEG = op1->deg < op2->deg ? op2->deg : op1->deg;
-	register uint16_t i, j;
-	uint64_t stok;
-
-	// We check if the degree is high enough. If it isn't we fix the problem.
-	if((*res)->deg < MAXDEG)
-	{
-		free_poly(*res);
-		init_poly(MAXDEG, res);
-	}
-	(*res)->deg = MAXDEG;
+	// Puts the result of op1 - op2 in res.
 	
-	for(i = 0; i < op1->deg; i++)
-		(*res)->t[i] = op1->t[i];
-	
-	for(i = 0; i < op2->deg; i++)
-	{
-		stok = ((uint64_t) (*res)->t[i]);
-		(*res)->t[i] -= ((uint64_t) op2->t[i]);
-		
-		j = i;
-		while(stok < ((uint64_t) (*res)->t[j]) && j < MAXDEG - 1)
-		{
-			++j;
-			stok = ((uint64_t) (*res)->t[j]);
-			(*res)->t[j] = ((uint64_t) (*res)->t[j]) - 1;
-		}
-	}
-	
-	mp_reduce(*res);
+	op2->sign = -op2->sign;
+	mp_add(res, op1, op2);
+	op2->sign = -op2->sign;
 }
 
-void mp_mult(restrict poly* res, restrict const poly op1, restrict const poly op2)
+void mp_mult(restrict mpnum* res, restrict const mpnum op1, restrict const mpnum op2)
 {
 	// Puts the result of op1 * op2 into res.
-
+	
 	register uint16_t i, j, k;
 	unsigned __int128 R[op1->deg + op2->deg], stok;
-
-	// We check if the degree is high enough. If it isn't we fix the problem.
-	if((*res)->deg < op1->deg + op2->deg)
-	{
-		free_poly(*res);
-		init_poly(op1->deg + op2->deg, res);
-	}
-	(*res)->deg = op1->deg + op2->deg;
+	_Bool carry;
+	
+	// We put res at 0 with the right size.
+	free_mpnum(*res);
+	init_mpnum(op1->deg + op2->deg, res);
+	(*res)->sign = op1->sign * op2->sign;
 	
 	for(i = 0; i < op1->deg + op2->deg; i++)
 		R[i] = 0;
@@ -364,14 +312,15 @@ void mp_mult(restrict poly* res, restrict const poly op1, restrict const poly op
 		for(j = 0; j < op2->deg; j++)
 		{
 			k = i + j;
-			stok = R[k];
-			R[k] += (unsigned __int128) ((uint64_t) op1->t[i]) * ((uint64_t)op2->t[j]);
-			while(stok > R[k])
+			carry = __builtin_add_overflow((unsigned __int128) op1->t[i] * op2->t[j],
+					R[k], &stok);
+			while(carry && k + 2 < (*res)->deg )
 			{
-				++k;
-				stok = R[k];
-				R[k] += 1;
+				R[k] = stok;
+				k++;++k; // We add the carry at k+2 because of the reconstruction later.
+				carry = __builtin_add_overflow(R[k], (unsigned __int128) 1, &stok);
 			}
+			R[k] = stok;
 		}
 	}
 	
@@ -379,104 +328,88 @@ void mp_mult(restrict poly* res, restrict const poly op1, restrict const poly op
 	for(i = 1; i < op1->deg + op2->deg; i++)
 	{
 		k = i;
-		stok = R[i];
-		R[i] += R[i - 1] >> 64;
-		while(stok > R[k])
+		carry = __builtin_add_overflow((unsigned __int128) (R[k - 1] >> 64),
+					R[k], &stok);
+		while(carry && k < (*res)->deg)
 		{
+			R[k] = stok;
 			++k;
-			stok = R[k];
-			R[k] += 1;
+			carry = __builtin_add_overflow((unsigned __int128) 1, R[k], &stok);
 		}
+		R[k] = stok;
 		(*res)->t[i] = R[i];
 	}
 	
 	mp_reduce(*res);
 }
 
-// TODO: fusion both mod functions
-void mp_mod(restrict poly* res, restrict const poly op1, restrict const poly op2)
+void mp_mod(restrict mpnum* res, restrict const mpnum op1, restrict const mpnum op2)
 {
-	// Puts the result of op1 % op2 into res.
+	// Puts the result of op1 % op2 into res. Note that this is not the fastest
+	// modular algorithm possible for now but this is not the focus.
 	
-	const uint16_t MAXDEG = op1->deg < op2->deg ? op2->deg : op1->deg;
-	poly X, R;
-	init_polys(MAXDEG, &X, &R, NULL);
+	if(op2->sign == -1)  // modulus of a negative number make no sense
+		return;
 	
-	if((*res)->deg < MAXDEG)
-	{
-		free_poly(*res);
-		init_poly(MAXDEG, res);
-	}
+	mpnum X, R;
 	
-	mp_copy(&X, op2);
-	mp_alignleft(&X, op1->deg);
-	while(mp_ucomp(op1, X) == 1)
-		mp_leftshift(&X);
-	while(mp_ucomp(op1, X) == -1)
-		mp_rightshift(X);
-	
-	if(op1->t[op1->deg - 1] > 0)
-		mp_sub(res, op1, X);
-	else
-	{
-		mp_leftshift(&X);
-		mp_usub(res, X, op1);
-	}
-	
-	while(mp_ucomp(*res, op2) == 1)
-	{
-		mp_copy(&R, *res);
-		while(mp_ucomp(X, *res) == 1)
-			mp_rightshift(X);
-		mp_sub(res, R, X);
-	}
-	
-	mp_reduce(*res);
-	free_polys(X, R, NULL);
-}
-
-void mp_utmod(restrict poly* res, restrict const poly op1, restrict const poly op2)
-{
-	// Puts the result of op1 % op2 into res with different use cases.
-	
+	// We put res at 0 with the right size (res is always positive).
+	free_mpnum(*res);
+	init_mpnum(op2->deg, res);
 	
 	if(mp_ucomp(op1, op2) == -1)
 	{
-		mp_copy(res, op1);
-		mp_reduce(*res);
-		return;
+		if(op1->sign == -1)
+		{
+			mp_add(res, op1, op2);
+			return;
+		}
+		else
+		{
+			mp_copy(res, op1);
+			return;
+		}
 	}
 	
-	const uint16_t MAXDEG = op1->deg < op2->deg ? op2->deg : op1->deg;
-	poly X, R;
-	init_polys(MAXDEG, &X, &R, NULL);
+	init_mpnums(op1->deg, &X, &R, NULL);
 	
-	if((*res)->deg < MAXDEG)
-	{
-		free_poly(*res);
-		init_poly(MAXDEG, res);
-	}
+	// We proceed using the Russian peasant algorithm.
 	
+	// We put X such that the highest bit of X matches the highest bit of op1.
+	// To do that we first align the degrees.
 	mp_copy(&X, op2);
 	mp_alignleft(&X, op1->deg);
+	// Then we leave it such that X < |op1| < 2X
 	while(mp_ucomp(op1, X) == 1)
 		mp_leftshift(&X);
 	while(mp_ucomp(op1, X) == -1)
 		mp_rightshift(X);
+	if(__builtin_clz(X->t[op1->deg - 1]) != __builtin_clz(op1->t[op1->deg - 1]))
+		mp_leftshift(&X);
 	
+	// If op1 is negative we want to subtract -X
+	X->sign = op1->sign;
+	mp_sub(res, op1, X);
 	
-	mp_abssub(res, op1, X);
-	
-	
+	// Then we continue.
 	while(mp_ucomp(*res, op2) == 1)
 	{
 		mp_copy(&R, *res);
 		while(mp_ucomp(X, *res) == 1)
 			mp_rightshift(X);
-		mp_abssub(res, R, X);
+		if(__builtin_clz(X->t[X->deg - 1]) != __builtin_clz((*res)->t[X->deg - 1]))
+			mp_leftshift(&X);
+		X->sign = (*res)->sign;
+		mp_sub(res, R, X);
+	}
+	
+	// At the very end if we have a negative value we add op2 one last time.
+	if((*res)->sign == -1)
+	{
+		mp_copy(&R, *res);
+		mp_add(res, R, op2);
 	}
 	
 	mp_reduce(*res);
-	free_polys(X, R, NULL);
+	free_mpnums(X, R, NULL);
 }
-
