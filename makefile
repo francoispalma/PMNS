@@ -41,6 +41,9 @@ multbench.exe: multmeasurement.c pmns.o structs.o utilitymp.o
 multbench128.exe: multmeasurement128.c pmns128.o structs.o utilitymp.o
 	$(CC) -o $@ $^ $(FLAGS)
 
+expbench.exe: modexpmeasures.c pmns.o structs.o utilitymp.o
+	$(CC) -o $@ $^ $(FLAGS)
+
 expbench128.exe: modexpmeasures128.c pmns128.o structs.o utilitymp.o
 	$(CC) -o $@ $^ $(FLAGS)
 

@@ -165,53 +165,68 @@ inline void UNROLLED_amns_montg_mult(restrict poly res, const restrict poly A,
 }
 
 void amns_rtl_sqandmult(restrict poly res, const restrict poly base,
-	const restrict poly exponent)
+	const restrict mpnum exponent)
 {
 	// Function for fast exponentiation using the square and multiply algorithm.
-	// Returns base^exponent % p. Note that the exponent is a multiprecision
-	// number and not a polynomial despite using the poly structure.
+	// Returns base^exponent % p. Right to Left version.
 	
 	register uint16_t i;
 	register uint8_t j;
 	register uint64_t aux;
 	
-	poly tmp;
-	init_poly(N, &tmp);
+	poly tmp, num, stok;
+	init_polys(N, &tmp, &num, &stok, NULL);
 	
 	poly_copy(res, &__theta__);
+	poly_copy(stok, base);
 	
 	for(i = 0; i < exponent->deg - 1; i++)
 	{
 		aux = exponent->t[i];
-		for(j = 0; j < 64; j++)
+		// We do it in pairs to avoid the use of poly_copy
+		for(j = 0; j < 32; j++)
 			{
-				if(aux & (1ULL << j))
-					AMNS_MONTG_MULT(tmp, res, base);
+				if(aux & 1)
+					AMNS_MONTG_MULT(tmp, res, stok);
 				else
 					AMNS_MONTG_MULT(tmp, res, &__theta__);
-				AMNS_MONTG_MULT(res, tmp, tmp);
+				AMNS_MONTG_MULT(num, stok, stok);
+				aux >>= 1;
+				if(aux & 1)
+					AMNS_MONTG_MULT(res, tmp, num);
+				else
+					AMNS_MONTG_MULT(res, tmp, &__theta__);
+				AMNS_MONTG_MULT(stok, num, num);
+				aux >>= 1;
 			}
 	}
+	// If our exponent has an odd number of bits we do this one time too many.
+	// For this reason unless we find another way, Left to Right is preferred.
 	aux = exponent->t[exponent->deg - 1];
 	while(aux)
 	{
 		if(aux & 1)
-			AMNS_MONTG_MULT(tmp, res, base);
+			AMNS_MONTG_MULT(tmp, res, stok);
 		else
 			AMNS_MONTG_MULT(tmp, res, &__theta__);
-		AMNS_MONTG_MULT(res, tmp, tmp);
+		AMNS_MONTG_MULT(num, stok, stok);
+		aux >>= 1;
+		if(aux & 1)
+			AMNS_MONTG_MULT(res, tmp, num);
+		else
+			AMNS_MONTG_MULT(res, tmp, &__theta__);
+		AMNS_MONTG_MULT(stok, num, num);
 		aux >>= 1;
 	}
 	
-	free_poly(tmp);
+	free_polys(tmp, num, stok, NULL);
 }
 
 void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
-	const restrict poly exponent)
+	const restrict mpnum exponent)
 {
 	// Function for fast exponentiation using the square and multiply algorithm.
-	// Returns base^exponent % p. Note that the exponent is a multiprecision
-	// number and not a polynomial despite using the poly structure.
+	// Returns base^exponent % p. Left to Right version.
 	
 	register uint16_t i;
 	register uint8_t j;
@@ -223,7 +238,7 @@ void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
 	poly_copy(res, &__theta__);
 	
 	aux = exponent->t[exponent->deg - 1];
-	for(j = __builtin_clz(aux) + 1; j < 64; j++)
+	for(j = __builtin_clz(aux); j < 64; j++)
 	{
 		AMNS_MONTG_MULT(tmp, res, res);
 		if(aux & (1ULL << (63 - j)))
@@ -248,22 +263,31 @@ void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
 	free_poly(tmp);
 }
 
-void amns_sqandmult(restrict poly res, const restrict poly base,
-	const restrict poly exponent)
+inline void amns_sqandmult(restrict poly res, const char* restrict base,
+	const char* restrict exponent)
 {
 	// Function for fast exponentiation using the square and multiply algorithm.
-	// Returns base^exponent % p. Note that the exponent is a multiprecision
-	// number and not a polynomial despite using the poly structure.
+	// Returns base^exponent % p. Uses amns_ltr_sqandmult.
 	
-	amns_rtl_sqandmult(res, base, exponent);
+	poly pbase;
+	mpnum mpexponent;
+	init_poly(N, &pbase);
+	init_mpnum(1, &mpexponent);
+	
+	convert_string_to_amns(pbase, base);
+	convert_string_to_multipre(&mpexponent, exponent);
+	
+	amns_ltr_sqandmult(res, pbase, mpexponent);
+	
+	free_poly(pbase);
+	free_mpnum(mpexponent);
 }
 
 void amns_montg_ladder(restrict poly res, const restrict poly base,
 	const restrict mpnum exponent)
 {
 	// Function for fast exponentiation using the Montgomery ladder.
-	// Returns base^exponent % p. Note that the exponent is a multiprecision
-	// number and not a polynomial despite using the poly structure.
+	// Returns base^exponent % p.
 	
 	register uint16_t i;
 	register uint8_t j;
@@ -278,7 +302,7 @@ void amns_montg_ladder(restrict poly res, const restrict poly base,
 	poly_copy(tmp, base);
 	
 	aux = exponent->t[exponent->deg - 1];
-	for(j = __builtin_clz(aux) + 1; j < 64; j++)
+	for(j = __builtin_clz(aux); j < 64; j++)
 	{
 		b = (aux & (1ULL << (63 - j))) >> (63 - j);
 		AMNS_MONTG_MULT(R[1 - b], R[1 - b], R[b]);
@@ -337,19 +361,17 @@ void convert_string_to_amns(restrict poly res, const char* string)
 	for(i = 1; i < N; i++)
 		res->t[i] = 0;
 	
-	
-	res->t[0] = stok->t[0] & (rho - 1);
 	counter = 0;
+	res->t[0] = stok->t[0] & (rho - 1);
 	for(i = 1; i < stok->deg; i++)
 	{
-		counter = (counter + 64 - RHO);
-		res->t[i] += (((stok->t[i] << counter) | (stok->t[i - 1] >> (64 - counter)))) & (rho - 1);
-		if(counter > RHO && i < N - 1)
-		{
-			counter = counter - RHO;
-			res->t[i + 1] = ((stok->t[i] << counter) | ((stok->t[i - 1] >> (64 - counter)))) & (rho - 1);
-		}
+		counter = (counter + RHO) % 64; 
+		res->t[i] = (stok->t[i-1] >> counter);
+		res->t[i] |= (stok->t[i] << (64 - counter));
+		res->t[i] &= (rho - 1);
 	}
+	counter = (counter + RHO) % 64;
+	res->t[i] = (stok->t[i-1] >> counter);
 	
 	for(i = 0; i < N; i++)
 		for(j = 0; j < N; j++)
@@ -367,11 +389,11 @@ void convert_amns_to_multipre(restrict mpnum* res, const restrict poly P)
 	
 	register uint16_t i;
 	poly a;
-	mpnum aux, ag, tmp;
+	mpnum aux, ag, tmp, tmp2;
 	__int128 Quite[N];
 	
 	init_poly(N, &a);
-	init_mpnums(N, &ag, &tmp, NULL);
+	init_mpnums(N, &ag, &tmp, &tmp2, NULL);
 	init_mpnum(1, &aux);
 	if((*res)->deg < N)
 	{
@@ -388,72 +410,32 @@ void convert_amns_to_multipre(restrict mpnum* res, const restrict poly P)
 	
 	mns_montg_int_red(a, Quite);
 	
-	
-/*		printf("a = "); poly_print(a); printf("\n");*/
-	
-	(*res)->t[0] = a->t[0];
-	for(i = 1; i < N; i++)
+	// We use Horner to get out of the PMNS for now as the other method has issues.
+	(*res)->sign = 1 - 2 * (a->t[N - 1] < 0);
+	(*res)->t[0] = a->t[N - 1] * (*res)->sign;
+	for(i = 0; i < N - 1; i++)
 	{
-		aux->sign = 1 - 2 * (a->t[i] < 0);
-		aux->t[0] = a->t[i] * aux->sign;
-		mp_mult(&ag, aux, &Gi[i - 1]);
-		
-		mp_copy(&tmp, *res);
-		mp_add(res, tmp, ag);
+		mp_mult(&tmp, *res, &Gi[0]);
+		aux->sign = 1 - 2 * (a->t[N - 2 - i] < 0);
+		aux->t[0] = a->t[N - 2 - i] * aux->sign;
+		mp_add(&tmp2, tmp, aux);
+		mp_mod(res, tmp2, &__P__);
 	}
 	
-	mp_copy(&tmp, *res);
-	mp_mod(res, tmp, &__P__);
-	
-/*	(*res)->t[0] = a->t[N - 1];*/
-/*	(*res)->sign = 1 - 2 * (a->t[N - 1] < 0);*/
-/*	tmp->t[0] = a->t[N - 1] * (1 - 2 * (a->t[N - 1] < 0));*/
-/*	mp_mult(res, tmp, &Gi[0]);*/
-/*	printf("tmp%d = 0x", i); mp_print(*res); printf("\n");*/
-/*	aux->t[0] = a->t[N - 2];*/
-/*	if(a->t[N - 1] < 0)*/
-/*		mp_usub(&tmp, aux, *res);*/
-/*	else*/
-/*		mp_add(&tmp, *res, aux);*/
-/*	printf("tmp1 = 0x"); mp_print(tmp); printf("\n");*/
-/*	mp_utmod(res, tmp, &__P__);*/
-/*	printf("a%d = 0x", i); mp_print(*res); printf("\n");*/
-/*	*/
-/*	mp_copy(&tmp, *res);*/
-	
-/*	int64_t stk;*/
-	
-/*	printf("tmplist = []\nalist = []\nstklist = []\n");*/
-	
+/*	(*res)->t[0] = a->t[0];*/
 /*	for(i = 1; i < N; i++)*/
 /*	{*/
-/*		aux->sign = 1 - 2 * (a->t[N - 1 - i] < 0);*/
-/*		aux->t[0] = a->t[N - 1 - i] * aux->sign;*/
-/*		mp_mult(res, tmp, &Gi[0]);*/
-/*		if(i == 2)*/
-/*		{*/
-/*			convert_string_to_multipre(&aux, "0xd4728bdf29f028ece0a6f8a27979ff199b406132d757d9bcd0df905f49f5b2453b95c0ea7698208c0863fb473f3b0c8ad423f76029828426b50e21d6f260fef5bf572e0ffe4f4a3bef3bc4758d554a681cacba47c2cac2bf989fc6437de4eb47d05da35cf6c82197f2a1c6588e9251ecd48d9e19051ee498e389d3f227dd9eaa506a583cde67c07cb39ed40b1c9d37c06d3bd9d84c18b9deff61f275d590725b0d9bb433dbcac1c8951c65e628467467d1b4289a565aab2d5d35038d3a4bdf5540dabae22a3afc2e82a54ad3c48f22e57177c760e59c3708de72933dbfd14fc4c1c30fb4442cfe5407703239446b6bf624263294ea2035cb1e52607714c5653c7d759cdc5");*/
-/*			mp_usub(&tmp, aux, *res);*/
-/*			mp_print(tmp);*/
-/*			exit(0);*/
-/*		}*/
-/*		printf("tmp%d = ", i); mp_print(*res); printf("\n");*/
-/*		stk = a->t[N - 1 - i] * (1 - 2 * (a->t[N - 1] < 0));*/
+/*		aux->sign = 1 - 2 * (a->t[i] < 0);*/
+/*		aux->t[0] = a->t[i] * aux->sign;*/
+/*		mp_mult(&ag, aux, &Gi[i - 1]);*/
 /*		mp_copy(&tmp, *res);*/
-/*		tmp->t[0] = ((uint64_t)tmp->t[0]) + stk;*/
-/*		if(stk < 0 && ((uint64_t)(*res)->t[0]) < ((uint64_t) tmp->t[0]))*/
-/*			tmp->t[1] -= 1;*/
-/*		else if (stk > 0 && ((uint64_t)(*res)->t[0]) > ((uint64_t) tmp->t[0]))*/
-/*			tmp->t[1] += 1;*/
-/*		mp_add(&tmp, *res, aux);*/
-/*		printf("stk%d = %ld\n\n", i, stk); */
-/*		printf("a%d = ", i); mp_print(tmp); printf("\n");*/
-/*		printf("tmplist += [tmp%d]\nalist += [a%d]\nstklist += [stk%d]\n\n", i, i, i);*/
+/*		mp_add(res, tmp, ag);*/
 /*	}*/
-/*	printf("tmp = "); mp_print(tmp);*/
+/*	*/
+/*	mp_copy(&tmp, *res);*/
 /*	mp_mod(res, tmp, &__P__);*/
 	
-	free_mpnums(aux, ag, tmp, NULL);
+	free_mpnums(aux, ag, tmp, tmp2, NULL);
 	free_poly(a);
 }
 
@@ -483,31 +465,16 @@ void __multchecks__(void)
 void __sqandmultdemo(void)
 {
 	// TODO: delete it, used to check point to point process.
-	const char a[] = "0xffffffffffff", // "7609d69beaadb6de37a7b36cd193b33b120489bd4298534e830eeeaf9a65b15c12268aea1447f610377ea045afc463fb193a531e46cf70052ee6143d782b27aee363d426ad73085f7c24376b676070214cbf1b69f93fd5fdd70b8c77dd2268cbf3f210366b932c7351d9332608fb294ebb44bc7b17bfa3e115dd06c642670d67",
-		b[] = "1", // "78a5cc1a942f42e81aa0dc980d3b6a7f987bf9847fb30f8d17c327283745d1365e6bd495a6b4bc2f6a16dca99668ee8591b5b04d12e15d5c4f5f22aafca94fcc3973e7e7714c84b0fb514f862d3444fd36f82f54ccb6c2f2ac3510d3aaea94953533e511076ba29103afb13ba6387001f1055b400b5abfc5b7cd0cdb4b2ebf2a",
-		c[] = "4"; // "606ddc8f63ff63abfacb0ced7fcef39d42f0831e9e84459bbffbc1a04b866aaf572571e876a087dc633ab189b40eb861be2f7e194ac5f24ad7886eeb070028bc91a3970ea828cdd5da8eea173d0a38da1bc072837e5835ff2bd266ebcc4788870c7dca82e5b87cd1a844a5120339d2ef1620f1484888538824c5474fe77014e6";
+	const char a[] = "0xffffffffffffffffffffffffffffffffffffffffffffffff", // "7609d69beaadb6de37a7b36cd193b33b120489bd4298534e830eeeaf9a65b15c12268aea1447f610377ea045afc463fb193a531e46cf70052ee6143d782b27aee363d426ad73085f7c24376b676070214cbf1b69f93fd5fdd70b8c77dd2268cbf3f210366b932c7351d9332608fb294ebb44bc7b17bfa3e115dd06c642670d67",
+		b[] = "0xffffffffffffffffffffffffffffffffffffffffffffffff", // "78a5cc1a942f42e81aa0dc980d3b6a7f987bf9847fb30f8d17c327283745d1365e6bd495a6b4bc2f6a16dca99668ee8591b5b04d12e15d5c4f5f22aafca94fcc3973e7e7714c84b0fb514f862d3444fd36f82f54ccb6c2f2ac3510d3aaea94953533e511076ba29103afb13ba6387001f1055b400b5abfc5b7cd0cdb4b2ebf2a",
+		c[] = "0xfca02b1ec94f1d1a5afdbacd6c0b04b9ded8463b62fade4d35e64f3de3a20e8b172382d318083548be85676b8b7dd347c32841c3efa88c928e7cc945f5e2253708053c8f75ff222717ea374b7f0b6ceafd6ac0b119d23300ac9b6a23cd0b332b438f7be9f6c4ee4cdbbe93444343a8011583e10a8c4cc0f07b67d1467b9a73e"; // "606ddc8f63ff63abfacb0ced7fcef39d42f0831e9e84459bbffbc1a04b866aaf572571e876a087dc633ab189b40eb861be2f7e194ac5f24ad7886eeb070028bc91a3970ea828cdd5da8eea173d0a38da1bc072837e5835ff2bd266ebcc4788870c7dca82e5b87cd1a844a5120339d2ef1620f1484888538824c5474fe77014e6";
 	
-	poly A, C;
-	mpnum B, aux;
-	init_polys(N, &A, &C, NULL);
-	init_mpnums(1, &B, &aux, NULL);
+	poly C;
+	mpnum aux;
+	init_poly(N, &C);
+	init_mpnum(1, &aux);
 	
-	convert_string_to_multipre(&B, b);
-	
-	mp_print(B);
-	
-/*	printf("from generated.primes1024 import PRIMES1024\nfrom ops import horner_modulo\nfrom generated.generatedwithbase1024pmns import pmnsdict\np = PRIMES1024[0]\ngamma = pmnsdict[p][2]\n");*/
-	
-	printf("A = ");
-	convert_string_to_amns(A, a);
-	
-	poly_print(A);
-	
-	//amns_sqandmult(C, A, B);
-	amns_montg_ladder(C, A, B);
-	
-	printf("\nC = ");
-	poly_print(C);
+	amns_sqandmult(C, a, b);
 	
 	convert_amns_to_multipre(&aux, C);
 	
@@ -515,84 +482,6 @@ void __sqandmultdemo(void)
 	mp_print(aux);
 	printf("\n");
 	
-	free_polys(A, C, NULL);
-	free_mpnums(B, aux, NULL);
-}
-
-void __main__(void)
-{
-	mpnum A, B, C;
-	init_mpnums(2, &A, &B, &C, NULL);
-	
-	convert_string_to_multipre(&A, "0xf6891aa776330e1f642bdbd65631eed2");
-	convert_string_to_multipre(&B, "-0xf1adbb8e29fb86f1ac0c52f31c9b2b29");
-	
-	mp_print(A);
-	mp_print(B);
-	
-	printf("\n");
-	mp_add(&C, A, B);
-	mp_print(C);
-	mp_add(&C, B, A);
-	mp_print(C);
-	
-	printf("\n");
-	mp_sub(&C, A, B);
-	mp_print(C);
-	mp_sub(&C, B, A);
-	mp_print(C);
-	
-	printf("\n");
-	mp_mult(&C, A, B);
-	mp_print(C);
-	mp_mult(&C, B, A);
-	mp_print(C);
-	
-	printf("\n");
-	mp_leftshift(&C);
-	mp_leftshift(&C);
-	mp_leftshift(&C);
-	mp_leftshift(&C);
-	mp_print(C);
-	mp_rightshift(C);
-	mp_rightshift(C);
-	mp_rightshift(C);
-	mp_rightshift(C);
-	mp_print(C);
-	
-	printf("\n");
-	mp_mod(&A, C, &__P__);
-	mp_print(A);
-	
-	printf("\n");
-	convert_string_to_multipre(&A, "0xd7d330786f4f88087505298b399c31838e8ad494318a1464ca9098d4c870e97fa681dd40133a7beefc82a0bbecb47552dda2ff47cb3732fce9d59849197262241d781509c1649be839f9e77fc5a7d519578088fb546e8053cffaf035c7912dcff6aa607a79d82cb5a756c4c8676a2cc71a492619bacb053bd38a4aa5f0d15c0c");
-	convert_string_to_multipre(&B, "0xd7d330786f4f88087505298b399c31838e8ad494318a1464ca9098d4c870e97fa681dd40133a7beefc82a0bbecb47552dda2ff47cb3732fce9d59849197262241d781509c1649be839f9e77fc5a7d519578088fb546e8053cffaf035c7912dcff6aa607a79d82cb5a756c4c8676a2cc71a492619bacb053bd38a4aa5f0d15c0b");
-	mp_mult(&C, A, B);
-	mp_mod(&A, C, &__P__);
-	mp_print(A);
-	
-	register int16_t i = 0;
-	mpnum X, tmp;
-	init_mpnums(1, &X, &tmp, NULL);
-	printf("\n");
-	convert_string_to_multipre(&A, "-0x987f23629c3f1339d0ffcf4aa8f4ff315d81b4876c7f0acd779b733f2309972d9853dc07f5b8e9adc8b75db4e5f972bb217172378b8de15343256fd5e950089d0e4edde5c0a0b98d60f1a89acc72a8e77116b6ee3efa0509f7d26687076e15192793c94dd0e3310f04a284c6fc29f4bfa9727b2a6ea274de4cbfec031c0d4102");
-	convert_string_to_multipre(&B, "0xcd113a1b6e58fb04d7baee01bdd63a0c9d8bc7bac434dabeb4565ac0dacf1a8cf2172265c91327d9e886ae48dd5d091a90064f9cc4f24511e73e9315a63101dd4b5dd47c0aaf93c6945b8d883e8583257373ba1c3b1a19f9b3645ad405a5336dd43c9352fc5a73f4b690bdf1158ffdd53a90f4afd4c3e9e069af8c675017b3b7");
-	convert_string_to_multipre(&X, "0x1");
-	while(!mp_iszero(B))
-	{
-		if(B->t[0] & 1)
-		{
-			mp_mult(&tmp, X, A);
-			mp_mod(&X, tmp, &__P__);
-		}
-		mp_copy(&C, A);
-		mp_mult(&tmp, A, C);
-		mp_mod(&A, tmp, &__P__);
-		mp_rightshift(B);
-		i++;
-	}
-	mp_print(X);
-	free_mpnums(X, tmp, NULL);
-	
-	free_mpnums(A, B, C, NULL);
+	free_poly(C);
+	free_mpnum(aux);
 }
