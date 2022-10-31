@@ -255,11 +255,10 @@ inline void UNROLLED_amns128_montg_mult(restrict poly128 res, const restrict pol
 }
 
 void amns128_rtl_sqandmult(restrict poly128 res, const restrict poly128 base,
-	const restrict poly exponent)
+	const restrict mpnum exponent)
 {
 	// Function for fast exponentiation using the square and multiply algorithm.
-	// Returns base^exponent % p. Note that the exponent is a multiprecision
-	// number and not a polynomial despite using the poly structure.
+	// Returns base^exponent % p. Right to Left version. Slower than ltr.
 	
 	register uint16_t i;
 	register uint8_t j;
@@ -297,11 +296,10 @@ void amns128_rtl_sqandmult(restrict poly128 res, const restrict poly128 base,
 }
 
 void amns128_ltr_sqandmult(restrict poly128 res, const restrict poly128 base,
-	const restrict poly exponent)
+	const restrict mpnum exponent)
 {
 	// Function for fast exponentiation using the square and multiply algorithm.
-	// Returns base^exponent % p. Note that the exponent is a multiprecision
-	// number and not a polynomial despite using the poly structure.
+	// Returns base^exponent % p. Left to Right version.
 	
 	register uint16_t i;
 	register uint8_t j;
@@ -313,7 +311,7 @@ void amns128_ltr_sqandmult(restrict poly128 res, const restrict poly128 base,
 	p128_copy(res, &__theta__);
 	
 	aux = exponent->t[exponent->deg - 1];
-	for(j = __builtin_clz(aux) + 1; j < 64; j++)
+	for(j = __builtin_clz(aux); j < 64; j++)
 	{
 		amns128_montg_mult(tmp, res, res);
 		if(aux & (1ULL << (63 - j)))
@@ -338,22 +336,11 @@ void amns128_ltr_sqandmult(restrict poly128 res, const restrict poly128 base,
 	free_poly128(tmp);
 }
 
-void amns128_sqandmult(restrict poly128 res, const restrict poly128 base,
-	const restrict poly exponent)
-{
-	// Function for fast exponentiation using the square and multiply algorithm.
-	// Returns base^exponent % p. Note that the exponent is a multiprecision
-	// number and not a polynomial despite using the poly structure.
-	
-	amns128_ltr_sqandmult(res, base, exponent);
-}
-
 void amns128_montg_ladder(restrict poly128 res, const restrict poly128 base,
-	const restrict poly exponent)
+	const restrict mpnum exponent)
 {
 	// Function for fast exponentiation using the Montgomery ladder.
-	// Returns base^exponent % p. Note that the exponent is a multiprecision
-	// number and not a polynomial despite using the poly structure.
+	// Returns base^exponent % p.
 	
 	register uint16_t i;
 	register uint8_t j;
@@ -368,7 +355,7 @@ void amns128_montg_ladder(restrict poly128 res, const restrict poly128 base,
 	p128_copy(tmp, base);
 	
 	aux = exponent->t[exponent->deg - 1];
-	for(j = __builtin_clz(aux) + 1; j < 64; j++)
+	for(j = __builtin_clz(aux); j < 64; j++)
 	{
 		b = (aux & (1ULL << (63 - j))) >> (63 - j);
 		amns128_montg_mult(R[1 - b], R[1 - b], R[b]);
@@ -389,6 +376,26 @@ void amns128_montg_ladder(restrict poly128 res, const restrict poly128 base,
 	free_poly128(tmp);
 }
 
+inline void amns128_sqandmult(restrict poly128 res, const char* restrict base,
+	const char* restrict exponent)
+{
+	// Function for fast exponentiation using the square and multiply algorithm.
+	// Returns base^exponent % p. Uses montgomery ladder.
+	
+	poly128 pbase;
+	mpnum mpexponent;
+	init_poly128(N, &pbase);
+	init_mpnum(1, &mpexponent);
+	
+	convert_string_to_amns128(pbase, base);
+	convert_string_to_multipre(&mpexponent, exponent);
+	
+	amns128_montg_ladder(res, pbase, mpexponent);
+	
+	free_poly128(pbase);
+	free_mpnum(mpexponent);
+}
+
 void convert_string_to_amns128(restrict poly128 res, const char* string)
 {
 	// Function that converts a hexadecimal number given as a string into a
@@ -400,16 +407,15 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 	const unsigned __int128 rho = ((__int128)1) << RHO;
 	unsigned __int128 limb, Rlo[N] = {0};
 	__int128 Rhi[N] = {0}, tmp[N] = {0};
-	poly stok;
-	init_poly(2 * N, &stok);
+	mpnum stok, aux1, aux2;
+	init_mpnums(2 * N, &stok, &aux1, &aux2, NULL);
 	
-	convert_string_to_multipre(&stok, string);
+	convert_string_to_multipre(&aux1, string);
 	
-	if(stok->deg > 2 * N)
-	{
-		printf("ERROR: polynomial degree too high in given number for conversion\n");
-		goto end;
-	}
+	mp_mod(&aux2, aux1, &__P__);
+	
+	for(i = 0; i < aux2->deg; i++)
+		stok->t[i] = aux2->t[i];
 	
 	counter = 0;
 	for(i = 0; i < N - 1; i++)
@@ -432,26 +438,25 @@ void convert_string_to_amns128(restrict poly128 res, const char* string)
 	
 	mns128_montg_int_red(res, Rhi, Rlo);
 	
-end:
-	free_poly(stok);
+	free_mpnums(stok, aux1, aux2, NULL);
 }
 
-void convert_amns128_to_multipre(restrict poly* res, const restrict poly128 P)
+void convert_amns128_to_multipre(restrict mpnum* res, const restrict poly128 P)
 {
 	// Function that converts out of the AMNS system and into a multiprecision
-	// number. Note that we use the poly structure but res is not a polynomial.
+	// number.
 	
 	register uint16_t i;
-	poly aux, ag, tmp;
+	mpnum aux, ag, tmp, tmp2;
 	poly128 a;
 	
-	init_polys(2 * N, &ag, &tmp, NULL);
-	init_poly(2, &aux);
+	init_mpnums(2 * N, &ag, &tmp, &tmp2, NULL);
+	init_mpnum(2, &aux);
 	init_poly128(N, &a);
 	if((*res)->deg < 2 * N)
 	{
-		free_poly(*res);
-		init_poly(2 * N, res);
+		free_mpnum(*res);
+		init_mpnum(2 * N, res);
 	}
 	(*res)->deg = 2 * N;
 	for(i = 1; i < 2 * N; i++)
@@ -471,22 +476,24 @@ void convert_amns128_to_multipre(restrict poly* res, const restrict poly128 P)
 	
 	free_poly128(one);
 	
-	(*res)->t[0] = a->lo[0];
-	(*res)->t[1] = a->hi[0];
+	(*res)->sign = 1 - 2 * (a->hi[0] < 0);
+	(*res)->t[0] = a->lo[0] * (*res)->sign;
+	(*res)->t[1] = a->hi[0] * (*res)->sign - ((*res)->sign == -1);
 	for(i = 1; i < N; i++)
 	{
-		aux->t[0] = a->lo[i];
-		aux->t[1] = a->hi[i];
+		aux->sign = 1 - 2 * (a->hi[i] < 0);
+		aux->t[0] = a->lo[i] * aux->sign;
+		aux->t[1] = a->hi[i] * aux->sign - (aux->sign == -1);
+		
 		mp_mult(&ag, aux, &Gi[i - 1]);
 		
 		mp_copy(&tmp, *res);
 		mp_add(res, tmp, ag);
 	}
-	
 	mp_copy(&tmp, *res);
 	mp_mod(res, tmp, &__P__);
 	
-	free_polys(aux, ag, tmp, NULL);
+	free_mpnums(aux, ag, tmp, tmp2, NULL);
 	free_poly128(a);
 }
 
@@ -535,4 +542,28 @@ void __multchecks__(void)
 	}
 	
 	free_poly128s(a, b, c, NULL);
+}
+
+void __sqandmultdemo(void)
+{
+	// TODO: delete it, used to check point to point process.
+	const char a[] = "0xffffffffffffffffffffffffffffffffffffffffffffffff",
+		b[] = "0xffffffffffffffffffffffffffffffffffffffffffffffff",
+		c[] = "0xfca02b1ec94f1d1a5afdbacd6c0b04b9ded8463b62fade4d35e64f3de3a20e8b172382d318083548be85676b8b7dd347c32841c3efa88c928e7cc945f5e2253708053c8f75ff222717ea374b7f0b6ceafd6ac0b119d23300ac9b6a23cd0b332b438f7be9f6c4ee4cdbbe93444343a8011583e10a8c4cc0f07b67d1467b9a73e";
+	
+	poly128 C;
+	mpnum aux;
+	init_poly128(N, &C);
+	init_mpnum(1, &aux);
+	
+	amns128_sqandmult(C, a, b);
+	
+	convert_amns128_to_multipre(&aux, C);
+	
+	printf("\n%s\n\n", c);
+	mp_print(aux);
+	printf("\n");
+	
+	free_poly128(C);
+	free_mpnum(aux);
 }

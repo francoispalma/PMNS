@@ -273,9 +273,10 @@ static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 
 	# We now transcribe the value of P
 	tmp = convert_to_int_tabs(p)
-	print("static _poly __P__ = { .deg = " + str(len(tmp)) + ",")
+	print("static _mpnum __P__ = { .deg = " + str(len(tmp)) + ",")
+	print("\t\t.sign = 1,")
 	tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
-	print("\t\t.t = (int64_t[]) {" + tmp + "} },")
+	print("\t\t.t = (uint64_t[]) {" + tmp + "} },")
 
 	# Powers of gamma next
 	print("\tGi[] = { ", end="")
@@ -285,7 +286,8 @@ static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 		if i != 1:
 			print("\t", end="")
 		print("{ .deg = " + str(len(tmp)) + ",")
-		print("\t\t.t = (int64_t[]) {", end="")
+		print("\t\t.sign = 1,")
+		print("\t\t.t = (uint64_t[]) {", end="")
 		tmp = str([hex(elem) for elem in tmp])[1:-1].replace("'", "")
 		print(tmp + "} }", end="")
 		if i != n - 1:

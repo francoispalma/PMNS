@@ -38,10 +38,10 @@ extern void amns128_montg_mult_pre(restrict poly128 res, const restrict poly128 
 	const restrict poly128 B);
 extern void amns128_montg_mult_hyb(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);*/
-extern void amns128_sqandmult(restrict poly128 res, const restrict poly128 base,
-	const restrict poly exponent);
+extern void amns128_ltr_sqandmult(restrict poly128 res, const restrict poly128 base,
+	const restrict mpnum exponent);
 void amns128_montg_ladder(restrict poly128 res, const restrict poly128 base,
-	const restrict poly exponent);
+	const restrict mpnum exponent);
 void randpoly128(poly128);
 
 // NTEST*NSAMPLES must be odd
@@ -151,11 +151,12 @@ static inline int64_t __modrho(int64_t param)
 	return param & ((1ULL<<(RHO - 64)) - 1);
 }
 
-void randmpnumber(poly P)
+void randmpnumber(mpnum P)
 {
 	for(register uint16_t i = 0; i < P->deg - 1; i++)
 		P->t[i] = randomint64();
 	P->t[P->deg - 1] = __modrho(randomint64());
+	P->sign = 1;
 }
 
 int main(int argc, char** argv)
@@ -171,14 +172,14 @@ int main(int argc, char** argv)
 	unsigned long long int START, STOP;
 
 	poly128 a, c, soak1, soak2;
-	poly b;
+	mpnum b;
 	init_poly128s(N, &a, &b, &c, &soak1, &soak2, NULL);
-	init_poly(2 * N, &b);
+	init_mpnum(2 * N, &b);
 	
 	void (*amns128_exp)(restrict poly128, const restrict poly128,
-		const restrict poly);
+		const restrict mpnum);
 	if (argc > 1 && (strncmp(argv[1], "sqm", 3) == 0))
-		amns128_exp = amns128_sqandmult;
+		amns128_exp = amns128_ltr_sqandmult;
 	else
 		amns128_exp = amns128_montg_ladder;
 
@@ -249,7 +250,7 @@ int main(int argc, char** argv)
 	
 	printf("(%lld, %lld, %lld, %lld)\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES, timer/NSAMPLES);
 	free_poly128s(a, c, soak1, soak2, NULL);
-	free_poly(b);
+	free_mpnum(b);
 	free(cycles1);
 	return 0;
 

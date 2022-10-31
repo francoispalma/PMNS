@@ -25,7 +25,7 @@ extern void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
 extern void UNROLLED_amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
-void amns128_montg_ladder(restrict poly128 res, const restrict poly128 base,
-	const restrict poly exponent);
+extern void amns128_sqandmult(restrict poly128 res, const char* restrict base,
+	const char* restrict exponent);
 
 #endif

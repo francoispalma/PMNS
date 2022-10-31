@@ -263,26 +263,6 @@ void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
 	free_poly(tmp);
 }
 
-inline void amns_sqandmult(restrict poly res, const char* restrict base,
-	const char* restrict exponent)
-{
-	// Function for fast exponentiation using the square and multiply algorithm.
-	// Returns base^exponent % p. Uses amns_ltr_sqandmult.
-	
-	poly pbase;
-	mpnum mpexponent;
-	init_poly(N, &pbase);
-	init_mpnum(1, &mpexponent);
-	
-	convert_string_to_amns(pbase, base);
-	convert_string_to_multipre(&mpexponent, exponent);
-	
-	amns_ltr_sqandmult(res, pbase, mpexponent);
-	
-	free_poly(pbase);
-	free_mpnum(mpexponent);
-}
-
 void amns_montg_ladder(restrict poly res, const restrict poly base,
 	const restrict mpnum exponent)
 {
@@ -321,6 +301,26 @@ void amns_montg_ladder(restrict poly res, const restrict poly base,
 	}
 	
 	free_poly(tmp);
+}
+
+inline void amns_sqandmult(restrict poly res, const char* restrict base,
+	const char* restrict exponent)
+{
+	// Function for fast exponentiation using the square and multiply algorithm.
+	// Returns base^exponent % p. Uses Left to Right square and multiply.
+	
+	poly pbase;
+	mpnum mpexponent;
+	init_poly(N, &pbase);
+	init_mpnum(1, &mpexponent);
+	
+	convert_string_to_amns(pbase, base);
+	convert_string_to_multipre(&mpexponent, exponent);
+	
+	amns_ltr_sqandmult(res, pbase, mpexponent);
+	
+	free_poly(pbase);
+	free_mpnum(mpexponent);
 }
 
 static inline int64_t randomint64(void)
@@ -385,7 +385,7 @@ void convert_string_to_amns(restrict poly res, const char* string)
 void convert_amns_to_multipre(restrict mpnum* res, const restrict poly P)
 {
 	// Function that converts out of the AMNS system and into a multiprecision
-	// number. Note that we use the poly structure but res is not a polynomial.
+	// number.
 	
 	register uint16_t i;
 	poly a;

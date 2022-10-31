@@ -35,7 +35,7 @@ extern void amns128_montg_mult_hyb(restrict poly128 res, const restrict poly128 
 	const restrict poly128 B);*/
 extern void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
 	const restrict mpnum exponent);
-void amns_montg_ladder(restrict poly res, const restrict poly base,
+extern void amns_montg_ladder(restrict poly res, const restrict poly base,
 	const restrict mpnum exponent);
 void randpoly(poly);
 
