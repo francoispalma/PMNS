@@ -10,25 +10,25 @@ def norme_infinie(L):
 	return max([abs(elem) for elem in L])
 
 def naive_convert_to_mns_and_red(a, p, n, gamma, rho, lam, phi, M, M1, phisquared):
-	A = naive_convert_to_mns(a, p, n, gamma, rho, lam)
-	U = amns_montg_mult(A, phisquared, p, n, gamma, rho, lam, phi, M, M1)
+	A = naive_convert_to_mns(a, p, n, gamma, rho)
+	U = amns_montg_mult(A, phisquared, n, lam, phi, M, M1)
 	return U
 
-def montgomery_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, tau):
+def montgomery_convert_to_mns(a, p, n, lam, phi, M, M1, tau):
 	alpha = (a * tau) % p
 	A = [0] * n
 	A[0] = alpha
 	for _ in range(n - 1):
-		A = montgomery_like_coefficient_reduction(A, p, n, gamma, rho, lam, phi, M, M1)
+		A = montgomery_like_coefficient_reduction(A, n, lam, phi, M, M1)
 	return A
 
-def rho_div_convert_to_mns(a, p, n, gamma, rho, lam, phi, M, M1, Pi):
+def rho_div_convert_to_mns(a, n, rho, lam, phi, M, M1, Pi):
 	t = convert_to_rho_base(a, n, rho)
 	U = [0] * n
 	for i in range(n):
 		for j in range(n):
 			U[j] += t[i] * Pi[i][j]
-	A = montgomery_like_coefficient_reduction(U, p, n, gamma, rho, lam, phi, M, M1)
+	A = montgomery_like_coefficient_reduction(U, n, lam, phi, M, M1)
 	return A
 
 def convert_to_rho_base(a, n, rho):
@@ -40,20 +40,19 @@ def convert_to_rho_base(a, n, rho):
 		a1 >>= RHO
 	return t
 
-def montgomery_convert_to_mns_base(a, p, n, gamma, rho, lam, phi, B, B1, tau):
+def montgomery_convert_to_mns_base(a, p, n, lam, phi, B, B1, tau):
 	alpha = (a * tau) % p
 	A = [0] * n
 	A[0] = alpha
 	for _ in range(n - 1):
-		A = montgomery_like_coefficient_reduction_base(A, p, n, gamma, rho, lam, phi, B, B1)
+		A = montgomery_like_coefficient_reduction_base(A, phi, B, B1)
 	return A
 
-def rho_div_convert_to_mns_base(a, p, n, gamma, rho, lam, phi, B, B1, Pi):
+def rho_div_convert_to_mns_base(a, n, rho, lam, phi, B, B1, Pi):
 	t = convert_to_rho_base(a, n, rho)
 	U = [0] * n
 	for i in range(n):
 		for j in range(n):
 			U[j] += t[i] * Pi[i][j]
-	A = montgomery_like_coefficient_reduction_base(U, p, n, gamma, rho, lam, phi, B, B1)
+	A = montgomery_like_coefficient_reduction_base(U, phi, B, B1)
 	return A
-

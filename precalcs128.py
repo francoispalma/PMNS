@@ -257,11 +257,11 @@ static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	# We then get the Pi
 	phinmoinsun = pow(phi, n - 1, p)
 	Pi = [0] * n
-	Prho = montgomery_convert_to_mns(rho * phi, p, n, gamma, rho, lam, phi, M_or_B, M1_or_B1, phinmoinsun)
-	Pstk = montgomery_convert_to_mns(phi**2, p, n, gamma, rho, lam, phi, M_or_B, M1_or_B1, phinmoinsun)
+	Prho = montgomery_convert_to_mns(rho * phi, p, n, lam, phi, M_or_B, M1_or_B1, phinmoinsun)
+	Pstk = montgomery_convert_to_mns(phi**2, p, n, lam, phi, M_or_B, M1_or_B1, phinmoinsun)
 	for i in range(n):
 		Pi[i] = Pstk
-		Pstk = amns_montg_mult(Pstk, Prho, p, n, gamma, rho, lam, phi, M_or_B, M1_or_B1)
+		Pstk = amns_montg_mult(Pstk, Prho, n, lam, phi, M_or_B, M1_or_B1)
 	print("\nstatic const uint64_t __Pilo__[N][N] = {")
 	for i in range(len(Pi) - 1):
 		print("\t\t{" + str([int(elem) % 2**64 for elem in Pi[i]])[1:-1].replace(",", "u,") + "u},")
@@ -295,7 +295,7 @@ static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 		g = g * gamma % p
 	print("};")
 
-	theta = rho_div_convert_to_mns(1, p, n, gamma, rho, lam, phi, M_or_B, M1_or_B1, Pi)
+	theta = rho_div_convert_to_mns(1, n, rho, lam, phi, M_or_B, M1_or_B1, Pi)
 	tmphi = str([hex(int(elem) >> 64) for elem in theta])[1:-1].replace("'", "")
 	tmplo = str([hex(int(elem) % 2**64) for elem in theta])[1:-1].replace("'", "")
 	print(f"\nstatic _poly128 __theta__ = {{ .deg = {n},")
@@ -306,11 +306,6 @@ static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 
 
 if __name__ == "__main__":
-#	p = 135235643069960614055763147653064061503447506836195743621526670176368184234720875133770858820476536434488752158042109408722131110950494765999584602783171012937442890496568352400298953673566640901275488915484314041362810104082501296367785554838617047203051373164870703338765011558032443485283660293658396373031
-#	n = 9
-#	gamma = 31655366034728588078624438514615301544129522139330836045091327852751402305472801538659044715201150659916554681038263189819329423658063171106562974285532277781484292697032498794895427121795477802587356170442668003146237461337340801098373462588444085927763403266750253334246732747899661111138239398839213291694
-#	lam = 2
-#	phi = 2**128
 	if len(sys.argv) == 1:
 		do_precalcs(p, n, gamma, lam, rho, M_or_B, M1_or_B1)
 	else:
@@ -330,5 +325,3 @@ if __name__ == "__main__":
 			print("Invalid syntax: [psize] [index]")
 		except KeyError:
 			print("Index value invalid")
-	
-

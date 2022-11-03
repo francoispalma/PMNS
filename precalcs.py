@@ -164,17 +164,17 @@ const restrict poly A, const restrict poly B)
 	# We then get the Pi and print it
 	phinmoinsun = pow(phi, n - 1, p)
 	Pi = [0] * n
-	Prho = montgomery_convert_to_mns(rho * phi, p, n, gamma, rho, lam, phi, M_or_B, M1_or_B1, phinmoinsun)
-	Pstk = montgomery_convert_to_mns(phi**2, p, n, gamma, rho, lam, phi, M_or_B, M1_or_B1, phinmoinsun)
+	Prho = montgomery_convert_to_mns(rho * phi, p, n, lam, phi, M_or_B, M1_or_B1, phinmoinsun)
+	Pstk = montgomery_convert_to_mns(phi**2, p, n, lam, phi, M_or_B, M1_or_B1, phinmoinsun)
 	for i in range(n):
 		Pi[i] = Pstk
-		Pstk = amns_montg_mult(Pstk, Prho, p, n, gamma, rho, lam, phi, M_or_B, M1_or_B1)
+		Pstk = amns_montg_mult(Pstk, Prho, n, lam, phi, M_or_B, M1_or_B1)
 	print("\nstatic const int64_t __Pi__[N][N] = {")
 	for i in range(len(Pi) - 1):
 		print("\t\t{" + str(Pi[i])[1:-1] + "},")
 	print("\t\t{" + str(Pi[-1])[1:-1] + "}\n\t};\n")
 
-	theta = rho_div_convert_to_mns(1, p, n, gamma, rho, lam, phi, M_or_B, M1_or_B1, Pi)
+	theta = rho_div_convert_to_mns(1, n, rho, lam, phi, M_or_B, M1_or_B1, Pi)
 	tmp = str([hex(elem) for elem in theta])[1:-1].replace("'", "")
 	print(f"\nstatic _poly __theta__ = {{ .deg = {n},")
 	print(f"\t.t = (int64_t[]) {{ {tmp} }} }};")
