@@ -17,3 +17,4 @@ void mp_mod(restrict mpnum*, restrict const mpnum, restrict const mpnum);
 void mp_utmod(restrict mpnum*, restrict const mpnum, restrict const mpnum);
 
 #endif
+

@@ -15,11 +15,11 @@ if __name__ == "__main__":
 			visual += 1
 			try:
 				a = literal_eval(f.readline()[:-1])
-				a = [elem - phi if elem > (phi >> 1) else elem for elem in a]
+#				a = [elem - phi if elem > (phi >> 1) else elem for elem in a]
 				b = literal_eval(f.readline()[:-1])
-				b = [elem - phi if elem > (phi >> 1) else elem for elem in b]
+#				b = [elem - phi if elem > (phi >> 1) else elem for elem in b]
 				c = literal_eval(f.readline()[:-1])
-				c = [elem - phi if elem > (phi >> 1) else elem for elem in c]
+#				c = [elem - phi if elem > (phi >> 1) else elem for elem in c]
 				c_check = (horner_modulo(a, gamma, p) * horner_modulo(b, gamma, p) * pow(phi, -1, p)) % p
 				if horner_modulo(c, gamma, p) != c_check:
 					counter += 1

@@ -12,7 +12,9 @@ Currently a 64 bit and 128 bit versions are available. A 104 bit version using A
 
 Installing sagemath is required to use the code generation.
 > sudo apt install sagemath-common
+
 then
+
 > sudo apt install sagemath
 
 ## Usage
@@ -22,6 +24,9 @@ To generate all the code with implementation 64bits or 128bits (PHI) needed for 
 
 To load a specific PMNS of size PSIZE and index INDEX:
 > make loadpmns [PSIZE=size] [INDEX=index]
+
+To load a specific PMNS of size PSIZE and index INDEX using basis reduction:
+> make loadpmnsWB [PSIZE=size] [INDEX=index]
 
 To display a benchmark of the current version with the currently loaded PMNS:
 > make bench

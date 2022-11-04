@@ -413,3 +413,4 @@ void mp_mod(restrict mpnum* res, restrict const mpnum op1, restrict const mpnum 
 	mp_reduce(*res);
 	free_mpnums(X, R, NULL);
 }
+

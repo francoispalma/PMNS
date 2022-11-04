@@ -55,6 +55,8 @@ static inline void m1_multadd128(unsigned __int128* restrict Rlo,
 	*Rlo += (__int128) A * B;
 }
 
+#ifdef LAMBDA
+
 inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A,
 	const restrict poly128 B)
@@ -80,6 +82,58 @@ inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 				B->hi[i - j], B->lo[i - j]);
 	}
 }
+
+#endif
+
+#ifdef LENEXTPOLY
+
+/*
+
+for(i = 0; i < N; i++)
+	{
+		T = 0;
+		for(j = 1; j < N - i; j++)
+			T += (__int128) A->t[i + j] * B->t[N - j];
+		for(k = 0; (k < LENEXTPOLY) && (i + k < N); k++)
+			R[i + k] += T * EXTPOLY[k];
+		for(j = 0; j < i + 1; j++)
+			R[i] += (__int128) A->t[j] * B->t[i - j];
+	}
+
+*/
+
+inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
+	unsigned __int128* restrict Rlo, const restrict poly128 A,
+	const restrict poly128 B)
+{
+	// Function that multiplies A by B and applies external reduction using
+	// E(X) an irreducible polynomial used for reduction. Result in R
+	register uint16_t i, j, k;
+	__int128 Thi;
+	unsigned __int128 aux1, aux2, Tlo;
+	
+	for(i = 0; i < N; i++)
+	{
+		Thi = 0;
+		Tlo = 0;
+		for(j = 1; j < N - i; j++)
+			mns_multadd128(&Thi, &Tlo, A->hi[i + j], A->lo[i + j],
+				B->hi[N - j], B->lo[N - j]);
+		for(k = 0; (k < LENEXTPOLY) && (i + k < N); k++)
+		{
+			aux1 = (unsigned __int128) LOW(Tlo) * EXTPOLY[k] + LOW(Rlo[i + k]);
+			aux2 = (unsigned __int128) HI(Tlo) * EXTPOLY[k] + HIGH(aux1) + HI(Rlo[i + k]);
+			Rlo[i + k] = ((__int128) aux2 << 64) | LOW(aux1);
+			Rhi[i + k] += (__int128) Thi * EXTPOLY[k] + HIGH(aux2);
+		}
+		
+		for(j = 0; j < i + 1; j++)
+			mns_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
+				B->hi[i - j], B->lo[i - j]);
+	}
+}
+
+#endif
 
 #ifdef M_or_B_is_M
 

@@ -22,7 +22,12 @@ def do_precalcs(p, n, gamma, lam, rho, M, M1):
 	print("#define RHO", rho)
 	rho = 2**rho
 
-	print("#define N", str(n) + "\n#define LAMBDA", str(lam) +"\n")
+	print(f"#define N {n}")
+	if type(lam) == int:
+		print(f"#define LAMBDA {lam}")
+	else:
+		print(f"#define LENEXTPOLY {len(lam)}")
+		print(f"static const int8_t EXTPOLY[{len(lam)}] = {{ {str(lam)[1:-1]} }};")
 
 	print("""
 static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned __int128 b)
@@ -93,6 +98,7 @@ static inline void UNROLLED_m1_or_b1_mns128_mod_mult_ext_red(unsigned __int128* 
 {
 """)
 
+		print("#ifdef LAMBDA")
 		for i in range(n):
 			print(f"Rlo[{i}] = (__int128)", end="")
 			for j in range(1, n - i):
@@ -111,6 +117,7 @@ static inline void UNROLLED_m1_or_b1_mns128_mod_mult_ext_red(unsigned __int128* 
 			print(";")
 
 		print("}\n")
+		print("#endif")
 
 		# Next is the multiplication by M
 		print("""
@@ -124,6 +131,7 @@ static inline void UNROLLED_m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rh
 		Mt = [Mlo, Mhi]
 		MLt = [MLambdalo, MLambdahi]
 
+		print("#ifdef LAMBDA")
 		for i in range(n):
 			for j in range(1, n - i):
 				for k in range(3, -1, -1):
@@ -142,6 +150,7 @@ static inline void UNROLLED_m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rh
 		add_overflow(Rlo + {i}, tmplo);\n""")
 
 		print("}\n")
+		print("#endif")
 
 	elif type(M_or_B[0]) == tuple or type(M_or_B[0]) == list:
 		print("#define M_or_B_is_B\n")
@@ -231,6 +240,7 @@ static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	At = ["(__int128) A->lo[", "(__int128) A->hi["]
 	Bt = ["B->lo[", "B->hi["]
 
+	print("#ifdef LAMBDA")
 	for i in range(n):
 		for j in range(1, n - i):
 			print(f"\tA1B1 = {At[1]}{i + j}] * {Bt[1]}{n - j}] * LAMBDA;")
@@ -251,6 +261,7 @@ static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 			print(f"tmplo = (__int128) LOW(A0B0) | ((__int128)A1B0_A0B1 << 64);")
 			print(f"""\tRhi[{i}] += (__int128) A1B1 + HIGH(A1B0_A0B1) +
 		add_overflow(Rlo + {i}, tmplo);\n""")
+	print("#endif")
 
 	print("}\n")
 

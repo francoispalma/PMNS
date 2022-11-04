@@ -21,7 +21,12 @@ def do_precalcs(p, n, gamma, lam, rho, M_or_B, M1_or_B1):
 	print("#define RHO", rho)
 	rho = 2**rho
 
-	print("#define N", str(n) + "\n#define LAMBDA", str(lam) +"\n")
+	print(f"#define N {n}")
+	if type(lam) == int:
+		print(f"#define LAMBDA {lam}")
+	else:
+		print(f"#define LENEXTPOLY {len(lam)}")
+		print(f"static const int8_t EXTPOLY[{len(lam)}] = {{ {str(lam)[1:-1]} }};")
 
 	# We determine if we're using the base matrix or a polynomial
 	if type(M_or_B[0]) == int:
@@ -51,6 +56,7 @@ static inline void UNROLLED_m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
 {
 """)
 
+		print("#ifdef LAMBDA")
 		for i in range(n):
 			print(f"R[{i}] = (uint64_t)", end="")
 			for j in range(1, n - i):
@@ -63,6 +69,7 @@ static inline void UNROLLED_m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
 					print(" +", end= "")
 
 			print(";")
+		print("#endif")
 
 		print("}\n")
 
@@ -73,6 +80,7 @@ static inline void UNROLLED_m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
 {
 """)
 
+		print("#ifdef LAMBDA")
 		for i in range(n):
 			print(f"R[{i}] = (__int128)", end="")
 			for j in range(1, n - i):
@@ -85,6 +93,7 @@ static inline void UNROLLED_m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
 					print(" +", end= "")
 
 			print(";")
+		print("#endif")
 
 		print("}\n")
 
@@ -146,6 +155,7 @@ const restrict poly A, const restrict poly B)
 {
 """)
 
+	print("#ifdef LAMBDA")
 	for i in range(n):
 		print(f"R[{i}] = (__int128)", end="")
 		for j in range(1, n - i):
@@ -158,6 +168,7 @@ const restrict poly A, const restrict poly B)
 				print(" +", end= "")
 
 		print(";")
+	print("#endif")
 
 	print("}\n")
 

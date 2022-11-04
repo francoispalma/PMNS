@@ -75,7 +75,7 @@ def gen_amns(p, phi=64, polyv=True, delta=0):
 			fs = factor(E)
 			i = 0
 			while i < len(fs) and fs[i][0].degree() == 1 and not flag:
-				gamma = -fs[i][0][0]
+				gamma = -fs[i][0][0] % p
 				flag = abs(int(((pow(gamma, n, p) + 10) % p) - 10)) == lam
 				i += 1
 			if flag:
@@ -86,7 +86,7 @@ def gen_amns(p, phi=64, polyv=True, delta=0):
 			fs = factor(E)
 			i = 0
 			while i < len(fs) and fs[i][0].degree() == 1 and not flag:
-				gamma = -fs[i][0][0]
+				gamma = -fs[i][0][0] % p
 				flag = abs(int(((pow(gamma, n, p) + 10) % p) - 10)) == lam
 				i += 1
 			if flag:
@@ -102,7 +102,7 @@ def gen_amns(p, phi=64, polyv=True, delta=0):
 
 			# We calculate the base matrix
 			B = [[p if (k, j) == (0, 0) else -pow(gamma, k, p) if k != 0 and j == 0 else 1 if k == j else 0 for j in range(n)] for k in range(n)]
-			B = list(IntegerLattice(matrix(ZZ, B)).BKZ())
+			B = list((matrix(ZZ, B).LLL()).BKZ())
 
 			# We want PHI => 4wnorm1(B) because we want PHI => 2wrho
 			# and rho => 2norm1(B)

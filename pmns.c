@@ -6,6 +6,7 @@
 
 #define AMNS_MONTG_MULT UNROLLED_amns_montg_mult
 
+#ifdef LAMBDA
 inline void mns_mod_mult_ext_red(__int128* restrict R,
 	const restrict poly A, const restrict poly B)
 {
@@ -24,6 +25,32 @@ inline void mns_mod_mult_ext_red(__int128* restrict R,
 			R[i] += (__int128) A->t[j] * B->t[i - j];
 	}
 }
+
+#endif
+
+#ifdef LENEXTPOLY
+
+inline void mns_mod_mult_ext_red(__int128* restrict R,
+	const restrict poly A, const restrict poly B)
+{
+	// Function that multiplies A by B and applies external reduction using
+	// E(X) an irreducible polynomial used for reduction. Result in R
+	register uint16_t i, j, k;
+	__int128 T;
+	
+	for(i = 0; i < N; i++)
+	{
+		T = 0;
+		for(j = 1; j < N - i; j++)
+			T += (__int128) A->t[i + j] * B->t[N - j];
+		for(k = 0; (k < LENEXTPOLY) && (i + k < N); k++)
+			R[i + k] += T * EXTPOLY[k];
+		for(j = 0; j < i + 1; j++)
+			R[i] += (__int128) A->t[j] * B->t[i - j];
+	}
+}
+
+#endif
 
 #ifdef M_or_B_is_M
 

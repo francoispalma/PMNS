@@ -5,11 +5,14 @@ purposes or checking/prototyping the C code.
 
 from random import randrange
 from sage.all import matrix
-#from pyparams import p, n, gamma, lam, rho, M_or_B, M1_or_B1, phi
+#from pyparams128 import p, n, gamma, lam, rho, M_or_B, M1_or_B1, phi
 #import convert
 
 def horner_modulo(Poly: list, X: int, modulo: int) -> int:
-	"""Polynomial evaluation function using Horner's algorithm, applying a modulo.
+	"""Polynomial evaluation function using Horner's algorithm, applying a
+	modulo.
+	
+	PARAMETERS
 	Poly: The polynomial in list form with the 0th degree in 0th index
 	X: The value to evaluate the polynomial in
 	modulo: The value to apply a modulo for during the process
@@ -25,7 +28,10 @@ def horner_modulo(Poly: list, X: int, modulo: int) -> int:
 
 # Probably removing this soon.
 def amns_mod_mult(A, B, n, lam):
-	return pmns_mod_mult(A, B, n, [lam])
+	if type(lam) == int:
+		return pmns_mod_mult(A, B, n, [lam])
+	else:
+		return pmns_mod_mult(A, B, n, lam)
 #	R = [0] * n
 #	for i in range(n):
 #		for j in range(1, n - i):
@@ -51,16 +57,18 @@ def amns_montg_mult(A, B, n, lam, phi, M, M1):
 
 def montgomery_like_coefficient_reduction_base(A: list, phi: int, B: list,
 		B1: list) -> list:
-	"""Function to apply an internal reduction to A using the montgomery method.
+	"""Function to apply an internal reduction to A using Montgomery's method.
 	This version uses the basis matrix instead of polynomials.
+	
+	PARAMETERS
 	A: The polynomial in list form we are applying a reduction to
 	phi: The size of our memory registers, typically 2**64 or 2**128
-	B: The basis matrix of polynomials that have gamma as a root, list of lists
-	B1: Same format as B, is equal to the opposite of the inverse of B mod phi.
+	B: The basis matrix of polynomials P such that P(gamma) = 0 mod p
+	B1: This matrix is equal to the opposite of the inverse of B mod phi
 	
-	Returns a polynomial in list form such that its evaluation in gamma is equal
-	to A's divided by phi. We guarantee that each coefficient is smaller by a
-	factor of phi compared to A.
+	Returns a polynomial in list form such that its evaluation in gamma is
+	equal to A's divided by phi. We guarantee that each coefficient is
+	smaller by a factor of phi compared to A.
 	"""
 	mA = matrix(A)
 	mB = matrix(B)
@@ -76,10 +84,13 @@ def amns_montg_mult_base(vA, vB, n, lam, phi, B, B1):
 def pmns_mod_mult(A, B, n, E):
 	R = [0] * n
 	for i in range(n):
+		T = 0
 		for j in range(1, n - i):
-			T = A[i + j] * B[n - j]
-			for k in range(len(E)):
-				R[i + k] += T * E[k]
+			T += A[i + j] * B[n - j]
+		for k in range(len(E)):
+			if k >= n - i:
+				break
+			R[i + k] += T * E[k]
 		for j in range(i + 1):
 			R[i] += A[j] * B[i - j]
 	return R
@@ -90,13 +101,13 @@ def pmns_montg_mult_base(vA, vB, n, lam, phi, B, B1):
 
 #if __name__ == "__main__":
 #	phin = pow(phi, n, p)
-#	a = randrange(p**0.5, p)
-#	b = randrange(p**0.5, p)
+#	a = randrange(int(p**0.5), p)
+#	b = randrange(int(p**0.5), p)
 #	c = a * b % p
-#	pmns = (p, n, gamma, rho, lam, phi, M_or_B, M1_or_B1)
+#	aargs = (p, n, lam, phi, M_or_B, M1_or_B1)
 #	grp = (phi, M_or_B, M1_or_B1)
-#	A = convert.montgomery_convert_to_mns_base(a, *pmns, phin)
-#	B = convert.montgomery_convert_to_mns_base(b, *pmns, phin)
+#	A = convert.montgomery_convert_to_mns_base(a, *aargs, phin)
+#	B = convert.montgomery_convert_to_mns_base(b, *aargs, phin)
 #	C = montgomery_like_coefficient_reduction_base(pmns_montg_mult_base(A, B, n, lam, *grp), *grp)
 #	cc = horner_modulo(C, gamma, p)
 #	print(c == cc)
