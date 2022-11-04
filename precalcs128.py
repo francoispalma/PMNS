@@ -1,7 +1,7 @@
 import sys
 from sage.all import matrix
 
-from ops import list_to_poly, horner_modulo, amns_montg_mult as amns_montg_mult_poly, amns_montg_mult_base
+from ops import horner_modulo, amns_montg_mult as amns_montg_mult_poly, amns_montg_mult_base
 from convert import montgomery_convert_to_mns as montgomery_convert_to_mns_poly, montgomery_convert_to_mns_base, rho_div_convert_to_mns as rho_div_convert_to_mns_poly, rho_div_convert_to_mns_base
 from pyparams128 import p, n, gamma, lam, phi, rho, M_or_B, M1_or_B1
 from commonpmns import pmnsdicts, primesdict

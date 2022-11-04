@@ -3,7 +3,7 @@ from random import randrange
 from ast import literal_eval
 
 from convert import rho_div_convert_to_mns as conv, montgomery_convert_to_mns
-from ops import list_to_poly, horner_modulo, amns_montg_mult
+from ops import horner_modulo, amns_montg_mult
 from pyparams import p, n, gamma, lam, phi, rho, M_or_B as M, M1_or_B1 as M1
 
 if __name__ == "__main__":

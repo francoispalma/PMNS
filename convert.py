@@ -3,16 +3,11 @@ from time import process_time
 from sage.all import matrix, ZZ, PolynomialRing, xgcd
 from sage.modules.free_module_integer import IntegerLattice
 
-from ops import montgomery_like_coefficient_reduction, montgomery_like_coefficient_reduction_base, horner_modulo, naive_convert_to_mns, amns_montg_mult, list_to_poly
+from ops import montgomery_like_coefficient_reduction, montgomery_like_coefficient_reduction_base, horner_modulo, amns_montg_mult
 from pyparams128 import p, n, gamma, rho, lam, M_or_B as M, M1_or_B1 as M1, phi
 
 def norme_infinie(L):
 	return max([abs(elem) for elem in L])
-
-def naive_convert_to_mns_and_red(a, p, n, gamma, rho, lam, phi, M, M1, phisquared):
-	A = naive_convert_to_mns(a, p, n, gamma, rho)
-	U = amns_montg_mult(A, phisquared, n, lam, phi, M, M1)
-	return U
 
 def montgomery_convert_to_mns(a, p, n, lam, phi, M, M1, tau):
 	alpha = (a * tau) % p

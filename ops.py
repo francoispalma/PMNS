@@ -1,78 +1,41 @@
+"""
+Module for various miscellaneous needed operations for either generation
+purposes or checking/prototyping the C code.
+"""
+
 from random import randrange
-from time import process_time
-from sage.all import next_prime, factor, matrix, ZZ, PolynomialRing, xgcd
-from sage.modules.free_module_integer import IntegerLattice
-from copy import deepcopy
-from pyparams import p, n, gamma, lam, rho, M_or_B, M1_or_B1, phi
+from sage.all import matrix
+#from pyparams import p, n, gamma, lam, rho, M_or_B, M1_or_B1, phi
 #import convert
 
-def external_reduction(C, n, lam):
-	R = [0] * n
-	for i in range(n - 1):
-		R[i] = C[i] + lam * C[n + i]
-	R[n - 1] = C[n - 1]
-	return R
-
-def internal_reduction(V, n, k, p, gamma, M):
-	U = [0] * n
-	W = [0] * n
-	for i in range(n):
-		U[i] = V[i] >> k
-		W[i] = V[i] & ((1<<k) - 1)
-		assert (U[i] << k) + W[i] == V[i]
-	for i in range(n):
-		for j in range(n):
-			W[i] = (W[i] + U[j] * M[j][i]) % p
-		W[i] %= p
-	assert horner_modulo(V, gamma, p) == horner_modulo(W, gamma, p)
-	return W
-
-def naive_convert_to_mns(val, p, n, gamma, rho, lam=None):
-	gamms = [int(pow(gamma, i, p)) for i in range(n)]
-	mgamms = [(p - elem) % p for elem in gamms]
-	R = [0] * n
-	left = [i for i in range(n - 1, -1, -1)]
-	while left:
-		orlen = len(left)
-		for elem in left:
-			if val // gamms[elem] != 0 and -rho < val // gamms[elem] < rho:
-				R[elem] = val // gamms[elem]
-				val = (val - R[elem] * gamms[elem]) % p
-				left.remove(elem)
-				break
-			elif val // mgamms[elem] != 0 and -rho < val // mgamms[elem] < rho:
-				R[elem] = - (val // mgamms[elem])
-				val = (val - R[elem] * gamms[elem]) % p
-				left.remove(elem)
-				break
-		if len(left) == orlen:
-			print("Error:", val)
-			break
-	return R
-
-def horner_modulo(Poly, X, modulo):
+def horner_modulo(Poly: list, X: int, modulo: int) -> int:
+	"""Polynomial evaluation function using Horner's algorithm, applying a modulo.
+	Poly: The polynomial in list form with the 0th degree in 0th index
+	X: The value to evaluate the polynomial in
+	modulo: The value to apply a modulo for during the process
+	
+	For our purposes we use this to convert out of the PMNS by evaluating in
+	gamma modulo p.
+	"""
 	sum_ = 0
 	for i in range(len(Poly) - 1, -1, -1):
 		sum_ = sum_ * X
 		sum_ = sum_ + Poly[i]
 	return int(sum_ % modulo)
 
-def list_to_poly(L):
-	rstr = str(L[0])
-	for i in range(1, len(L)):
-		rstr += " + (" + str(L[i]) + ") * X" + ("^" + str(i) if i != 1 else "")
-	return rstr
-
+# Probably removing this soon.
 def amns_mod_mult(A, B, n, lam):
-	R = [0] * n
-	for i in range(n):
-		for j in range(1, n - i):
-			R[i] += A[i + j] * B[n - j]
-		R[i] *= lam
-		for j in range(i + 1):
-			R[i] += A[j] * B[i - j]
-	return R
+	return pmns_mod_mult(A, B, n, [lam])
+#	R = [0] * n
+#	for i in range(n):
+#		for j in range(1, n - i):
+#			R[i] += A[i + j] * B[n - j]
+#		R[i] *= lam
+#		for j in range(i + 1):
+#			R[i] += A[j] * B[i - j]
+#	return R
 
+# Old version using polynomials, probably getting removed later.
 def montgomery_like_coefficient_reduction(V, n, lam, phi, M, M1):
 	Q = [int(int(V[i]) & (phi - 1)) for i in range(n)]
 	Q = amns_mod_mult(Q, M1, n, lam)
@@ -81,11 +44,24 @@ def montgomery_like_coefficient_reduction(V, n, lam, phi, M, M1):
 	S = [int(int(int(V[i]) + int(T[i])) >> (phi.bit_length() - 1)) for i in range(n)]
 	return S
 
+# Old version using polynomials, probably getting removed later.
 def amns_montg_mult(A, B, n, lam, phi, M, M1):
 	return montgomery_like_coefficient_reduction(amns_mod_mult(A, B, n, lam),
 		n, lam, phi, M, M1)
 
-def montgomery_like_coefficient_reduction_base(A, phi, B, B1):
+def montgomery_like_coefficient_reduction_base(A: list, phi: int, B: list,
+		B1: list) -> list:
+	"""Function to apply an internal reduction to A using the montgomery method.
+	This version uses the basis matrix instead of polynomials.
+	A: The polynomial in list form we are applying a reduction to
+	phi: The size of our memory registers, typically 2**64 or 2**128
+	B: The basis matrix of polynomials that have gamma as a root, list of lists
+	B1: Same format as B, is equal to the opposite of the inverse of B mod phi.
+	
+	Returns a polynomial in list form such that its evaluation in gamma is equal
+	to A's divided by phi. We guarantee that each coefficient is smaller by a
+	factor of phi compared to A.
+	"""
 	mA = matrix(A)
 	mB = matrix(B)
 	mB1 = matrix(B1)
@@ -97,7 +73,7 @@ def amns_montg_mult_base(vA, vB, n, lam, phi, B, B1):
 	return montgomery_like_coefficient_reduction_base(amns_mod_mult(vA, vB, n, lam),
 		phi, B, B1)
 
-def pmns_mod_mult(vA, vB, n, E):
+def pmns_mod_mult(A, B, n, E):
 	R = [0] * n
 	for i in range(n):
 		for j in range(1, n - i):

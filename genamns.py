@@ -3,9 +3,18 @@ from sage.modules.free_module_integer import IntegerLattice
 from math import log2
 import sys
 
-from ops import list_to_poly
 from commonpmns import primesdict, handledphis
 
+
+def list_to_poly(L: list) -> str:
+	"""Utility function to transform lists to strings to convert to polynomials
+	in the format sage likes.
+	L: The list that represents our polynomials.
+	"""
+	rstr = str(L[0])
+	for i in range(1, len(L)):
+		rstr += " + (" + str(L[i]) + ") * X" + ("^" + str(i) if i != 1 else "")
+	return rstr
 
 def infinite_norm_of_matrix(Matrix):
 	return max([sum([abs(elem) for elem in Line]) for Line in Matrix])

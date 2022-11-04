@@ -1,6 +1,6 @@
 from convert import rho_div_convert_to_mns as conv, montgomery_convert_to_mns
 from pyparams128 import p, n, gamma, lam, phi, rho, M_or_B, M1_or_B1
-from ops import list_to_poly, horner_modulo
+from ops import horner_modulo
 from random import randrange
 from ast import literal_eval
 
