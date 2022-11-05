@@ -155,20 +155,46 @@ const restrict poly A, const restrict poly B)
 {
 """)
 
-	print("#ifdef LAMBDA")
-	for i in range(n):
-		print(f"R[{i}] = (__int128)", end="")
-		for j in range(1, n - i):
-			print(f" ((__int128) A->t[{i + j}] * B->t[{n - j}] * LAMBDA)", end="")
-			print(" +", end= "")
-
-		for j in range(0, i + 1):
-			print(f" ((__int128) A->t[{j}] * B->t[{i - j}])", end="")
-			if j != i:
+	if type(lam) == int:
+		for i in range(n):
+			print(f"R[{i}] = (__int128)", end="")
+			for j in range(1, n - i):
+				print(f" ((__int128) A->t[{i + j}] * B->t[{n - j}] * LAMBDA)", end="")
 				print(" +", end= "")
 
-		print(";")
-	print("#endif")
+			for j in range(0, i + 1):
+				print(f" ((__int128) A->t[{j}] * B->t[{i - j}])", end="")
+				if j != i:
+					print(" +", end= "")
+
+			print(";")
+
+	else:
+		print(f"__int128 T[{n}];\n")
+		for i in range(n):
+			if i != n - 1:
+				print(f"T[{i}] = (__int128)", end="")
+				for j in range(1, n - i):
+					print(f" ((__int128) A->t[{i + j}] * B->t[{n - j}])", end="")
+					if j != n - i - 1:
+						print(" +", end= "")
+					else:
+						print(";")
+			else:
+				print(f"T[{i}] = 0;");
+
+			print(f"R[{i}] = (__int128)", end="")
+			for k in range(len(lam)):
+				if i - k < 0:
+					break
+				print(f" ((__int128) T[{i - k}] * {lam[k]}) ", end="+")
+			for j in range(0, i + 1):
+				print(f" ((__int128) A->t[{j}] * B->t[{i - j}])", end="")
+				if j != i:
+					print(" +", end= "")
+
+			print(";")
+
 
 	print("}\n")
 
