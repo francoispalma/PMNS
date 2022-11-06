@@ -127,7 +127,7 @@ static inline void UNROLLED_m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
 
 		print("}\n")
 
-		# Next is the multiplication by B
+		# Next is the multiplication by the basis B
 		print("""
 static inline void UNROLLED_m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
 	const restrict poly A)
@@ -148,7 +148,7 @@ static inline void UNROLLED_m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
 	else:
 		raise ValueError("Invalid parameter for M or B")
 
-	# Precalc for the multiplication of A by B.
+	# Precalc for the multiplication of a polynomial A by a polynomial B.
 	print("""
 static inline void UNROLLED_mns_mod_mult_ext_red(__int128* restrict R,
 const restrict poly A, const restrict poly B)

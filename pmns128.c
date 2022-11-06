@@ -87,21 +87,6 @@ inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 
 #ifdef LENEXTPOLY
 
-/*
-
-for(i = 0; i < N; i++)
-	{
-		T = 0;
-		for(j = 1; j < N - i; j++)
-			T += (__int128) A->t[i + j] * B->t[N - j];
-		for(k = 0; (k < LENEXTPOLY) && (i + k < N); k++)
-			R[i + k] += T * EXTPOLY[k];
-		for(j = 0; j < i + 1; j++)
-			R[i] += (__int128) A->t[j] * B->t[i - j];
-	}
-
-*/
-
 inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A,
 	const restrict poly128 B)
