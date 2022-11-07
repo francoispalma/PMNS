@@ -15,17 +15,17 @@
 #define NTEST 511
 #define NSAMPLES 1001
 
-/*inline static unsigned long rdpmc_instructions(void)*/
-/*{*/
-/*   unsigned a, d, c;*/
+inline static unsigned long rdpmc_instructions(void)
+{
+   unsigned a, d, c;
 
-/*   c = (1<<30);*/
-/*   __asm__ __volatile__("rdpmc" : "=a" (a), "=d" (d) : "c" (c));*/
+   c = (1<<30);
+   __asm__ __volatile__("rdpmc" : "=a" (a), "=d" (d) : "c" (c));
 
-/*   return ((unsigned long)a) | (((unsigned long)d) << 32);;*/
-/*}*/
+   return ((unsigned long)a) | (((unsigned long)d) << 32);;
+}
 
-unsigned long rdpmc_instructions(void) { return 1;}
+/*unsigned long rdpmc_instructions(void) { return 1;}*/
 
 extern void amns_montg_mult(restrict poly res, const restrict poly A,
 	const restrict poly B);
