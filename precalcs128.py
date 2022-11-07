@@ -284,12 +284,12 @@ static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 					print("+", end="")
 				else:
 					print(";")
-			print(f"Rlo[{i}] = (__int128)", end="")
+			print(f"Rhi[{i}] +=", end="")
 			for k in range(len(lam)):
 				if i - k < 0:
 					print("0;")
 					break
-				print(f" ((__int128) Tlo[{i - k}] * {lam[k]}) ", end="")
+				print(f" add_overflow(Rlo + {i}, Tlo[{i - k}] * {lam[k]}) ", end="")
 				if k != len(lam) - 1:
 					print("+", end="")
 				else:
