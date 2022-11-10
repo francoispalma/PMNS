@@ -45,12 +45,12 @@ def gen_amns(p, phi=64, polyv=True, delta=0):
 	# This is the smallest theoretical value
 	n = (psize // phi)
 
-	# We want to observe the bound given by 2**(psize/n) <= PHI/((2*n*lambda)**2)
-	# Assuming the smallest lambda = 2 this gives us:
-	# 2**(psize/n) <= PHI/((2*n*2)**2) or PHI/((4n)**2)
-	# We apply log2 on both sides which gives us psize/n <= phi - log2((4n)**2)
-	# We can then simplify this to psize <= n * (phi - (4 + 2 * log2(n)))
-	while psize >= n * (phi - (4 + 2 * log2(n))):
+	#PHI >= 4wn1B >= 4wp^(1/n)
+	#PHI >= 4w2**(log2(p)/n)
+	#PHI >= 4(2n - 1)2**(log2(p)/n)
+	#phi >= 2 + log2(2n-1) + log2(p)/n
+#	while phi < 2 + log2(2*n-1) + log2(p)/n:
+	while PHI < 4 * (2*n - 1) * (2**(log2(p)/n)) * ((delta + 1)**2):
 		n += 1
 	K = GF(p)
 	polK = PolynomialRing(K, 'X')
@@ -67,16 +67,17 @@ def gen_amns(p, phi=64, polyv=True, delta=0):
 				d, u, v = xgcd(n, p-1)
 				if d == 1:
 					flag = True
-					gamma = pow(2, u, p)
+					potgamma = [pow(2, u, p)]
 					break
 
 			# We define our external reduction polynomial X^n - lambda
 			E = polK("X^" + str(n) +" - " + str(lam))
 			fs = factor(E)
 			i = 0
-			while i < len(fs) and fs[i][0].degree() == 1 and not flag:
-				gamma = -fs[i][0][0] % p
-				flag = abs(int(((pow(gamma, n, p) + 10) % p) - 10)) == lam
+			potgamma = []
+			while i < len(fs) and fs[i][0].degree() == 1:
+				potgamma += [-fs[i][0][0] % p]
+				flag = flag or (abs(int(((pow(potgamma[-1], n, p) + 10) % p) - 10)) == lam)
 				i += 1
 			if flag:
 				break
@@ -85,9 +86,10 @@ def gen_amns(p, phi=64, polyv=True, delta=0):
 			E = polK("X^" + str(n) +" + " + str(lam))
 			fs = factor(E)
 			i = 0
-			while i < len(fs) and fs[i][0].degree() == 1 and not flag:
-				gamma = -fs[i][0][0] % p
-				flag = abs(int(((pow(gamma, n, p) + 10) % p) - 10)) == lam
+			potgamma = []
+			while i < len(fs) and fs[i][0].degree() == 1:
+				potgamma += [-fs[i][0][0] % p]
+				flag = flag or (abs(int(((pow(potgamma[-1], n, p) + 10) % p) - 10)) == lam)
 				i += 1
 			if flag:
 				break
@@ -95,59 +97,60 @@ def gen_amns(p, phi=64, polyv=True, delta=0):
 		if flag == True:
 			flag = False
 			# We do this so that we get negative values instead of p sized lambdas
-			lamb = int(((pow(gamma, n, p) + 10) % p)) - 10
+			lamb = int(((pow(potgamma[0], n, p) + 10) % p)) - 10
 
 			RingPoly = PolynomialRing(ZZ, 'X')
 			E = RingPoly("X^" + str(n) + " - (" + str(lamb) + ")")
 
-			# We calculate the base matrix
-			B = [[p if (k, j) == (0, 0) else -pow(gamma, k, p) if k != 0 and j == 0 else 1 if k == j else 0 for j in range(n)] for k in range(n)]
-			B = list((matrix(ZZ, B).LLL()).BKZ())
+			for gamma in potgamma:
+				# We calculate the base matrix
+				B = [[p if (k, j) == (0, 0) else -pow(gamma, k, p) if k != 0 and j == 0 else 1 if k == j else 0 for j in range(n)] for k in range(n)]
+				B = list((matrix(ZZ, B).LLL()))
 
-			# We want PHI => 4wnorm1(B) because we want PHI => 2wrho
-			# and rho => 2norm1(B)
-			n1B = norm_one_of_matrix(B)
-			if PHI >= 4 * w * n1B * ((delta + 1)**2):
+				# We want PHI => 4wnorm1(B) because we want PHI => 2wrho
+				# and rho => 2norm1(B)
+				n1B = norm_one_of_matrix(B)
+				if PHI >= 4 * w * n1B * ((delta + 1)**2):
 
-				if not polyv:
-					B1 = list(matrix(B).inverse() % PHI)
-					__tmp = int(2 * n1B)
-					rho = __tmp.bit_length()  # We take a bigger rho for now
-					return p, n, gamma, lamb, rho, B, B1
+					if not polyv:
+						B1 = list(matrix(B).inverse() % PHI)
+						__tmp = int(2 * n1B)
+						rho = __tmp.bit_length()  # We take a bigger rho for now
+						return p, n, gamma, lamb, rho, B, B1
 
-				#TODO: delete it, this is the old method.
-				elif polyv:
-					# We then try to find a valid M
-					for lig in B:
-						# We set M as one line of the base matrix
-						M = RingPoly(list_to_poly(lig))
-						# We then get the d and u of the au + bv = d from extended euclid
-						val, M1, soak = xgcd(M, E)
-						# We make sure to get out of any sage specific field
-						try:
-							val = ZZ(val)
-						except TypeError:
-							val = 0
+					#TODO: delete it, this is the old method.
+					elif polyv:
+						# We then try to find a valid M
+						for lig in B:
+							# We set M as one line of the base matrix
+							M = RingPoly(list_to_poly(lig))
+							# We then get the d and u of the au + bv = d from extended euclid
+							val, M1, soak = xgcd(M, E)
+							# We make sure to get out of any sage specific field
+							try:
+								val = ZZ(val)
+							except TypeError:
+								val = 0
 
-						if val & 1:  # if val is even it won't have a gcd of 1 with phi
-							M1 = (M1 * ZZ(pow(val, -1, PHI)) % PHI)
-							# We check that M1 is properly constructed, if it is we don't look further
-							if ((M * M1) % E) % PHI == 1 and M(gamma) % p == 0:
-								break
+							if val & 1:  # if val is even it won't have a gcd of 1 with phi
+								M1 = (M1 * ZZ(pow(val, -1, PHI)) % PHI)
+								# We check that M1 is properly constructed, if it is we don't look further
+								if ((M * M1) % E) % PHI == 1 and M(gamma) % p == 0:
+									break
 
-					# We convert out of the polynomial Ring
-					M = list(M)
-					M1 = list(M1)
+						# We convert out of the polynomial Ring
+						M = list(M)
+						M1 = list(M1)
 
-					# We switch M1 from M^-1 to -M^-1
-					M1 = [(int(M1[i]) * -1) % PHI for i in range(n)]
+						# We switch M1 from M^-1 to -M^-1
+						M1 = [(int(M1[i]) * -1) % PHI for i in range(n)]
 
-					# We then reduce M1's coefficients
-					M1 = [int(M1[i]) - PHI if M1[i] >= (PHI >> 1) else M1[i] for i in range(n)]
-					__tmp = int(2 * w * max([abs(elem) for elem in M]))
-					rho = __tmp.bit_length()
-					if rho <= phi - 1 - log2(w):
-						return p, n, gamma, lamb, rho, M, M1
+						# We then reduce M1's coefficients
+						M1 = [int(M1[i]) - PHI if M1[i] >= (PHI >> 1) else M1[i] for i in range(n)]
+						__tmp = int(2 * w * max([abs(elem) for elem in M]))
+						rho = __tmp.bit_length()
+						if rho <= phi - 1 - log2(w):
+							return p, n, gamma, lamb, rho, M, M1
 
 				
 		n += 1
