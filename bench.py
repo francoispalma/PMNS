@@ -19,9 +19,6 @@ def do_bench(Psize="1024", phi=""):
 		pass
 	with open(filename + "pre", "w+") as f:
 		pass
-	if phi == "128":
-		with open(filename + "hyb", "w+") as f:
-			pass
 
 	# We run the benchmark
 	for i in range(len(pmnsdict)):
@@ -32,8 +29,6 @@ def do_bench(Psize="1024", phi=""):
 		os.system("make bench" + phi + ".exe")
 		os.system("./bench" + phi + ".exe >> " + filename)
 		os.system("./bench" + phi + ".exe pre >> " + filename + "pre")
-		if phi == "128":
-			os.system("./bench" + phi + ".exe hyb >> " + filename + "hyb")
 
 if __name__ == "__main__":
 	if len(sys.argv) >= 2:

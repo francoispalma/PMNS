@@ -466,7 +466,7 @@ void convert_amns_to_multipre(restrict mpnum* res, const restrict poly P)
 	free_poly(a);
 }
 
-void __multchecks__(void)
+void __multchecks__(char* nbmults)
 {
 	// Used as a debug tool to see if the PMNS correctly gives us the proper
 	// results with a few random values.
@@ -474,9 +474,14 @@ void __multchecks__(void)
 	init_polys(N, &a, &b, &c, NULL);
 	int64_t seed;
 	
+	register uint64_t cap = 100;
+	
+	if(nbmults[0] != '\0')
+		cap = atoll(nbmults);
+	
 	srand((unsigned) (time(&seed)));
 	
-	for(int i = 0; i < 100; i++)
+	for(register uint64_t i = 0; i < cap; i++)
 	{
 		randpoly(a);
 		randpoly(b);

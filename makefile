@@ -63,11 +63,11 @@ demo: main.exe
 	./main.exe
 
 proof: main.exe
-	./main.exe > log
+	./main.exe 100 > log
 	python3 proof.py
 
 proof128: p128.exe
-	./p128.exe > log
+	./p128.exe 100 > log
 	python3 check128.py
 
 p128: p128.exe

@@ -4,7 +4,6 @@
 #define RHO 56
 #define N 20
 #define LAMBDA 5
-
 #define M_or_B_is_B
 
 static const int64_t B[N][N] = {

@@ -561,16 +561,21 @@ void randpoly128(poly128 P)
 	}
 }
 
-void __multchecks__(void)
+void __multchecks__(char* nbmults)
 {
 	// Debug tool to quickly check if the pmns gives the correct results.
 	poly128 a, b, c;
 	init_poly128s(N, &a, &b, &c, NULL);
 	int64_t seed;
 	
+	register uint64_t cap = 100;
+	
+	if(nbmults[0] != '\0')
+		cap = atoll(nbmults);
+	
 	srand((unsigned) (time(&seed)));
 	
-	for(int i = 0; i < 100; i++)
+	for(register uint64_t i = 0; i < cap; i++)
 	{
 		randpoly128(a);
 		randpoly128(b);

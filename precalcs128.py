@@ -16,7 +16,7 @@ def convert_to_int_tabs(num):
 		string = string[:-16]
 	return L
 
-def do_precalcs(p, n, gamma, lam, rho, M, M1):
+def do_precalcs(p, n, gamma, lam, rho, M_or_B, M1_or_B1):
 	print("#ifndef PMNS_PARAMS128_H_INCLUDED\n#define PMNS_PARAMS128_H_INCLUDED\n")
 
 	print("#define RHO", rho)
