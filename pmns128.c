@@ -74,7 +74,7 @@ inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 		
 		aux1 = (unsigned __int128) LOW(Rlo[i]) * LAMBDA;
 		aux2 = (unsigned __int128) HI(Rlo[i]) * LAMBDA + HIGH(aux1);
-		Rlo[i] = ((__int128) aux2 << 64) | aux1;
+		Rlo[i] = ((__int128) aux2 << 64) | LOW(aux1);
 		Rhi[i] = (__int128) Rhi[i] * LAMBDA + HIGH(aux2);
 		
 		for(j = 0; j < i + 1; j++)
