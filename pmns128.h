@@ -14,7 +14,7 @@
 
 
 void convert_string_to_amns128(restrict poly128 res, const char* string);
-void convert_amns128_to_poly(restrict poly* res, const restrict poly128 P);
+void convert_amns128_to_multipre(restrict mpnum* res, const restrict poly128 P);
 
 extern void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A,

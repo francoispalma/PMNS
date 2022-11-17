@@ -34,10 +34,12 @@ if __name__ == "__main__":
 			phi = 64
 		print(f"Generating PMNS {phi} bits for integer of size {ceil(log2(p))}...\n")
 		STARTSTAMP = process_time()
-		pmns = gen_amns(p, phi)
+		pmns = gen_amns(p, phi, False)
 		STOPSTAMP = process_time()
 		print(f"Generation done in {str(STOPSTAMP - STARTSTAMP)[:6]} seconds.")
 		p, n, gamma, lam, rho, M, M1 = pmns
+		M = [tuple(int(elem) for elem in lig) for lig in M]
+		M1 = [tuple(int(elem) for elem in lig) for lig in M1]
 		print(f"The generated pmns has polynomials of degree {n}")
 		if not os.path.exists("output"):
 			os.makedirs("output")
@@ -53,7 +55,7 @@ if __name__ == "__main__":
 		os.system("cp structs.[ch] output/")
 		with open("output/makefile", "w+") as f:
 			with redirect_stdout(f):
-				print(f"""FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict -Wno-unused-variable -lgmp
+				print(f"""FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict -Wno-unused-variable
 CC = gcc
 
 all: main.exe
@@ -82,29 +84,24 @@ demo: main.exe
 			with redirect_stdout(f):
 				print(f"""#include <stdio.h>
 #include \"pmns{sphi}.h\"
-#include \"utilitymp.h\"
 
 int main(int argc, char** argv)
 {{
 	if(argc > 2)
 	{{
-		poly{sphi} A, C;
-		poly B, aux;
-		init_polys(1, &B, &aux, NULL);
-		init_poly{sphi}s(N, &A, &C, NULL);
+		poly{sphi} C;
+		mpnum aux;
+		init_poly{sphi}(N, &C);
+		init_mpnum(N, &aux);
 		
-		convert_string_to_poly(&B, argv[2]);
-		convert_string_to_amns{sphi}(A, argv[1]);
+		amns{sphi}_sqandmult(C, argv[1], argv[2]);
 		
-		amns{sphi}_montg_ladder(C, A, B);
+		convert_amns{sphi}_to_multipre(&aux, C);
 		
-		convert_amns{sphi}_to_poly(&aux, C);
-		
-		printf("0x");
 		mp_print(aux);
 		
-		free_polys(B, aux, NULL);
-		free_poly{sphi}s(A, C, NULL);""")
+		free_mpnum(aux);
+		free_poly{sphi}(C);""")
 				print("""\t}
 	else
 		printf("To output a^b %% p please call this executable with the numbers a and b as parameters\\n");

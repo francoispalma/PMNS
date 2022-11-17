@@ -8,7 +8,7 @@
 #include "params.h"
 
 void convert_string_to_amns(restrict poly res, const char* string);
-void convert_amns_to_poly(restrict poly* res, const restrict poly P);
+void convert_amns_to_multipre(restrict mpnum* res, const restrict poly P);
 
 extern void mns_mod_mult_ext_red(__int128* restrict R,
 	const restrict poly A, const restrict poly B);
