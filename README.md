@@ -2,7 +2,7 @@
 
 This project is an implementation of the Polynomial Modular Number System (PMNS), a system for fast modular arithmetic operations for use in cryptography.
 
-Focus is put on the Adapted Modular Number System (AMNS) so far but this may change in the future.
+Focus is put on the Adapted Modular Number System (AMNS) so far. Generation is done for those for now. Support for other PMNS exists currently but accompanying generation doesn't exist as of yet.
 
 The implementation itself is in C with utility functions in Python for generation purposes.
 
@@ -19,7 +19,7 @@ then
 
 ## Usage
 
-To generate all the code with implementation 64bits or 128bits (PHI) needed for operations with a specific prime p along with a demo code to calculate a^b % p and accompanying makefile:
+To generate all the code with 64-bit or 128-bit implementation needed for operations with a specific prime p along with a demo code to calculate a^b % p and accompanying makefile:
 > python3 completegen.py {p} [PHI=64 or 128]
 
 To load a specific PMNS of size PSIZE and index INDEX:
@@ -33,9 +33,6 @@ To display a benchmark of the current version with the currently loaded PMNS:
 
 Alternatively for the 128 bit version:
 > make bench128
-
-To display various graphics and results in a visual format:
-> python3 histo.py
 
 For details as to the generated PMNS degrees and lambda values:
 > python3 deghisto.py
