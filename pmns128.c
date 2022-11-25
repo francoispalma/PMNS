@@ -132,7 +132,6 @@ static inline void m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	
 	for(i = 0; i < N; i++)
 	{
-		//Rhi[i] = 0;
 		Rhi[i] += Rlo[i] != 0;
 		Rlo[i] = 0;
 		for(j = 1; j < N - i; j++)
@@ -178,7 +177,6 @@ static inline void m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	
 	for(i = 0; i < N; i++)
 	{
-		//Rhi[i] = 0;
 		Rhi[i] += Rlo[i] != 0;
 		Rlo[i] = 0;
 		for(j = 0; j < N; j++)

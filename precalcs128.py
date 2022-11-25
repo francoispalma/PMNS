@@ -201,56 +201,41 @@ static inline void UNROLLED_m1_or_b1_mns128_mod_mult_ext_red(unsigned __int128* 
 
 		print("}\n")
 
-#IDEA: sum all the HIGH parts together since we don't care about carry
-
 		print("""
 static inline void UNROLLED_m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rhi, 
 	unsigned __int128* restrict Rlo, unsigned __int128* restrict A)
 {
-	unsigned __int128 A0B0, A1B0, A0B1, tmplo;
-	__int128 aux2, aux3;
+	unsigned __int128 A0B1, aux, aux2;
+	__int128 A1B0;
 """)
 
 		Bt = [Blo, Bhi]
 
 		for i in range(n):
+			print("aux2 = 0;")
+			print("aux = 0;")
+			print(f"Rhi[{i}] += ", end="")
 			for j in range(n):
-				for k in range(2, -1, -1):
-					if k != 1:
-						print(f"\tA{k//2}B{k&1} = (__int128) {'HIGH' if k//2 else 'LOW'}(A[{j}]) * {Bt[k&1][j][i]}" +
-							f"{'' if k&1 else 'u'};")
-				print("""\taux3 = (__int128) HIGH(A0B0) + LOW(A1B0);
-	
-	tmplo = (__int128) A0B0 + ((__int128)(LOW(A1B0)) << 64);""")
-				print(f"""\tRhi[{i}] += (__int128) HIGH(aux3) + HIGH(A1B0) + add_overflow(Rlo + {i}, tmplo);\n""")
-#				print(f"""\tRhi[{i}] += (__int128) HIGH(aux3) + 0 + add_overflow(Rlo + {i}, tmplo);\n""")
-#				print(f"Rhi[{i}] += HIGH(A1B0);")
-#				print(f"""\tRhi[{i}] += (__int128) add_overflow(Rlo + {i}, A0B0);\n""")
-#			print("A1B0 = 0;")
-#			print("aux2 = ", end="")
-			print("A1B0 = (__int128) ")
-			for j in range(n):
-#				print(f"add_overflow(&A1B0, (__int128) HIGH(A[{j}]) * {Blo[j][i]}u)", end="")
-				print(f"(__int128) HIGH(A[{j}]) * {Blo[j][i]}u", end="")
+				print(f"add_overflow(Rlo + {i}, ((__int128) LOW(A[{j}]) * {Blo[j][i]}u))", end="")
 				if j != n - 1:
 					print(" + ", end="")
 				else:
 					print(";")
-#			print("aux2 = (__int128) aux2 << 64;")
-#			print(f"Rhi[{i}] += add_overflow(Rlo + {i}, ((__int128)LOW(A1B0) << 64));")
-#			print(f"Rhi[{i}] += aux2;")
-#			print(f"Rhi[{i}] += HIGH(A1B0);")
-			print("A1B0 = 0;")
-			print("A0B1 = (__int128) (", end="")
+			for j in range(n):
+				print(f"\tA1B0 = (__int128) HIGH(A[{j}]) * {Blo[j][i]}u;")
+				print(f"aux2 += HIGH(A1B0);")
+				print(f"aux += add_overflow(Rlo + {i}, ((__int128)(LOW(A1B0)) << 64));")
+			print(f"Rhi[{i}] += (__int128) aux2 + aux;")
+			print("\n\tA0B1 = (__int128) (", end="")
 			for j in range(n):
 				print(f"(__int128) LOW(A[{j}]) * {Bhi[j][i]}", end="")
 				if j != n - 1:
 					print(" + ", end="")
 				else:
 					print(");")
-			print(f"Rhi[{i}] += HIGH(A0B1);")
-			print(f"Rhi[{i}] += add_overflow(Rlo + {i}, ((__int128)LOW(A0B1) << 64));")
-			print(f"Rhi[{i}] += (__int128) (", end="")
+			print(f"\tRhi[{i}] += HIGH(A0B1);")
+			print(f"\tRhi[{i}] += add_overflow(Rlo + {i}, ((__int128)LOW(A0B1) << 64));")
+			print(f"\tRhi[{i}] += (__int128) (", end="")
 			for j in range(n):
 				print(f"(__int128) HIGH(A[{j}]) * {Bhi[j][i]}", end="")
 				if j != n - 1:
@@ -269,33 +254,45 @@ static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A,
 	const restrict poly128 B)
 {
-	unsigned __int128 A0B0, A1B0_A0B1, tmplo;
-	__int128 A1B1;
+	unsigned __int128 A1B0_A0B1;
 """)
 
 	At = ["(__int128) A->lo[", "(__int128) A->hi["]
 
 	if type(lam) == int:
 		for i in range(n):
+			print(f"\tRhi[{i}] = (__int128) ", end="")
 			for j in range(1, n - i):
-				print(f"\tA1B1 = {At[1]}{i + j}] * B->hi[{n - j}] * LAMBDA;")
-				print(f"\tA0B0 = {At[0]}{i + j}] * B->lo[{n - j}] * LAMBDA;")
-				print(f"\tA1B0_A0B1 = (__int128) ((__int128) ({At[1]}{i + j}] *")
-				print(f"\t\tB->lo[{n - j}] * LAMBDA) + ({At[0]}{i + j}] *")
-				print(f"\t\tB->hi[{n - j}] * LAMBDA)) + HIGH(A0B0);")
-				print(f"tmplo = (__int128) LOW(A0B0) | ((__int128)A1B0_A0B1 << 64);")
-				print(f"""\tRhi[{i}] += (__int128) A1B1 + HIGH(A1B0_A0B1) +
-			add_overflow(Rlo + {i}, tmplo);\n""")
-
-			for j in range(0, i + 1):
-				print(f"\tA1B1 = {At[1]}{j}] * B->hi[{i - j}];")
-				print(f"\tA0B0 = {At[0]}{j}] * B->lo[{i - j}];")
-				print(f"\tA1B0_A0B1 = (__int128) ((__int128) ({At[1]}{j}] *")
-				print(f"\t\tB->lo[{i - j}]) + ({At[0]}{j}] *")
-				print(f"\t\tB->hi[{i - j}])) + HIGH(A0B0);")
-				print(f"tmplo = (__int128) LOW(A0B0) | ((__int128)A1B0_A0B1 << 64);")
-				print(f"""\tRhi[{i}] += (__int128) A1B1 + HIGH(A1B0_A0B1) +
-			add_overflow(Rlo + {i}, tmplo);\n""")
+				print(f"((__int128) A->hi[{i + j}] * B->hi[{n - j}] * {lam})", end="")
+				print(" + ", end="")
+			for j in range(i + 1):
+				print(f"((__int128) A->hi[{j}] * B->hi[{i - j}])", end="")
+				if j != i:
+					print(" + ", end="")
+				else:
+					print(";")
+			print(f"\tA1B0_A0B1 = ", end="")
+			for j in range(1, n - i):
+				print(f"((__int128) A->hi[{i + j}] * B->lo[{n - j}] * {lam})", end="")
+				print(f" + ((__int128) A->lo[{i + j}] * B->hi[{n - j}] * {lam})", end="")
+				print(" + ", end="")
+			for j in range(i + 1):
+				print(f"((__int128) A->hi[{j}] * B->lo[{i - j}])", end="")
+				print(f" + ((__int128) A->lo[{j}] * B->hi[{i - j}])", end="")
+				if j != i:
+					print(" + ", end="")
+				else:
+					print(";")
+			print(f"\tRhi[{i}] += HIGH(A1B0_A0B1) + ", end="")
+			print(f"add_overflow(Rlo + {i}, (__int128) ((__int128)A1B0_A0B1 << 64)) + ", end="")
+			for j in range(1, n - i):
+				print(f"add_overflow(Rlo + {i}, (__int128) A->lo[{i + j}] * B->lo[{n - j}] * {lam}) + ", end="")
+			for j in range(i + 1):
+				print(f"add_overflow(Rlo + {i},  (__int128) A->lo[{j}] * B->lo[{i - j}])", end="")
+				if j != i:
+					print(" + ", end="")
+				else:
+					print(";\n")
 
 	else:
 		print(f"\t__int128 Thi[{n}] = {{0}};\n\tunsigned __int128 Tlo[{n}] = {{0}};")

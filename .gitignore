@@ -3,4 +3,5 @@ __pycache__/
 *.exe
 *.tmp
 log
+log128
 output/*

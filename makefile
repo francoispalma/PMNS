@@ -67,11 +67,11 @@ proof: main.exe
 	python3 proof.py
 
 proof128: p128.exe
-	./p128.exe 100 > log
+	./p128.exe 100 > log128
 	python3 check128.py
 
 p128: p128.exe
-	./p128.exe
+	./p128.exe 100
 
 bench: bench.exe
 	./bench.exe

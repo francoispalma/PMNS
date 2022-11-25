@@ -8,7 +8,7 @@ if __name__ == "__main__":
 	counter = 0
 	visual = 0
 	print("Starting")
-	with open("log", "r") as f:
+	with open("log128", "r") as f:
 		while True:
 			print("\btested:" + str(visual) + "\terrors: " + str(counter), end="\r")
 			visual += 1
