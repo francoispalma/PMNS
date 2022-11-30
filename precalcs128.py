@@ -262,9 +262,14 @@ static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	if type(lam) == int:
 		for i in range(n):
 			print(f"\tRhi[{i}] = (__int128) ", end="")
+			if i != n - 1:
+				print(f"{lam} * (", end="")
 			for j in range(1, n - i):
-				print(f"((__int128) A->hi[{i + j}] * B->hi[{n - j}] * {lam})", end="")
-				print(" + ", end="")
+				print(f"((__int128) A->hi[{i + j}] * B->hi[{n - j}])", end="")
+				if j != n - i - 1:
+					print(" + ", end="")
+				else:
+					print(") + ", end="")
 			for j in range(i + 1):
 				print(f"((__int128) A->hi[{j}] * B->hi[{i - j}])", end="")
 				if j != i:
@@ -272,10 +277,15 @@ static inline void UNROLLED_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 				else:
 					print(";")
 			print(f"\tA1B0_A0B1 = ", end="")
+			if i != n - 1:
+				print(f"{lam} * (", end="")
 			for j in range(1, n - i):
-				print(f"((__int128) A->hi[{i + j}] * B->lo[{n - j}] * {lam})", end="")
-				print(f" + ((__int128) A->lo[{i + j}] * B->hi[{n - j}] * {lam})", end="")
-				print(" + ", end="")
+				print(f"((__int128) A->hi[{i + j}] * B->lo[{n - j}])", end="")
+				print(f" + ((__int128) A->lo[{i + j}] * B->hi[{n - j}])", end="")
+				if j != n - i - 1:
+					print(" + ", end="")
+				else:
+					print(") + ", end="")
 			for j in range(i + 1):
 				print(f"((__int128) A->hi[{j}] * B->lo[{i - j}])", end="")
 				print(f" + ((__int128) A->lo[{j}] * B->hi[{i - j}])", end="")
