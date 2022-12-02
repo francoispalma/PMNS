@@ -41,13 +41,11 @@ static inline _Bool add_overflow(unsigned __int128* restrict a, const unsigned _
 	
 	print("// Various values you can get from precalc")
 
-	auxstring = """\taux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
-	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
-	
-	tmplo = (__int128) A0B0 + ((__int128)(LOW(A0B1) + LOW(A1B0)) << 64);"""
-
 	At = ["(__int128) (A->lo[", "(__int128) LOW(A->hi["]
 
+############################
+#### Polynomial Version ####
+############################
 	if type(M_or_B[0]) == int:
 		print("#define M_or_B_is_M\n")
 		M = M_or_B
@@ -130,6 +128,10 @@ static inline void UNROLLED_m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rh
 
 		Mt = [Mlo, Mhi]
 		MLt = [MLambdalo, MLambdahi]
+		auxstring = """\taux3 = (__int128) HIGH(A0B0) + LOW(A0B1) + LOW(A1B0);
+	aux2 = (__int128) HIGH(aux3) + HIGH(A0B1) + HIGH(A1B0);
+	
+	tmplo = (__int128) A0B0 + ((__int128)(LOW(A0B1) + LOW(A1B0)) << 64);"""
 
 		print("#ifdef LAMBDA")
 		for i in range(n):
@@ -152,6 +154,10 @@ static inline void UNROLLED_m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rh
 		print("}\n")
 		print("#endif")
 
+
+##############################
+#### Basis matrix Version ####
+##############################
 	elif type(M_or_B[0]) == tuple or type(M_or_B[0]) == list:
 		print("#define M_or_B_is_B\n")
 		B = M_or_B
@@ -173,16 +179,17 @@ static inline void UNROLLED_m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rh
 		print(f"static const int64_t Bhi[N][N] = {{\n{str(Bhi)[1:-1].replace('[',  '{').replace(']', '}')}\n\t\t}},")
 		print(f"\tB1hi[N][N] = {{\n{str(B1hi)[1:-1].replace('[',  '{').replace(']', '}')}\n\t\t}};")
 
-		print("static const __int128 B1[N][N] = {")
-		for i in range(n):
-			print("\t{ ")
-			for j in range(n - 1):
-				print(f"((__int128) LOW({B1hi[i][j]}) << 64) | {B1lo[i][j]}u, ", end="")
-			print(f"((__int128) LOW({B1hi[i][-1]}) << 64) | {B1lo[i][-1]}u }}", end="")
-			if i != n - 1:
-				print(",")
-			else:
-				print("\n\t\t};")
+		# Not needed anymore but keeping it around for now
+#		print("static const __int128 B1[N][N] = {")
+#		for i in range(n):
+#			print("\t{ ")
+#			for j in range(n - 1):
+#				print(f"((__int128) LOW({B1hi[i][j]}) << 64) | {B1lo[i][j]}u, ", end="")
+#			print(f"((__int128) LOW({B1hi[i][-1]}) << 64) | {B1lo[i][-1]}u }}", end="")
+#			if i != n - 1:
+#				print(",")
+#			else:
+#				print("\n\t\t};")
 
 		# From here on, precalc functions
 		print("""

@@ -6,6 +6,7 @@
 #include "pmns128.h"
 #include "utilitymp.h"
 
+#define AMNS128_MONTG_MULT amns128_montg_mult
 
 static inline void multadd128(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const uint64_t Ahi, const uint64_t Alo,
@@ -197,7 +198,7 @@ static inline void m1_or_b1_mns128_mod_mult_ext_red(unsigned __int128* restrict 
 	{
 		Rlo[i] = 0;
 		for(j = 0; j < N; j++)
-			m1_multadd128(Rlo + i, A[j], B1[j][i]);
+			m1_multadd128(Rlo + i, A[j], ((__int128) B1hi[j][i] << 64) | B1lo[j][i]);
 	}
 }
 
@@ -290,20 +291,20 @@ void amns128_rtl_sqandmult(restrict poly128 res, const restrict poly128 base,
 		for(j = 0; j < 64; j++)
 			{
 				if(aux & (1ULL << j))
-					amns128_montg_mult(tmp, res, base);
+					AMNS128_MONTG_MULT(tmp, res, base);
 				else
-					amns128_montg_mult(tmp, res, &__theta__);
-				amns128_montg_mult(res, tmp, tmp);
+					AMNS128_MONTG_MULT(tmp, res, &__theta__);
+				AMNS128_MONTG_MULT(res, tmp, tmp);
 			}
 	}
 	aux = exponent->t[exponent->deg - 1];
 	while(aux)
 	{
 		if(aux & 1)
-			amns128_montg_mult(tmp, res, base);
+			AMNS128_MONTG_MULT(tmp, res, base);
 		else
-			amns128_montg_mult(tmp, res, &__theta__);
-		amns128_montg_mult(res, tmp, tmp);
+			AMNS128_MONTG_MULT(tmp, res, &__theta__);
+		AMNS128_MONTG_MULT(res, tmp, tmp);
 		aux >>= 1;
 	}
 	
@@ -328,11 +329,11 @@ void amns128_ltr_sqandmult(restrict poly128 res, const restrict poly128 base,
 	aux = exponent->t[exponent->deg - 1];
 	for(j = __builtin_clz(aux); j < 64; j++)
 	{
-		amns128_montg_mult(tmp, res, res);
+		AMNS128_MONTG_MULT(tmp, res, res);
 		if(aux & (1ULL << (63 - j)))
-			amns128_montg_mult(res, tmp, base);
+			AMNS128_MONTG_MULT(res, tmp, base);
 		else
-			amns128_montg_mult(res, tmp, &__theta__);
+			AMNS128_MONTG_MULT(res, tmp, &__theta__);
 	}
 	
 	for(i = 0; i < exponent->deg - 1; i++)
@@ -340,11 +341,11 @@ void amns128_ltr_sqandmult(restrict poly128 res, const restrict poly128 base,
 		aux = exponent->t[exponent->deg - 2 - i];
 		for(j = 0; j < 64; j++)
 		{
-			amns128_montg_mult(tmp, res, res);
+			AMNS128_MONTG_MULT(tmp, res, res);
 			if(aux & (1ULL << (63 - j)))
-				amns128_montg_mult(res, tmp, base);
+				AMNS128_MONTG_MULT(res, tmp, base);
 			else
-				amns128_montg_mult(res, tmp, &__theta__);
+				AMNS128_MONTG_MULT(res, tmp, &__theta__);
 		}
 	}
 	
@@ -373,8 +374,8 @@ void amns128_montg_ladder(restrict poly128 res, const restrict poly128 base,
 	for(j = __builtin_clz(aux); j < 64; j++)
 	{
 		b = (aux & (1ULL << (63 - j))) >> (63 - j);
-		amns128_montg_mult(R[1 - b], R[1 - b], R[b]);
-		amns128_montg_mult(R[b], R[b], R[b]);
+		AMNS128_MONTG_MULT(R[1 - b], R[1 - b], R[b]);
+		AMNS128_MONTG_MULT(R[b], R[b], R[b]);
 	}
 	
 	for(i = 0; i < exponent->deg - 1; i++)
@@ -383,8 +384,8 @@ void amns128_montg_ladder(restrict poly128 res, const restrict poly128 base,
 		for(j = 0; j < 64; j++)
 		{
 			b = (aux & (1ULL << (63 - j))) >> (63 - j);
-			amns128_montg_mult(R[1 - b], R[1 - b], R[b]);
-			amns128_montg_mult(R[b], R[b], R[b]);
+			AMNS128_MONTG_MULT(R[1 - b], R[1 - b], R[b]);
+			AMNS128_MONTG_MULT(R[b], R[b], R[b]);
 		}
 	}
 	
@@ -487,7 +488,7 @@ void convert_amns128_to_multipre(restrict mpnum* res, const restrict poly128 P)
 	one->hi[0] = 0;
 	one->lo[0] = 1;
 	
-	amns128_montg_mult(a, P, one);
+	AMNS128_MONTG_MULT(a, P, one);
 	
 	free_poly128(one);
 	
@@ -557,7 +558,7 @@ void __multchecks__(char* nbmults)
 		randpoly128(b);
 		p128_print(a);
 		p128_print(b);
-		amns128_montg_mult(c, a, b);
+		AMNS128_MONTG_MULT(c, a, b);
 		p128_print(c);
 	}
 	
