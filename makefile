@@ -1,4 +1,4 @@
-FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict
+FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict -funroll-loops
 CC = gcc
 PSIZE = 1024
 INDEX = 0
@@ -9,7 +9,7 @@ main.exe: main.c pmns.o structs.o utilitymp.o
 	$(CC) -o $@ $^ $(FLAGS)
 
 pmns.o: pmns.c pmns.h params.h
-	$(CC) -c $< $(FLAGS)
+	$(CC) -c $< $(FLAGS) 
 
 params.h: precalcs.py
 	python3 $< > $@
@@ -57,10 +57,10 @@ gedit: clean
 	gedit *.* &
 
 check: main.exe
-	valgrind -s --leak-check=full --track-origins=yes ./main.exe
+	valgrind -s --leak-check=full --track-origins=yes ./main.exe 100
 
 demo: main.exe
-	./main.exe
+	./main.exe 1
 
 proof: main.exe
 	./main.exe 100 > log
@@ -75,9 +75,6 @@ p128: p128.exe
 
 bench: bench.exe
 	./bench.exe
-
-prebench: bench.exe
-	./bench.exe pre
 
 bench128: bench128.exe
 	./bench128.exe

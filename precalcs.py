@@ -22,6 +22,11 @@ def do_precalcs(p, n, gamma, lam, rho, M_or_B, M1_or_B1):
 	rho = 2**rho
 
 	print(f"#define N {n}")
+	print('#define _PRAGMAGCCUNROLLLOOP_ _Pragma("GCC unroll ', end="")
+	if n > 50:
+		print('16")')
+	else:
+		print(f'{n}")')
 	if type(lam) == int:
 		print(f"#define LAMBDA {lam}")
 	else:
@@ -42,161 +47,24 @@ def do_precalcs(p, n, gamma, lam, rho, M_or_B, M1_or_B1):
 
 		# We print
 		print("static const int64_t M[N] = {" + str(M)[1:-1] + "},")
-		print("\tM1[N] = {" + str(M1)[1:-1] + "},")
-		ML = [elem * lam for elem in M]
-		print("\tMLambda[N] = {" + str(ML)[1:-1] + "},")
-		M1L = [(elem * lam) % phi for elem in M1]
-		M1L = [M1L[i] - phi if M1L[i] >= (phi >> 1) else M1L[i] for i in range(n)]
-		print("\tM1Lambda[N] = {" + str(M1L)[1:-1] + "};")
-
-		# From here on, precalc functions, first with the multiplication by M1
-		print("""
-static inline void UNROLLED_m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
-	const restrict poly A)
-{
-""")
-
-		print("#ifdef LAMBDA")
-		for i in range(n):
-			print(f"R[{i}] = (uint64_t)", end="")
-			for j in range(1, n - i):
-				print(f" ((uint64_t) A->t[{i + j}] * {M1L[n - j]})", end="")
-				print(" +", end= "")
-
-			for j in range(0, i + 1):
-				print(f" ((uint64_t) A->t[{j}] * {M1[i - j]})", end="")
-				if j != i:
-					print(" +", end= "")
-
-			print(";")
-		print("#endif")
-
-		print("}\n")
-
-		# Next is the multiplication by M
-		print("""
-static inline void UNROLLED_m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
-	const restrict poly A)
-{
-""")
-
-		print("#ifdef LAMBDA")
-		for i in range(n):
-			print(f"R[{i}] = (__int128)", end="")
-			for j in range(1, n - i):
-				print(f" ((__int128) ( A->t[{i + j}]) * {ML[n - j]})", end="")
-				print(" +", end= "")
-
-			for j in range(0, i + 1):
-				print(f" ((__int128) ( A->t[{j}]) * {M[i - j]})", end="")
-				if j != i:
-					print(" +", end= "")
-
-			print(";")
-		print("#endif")
-
-		print("}\n")
+		print("\tM1[N] = {" + str(M1)[1:-1] + "};")
+#		ML = [elem * lam for elem in M]
+#		print("\tMLambda[N] = {" + str(ML)[1:-1] + "},")
+#		M1L = [(elem * lam) % phi for elem in M1]
+#		M1L = [M1L[i] - phi if M1L[i] >= (phi >> 1) else M1L[i] for i in range(n)]
+#		print("\tM1Lambda[N] = {" + str(M1L)[1:-1] + "};")
 
 	elif type(M_or_B[0]) == list or type(M_or_B[0]) == tuple:
 		print("#define M_or_B_is_B\n")
 		B = M_or_B
 		B1 = [tuple([-val + (phi * (val >= (phi >> 1))) for val in lig]) for lig in M1_or_B1]
 
-		print(f"static const int64_t B[N][N] = {{\n{str(B)[1:-1].replace('(',  '{').replace(')', '}')}\n\t\t}},")
-		print(f"\tB1[N][N] = {{\n{str(B1)[1:-1].replace('(',  '{').replace(')', '}')}\n\t\t}};")
+		print(f"static const int64_t B[N][N] = {{\n{str(B)[1:-1].replace('(',  '{').replace(')', '}').replace('[',  '{').replace(']', '}')}\n\t\t}},")
+		print(f"\tB1[N][N] = {{\n{str(B1)[1:-1].replace('(',  '{').replace(')', '}').replace('[',  '{').replace(']', '}').replace(', ', 'u, ').replace('}u,', '},').replace('}', 'u}')}\n\t\t}};")
 
 		amns_montg_mult = amns_montg_mult_base
 		montgomery_convert_to_mns = montgomery_convert_to_mns_base
 		rho_div_convert_to_mns = rho_div_convert_to_mns_base
-
-		# From here on, precalc functions, first with the multiplication by B1
-		print("""
-static inline void UNROLLED_m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
-	const restrict poly A)
-{
-""")
-
-		for i in range(n):
-			print(f"R[{i}] = (uint64_t)", end="")
-			for j in range(n):
-				print(f" ((uint64_t) A->t[{j}] * {B1[j][i]})", end="")
-				if j != n - 1:
-					print(" +", end= "")
-
-			print(";")
-
-		print("}\n")
-
-		# Next is the multiplication by the basis B
-		print("""
-static inline void UNROLLED_m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
-	const restrict poly A)
-{
-""")
-
-		for i in range(n):
-			print(f"R[{i}] = (__int128)", end="")
-			for j in range(n):
-				print(f" ((__int128) ( A->t[{j}]) * {B[j][i]})", end="")
-				if j != n - 1:
-					print(" +", end= "")
-
-			print(";")
-
-		print("}\n")
-
-	else:
-		raise ValueError("Invalid parameter for M or B")
-
-	# Precalc for the multiplication of a polynomial A by a polynomial B.
-	print("""
-static inline void UNROLLED_mns_mod_mult_ext_red(__int128* restrict R,
-const restrict poly A, const restrict poly B)
-{
-""")
-
-	if type(lam) == int:
-		for i in range(n):
-			print(f"R[{i}] = (__int128)", end="")
-			for j in range(1, n - i):
-				print(f" ((__int128) A->t[{i + j}] * B->t[{n - j}] * LAMBDA)", end="")
-				print(" +", end= "")
-
-			for j in range(0, i + 1):
-				print(f" ((__int128) A->t[{j}] * B->t[{i - j}])", end="")
-				if j != i:
-					print(" +", end= "")
-
-			print(";")
-
-	else:
-		print(f"__int128 T[{n}];\n")
-		for i in range(n):
-			if i != n - 1:
-				print(f"T[{i}] = (__int128)", end="")
-				for j in range(1, n - i):
-					print(f" ((__int128) A->t[{i + j}] * B->t[{n - j}])", end="")
-					if j != n - i - 1:
-						print(" +", end= "")
-					else:
-						print(";")
-			else:
-				print(f"T[{i}] = 0;");
-
-			print(f"R[{i}] = (__int128)", end="")
-			for k in range(len(lam)):
-				if i - k < 0:
-					break
-				print(f" ((__int128) T[{i - k}] * {lam[k]}) ", end="+")
-			for j in range(0, i + 1):
-				print(f" ((__int128) A->t[{j}] * B->t[{i - j}])", end="")
-				if j != i:
-					print(" +", end= "")
-
-			print(";")
-
-
-	print("}\n")
 
 	# We then get the Pi and print it
 	phinmoinsun = pow(phi, n - 1, p)

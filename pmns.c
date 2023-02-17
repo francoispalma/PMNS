@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <time.h>
+/*#include <omp.h>*/
 
 #include "pmns.h"
 #include "utilitymp.h"
 
-#define AMNS_MONTG_MULT UNROLLED_amns_montg_mult
+#define NBTHREADZ 8
+
+// -fopenmp
+// _PRAGMAGCCUNROLLLOOP_ private(j, k)
 
 #ifdef LAMBDA
 inline void mns_mod_mult_ext_red(__int128* restrict R,
@@ -14,17 +18,186 @@ inline void mns_mod_mult_ext_red(__int128* restrict R,
 	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R
 	register uint16_t i, j;
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 	{
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 1; j < N - i; j++)
 			R[i] += (__int128) A->t[i + j] * B->t[N - j];
 		
 		R[i] = R[i] * LAMBDA;
 		
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 0; j < i + 1; j++)
 			R[i] += (__int128) A->t[j] * B->t[i - j];
 	}
 }
+
+/*inline void karamns_mod_mult_ext_red(__int128* restrict R,*/
+/*	const restrict poly A, const restrict poly B)*/
+/*{*/
+/*	// Function that multiplies A by B and applies external reduction using*/
+/*	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.*/
+/*	// Karatsuba version.*/
+/*	*/
+/*	register uint16_t i, j;*/
+/*	*/
+/*	__int128 Lo[N/2] = {0}, Hi[N] = {0}, Mid[N] = {0};*/
+/*	*/
+/*	_PRAGMAGCCUNROLLLOOP_*/
+/*	for(i = 0; i < N/2; i++)*/
+/*	{*/
+/*		_PRAGMAGCCUNROLLLOOP_*/
+/*		for(j = 0; j < i + 1; j++)*/
+/*		{*/
+/*			Lo[i] += (__int128) A->t[i - j] * B->t[j];*/
+/*			Mid[i] += (__int128) (A->t[i - j] + A->t[i - j + N/2]) * (B->t[j] + B->t[j + N/2]);*/
+/*			Hi[i] += (__int128) A->t[N/2 + i - j] * B->t[N/2 + j];*/
+/*		}*/
+/*		_PRAGMAGCCUNROLLLOOP_*/
+/*		for(j = i + 1; j < N/2; j++)*/
+/*		{*/
+/*			Hi[i] -= (__int128) A->t[i + N/2 - j] * B->t[j];*/
+/*			Hi[i + N/2] += (__int128) A->t[N + i - j] * B->t[N/2 + j];*/
+/*			Mid[i + N/2] += (__int128) (A->t[i + N/2 - j] + A->t[i - j + N]) * (B->t[j] + B->t[j + N/2]);*/
+/*		}*/
+/*	}*/
+/*	*/
+/*	_PRAGMAGCCUNROLLLOOP_*/
+/*	for(i = 0; i < N/2; i++)*/
+/*		R[i + N/2] +=  Hi[i + N/2] * LAMBDA + Mid[i] - Lo[i] - Hi[i];*/
+/*	*/
+/*	_PRAGMAGCCUNROLLLOOP_*/
+/*	for(i = 0; i < N/2; i++)*/
+/*		R[i] += Lo[i] + (Mid[i + N/2] + Hi[i] - Hi[i + N/2]) * LAMBDA;*/
+/*}*/
+
+#ifdef M_or_B_is_M
+
+static inline void m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
+	int64_t* restrict A)
+{
+	// Function that multiplies A by M and applies external reduction using
+	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.
+	
+	register uint16_t i, j;
+	
+	_PRAGMAGCCUNROLLLOOP_
+	for(i = 0; i < N; i++)
+	{
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 1; j < N - i; j++)
+			R[i] += (__int128) (A[i + j]) * M[N - j] * LAMBDA;
+		
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 0; j < i + 1; j++)
+			R[i] += (__int128) (A[j]) * M[i - j];
+	}
+}
+
+/*static inline void karam_or_b_mns_mod_mult_ext_red(__int128* restrict R,*/
+/*	int64_t* restrict A)*/
+/*{*/
+/*	// Function that multiplies A by M and applies external reduction using*/
+/*	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.*/
+/*	// Karatsuba version.*/
+/*	*/
+/*	register uint16_t i, j;*/
+/*	*/
+/*	__int128 Lo[N] = {0}, Hi[N] = {0}, Mid[N] = {0};*/
+/*	*/
+/*	_PRAGMAGCCUNROLLLOOP_*/
+/*	for(i = 0; i < N/2; i++)*/
+/*	{*/
+/*		_PRAGMAGCCUNROLLLOOP_*/
+/*		for(j = 0; j < i + 1; j++)*/
+/*		{*/
+/*			Lo[i] += (__int128) A[i - j] * M[j];*/
+/*			Hi[i] += (__int128) A[N/2 + i - j] * M[N/2 + j];*/
+/*			Mid[i] += ((__int128)A[i - j] + A[i - j + N/2]) * (M[j] + M[j + N/2]);*/
+/*		}*/
+/*		_PRAGMAGCCUNROLLLOOP_*/
+/*		for(j = i + 1; j < N/2; j++)*/
+/*		{*/
+/*			Lo[i + N/2] += (__int128) A[i + N/2 - j] * M[j];*/
+/*			Hi[i + N/2] += (__int128) A[N + i - j] * M[N/2 + j];*/
+/*			Mid[i + N/2] += ((__int128)A[i + N/2 - j] + A[i - j + N]) * (M[j] + M[j + N/2]);*/
+/*		}*/
+/*	}*/
+/*	*/
+/*	_PRAGMAGCCUNROLLLOOP_*/
+/*	for(i = 0; i < N/2; i++)*/
+/*		R[i + N/2] +=  Lo[i + N/2] + Hi[i + N/2] * LAMBDA + Mid[i] -  Lo[i] -  Hi[i];*/
+/*	*/
+/*	_PRAGMAGCCUNROLLLOOP_*/
+/*	for(i = 0; i < N/2; i++)*/
+/*		R[i] += Lo[i] + (Mid[i + N/2] + Hi[i] - Lo[i + N/2] -  Hi[i + N/2]) * LAMBDA;*/
+/*}*/
+
+
+
+static inline void m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
+	__int128* restrict A)
+{
+	// Function that multiplies A by M1 and applies external reduction using
+	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.
+	
+	register uint16_t i, j;
+	
+	_PRAGMAGCCUNROLLLOOP_
+	for(i = 0; i < N; i++)
+	{
+		R[i] = 0;
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 1; j < N - i; j++)
+			R[i] += ((uint64_t)A[i + j]) * M1[N - j] * LAMBDA;
+		
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 0; j < i + 1; j++)
+			R[i] += ((uint64_t)A[j]) * M1[i - j];
+	}
+}
+
+/*static inline void karam1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,*/
+/*	__int128* restrict A)*/
+/*{*/
+/*	// Function that multiplies A by M1 and applies external reduction using*/
+/*	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.*/
+/*	// Karatsuba version.*/
+/*	*/
+/*	register uint16_t i, j;*/
+/*	*/
+/*	uint64_t Lo[N] = {0}, Hi[N] = {0}, Mid[N] = {0};*/
+/*	*/
+/*	_PRAGMAGCCUNROLLLOOP_*/
+/*	for(i = 0; i < N/2; i++)*/
+/*	{*/
+/*		_PRAGMAGCCUNROLLLOOP_*/
+/*		for(j = 0; j < i + 1; j++)*/
+/*		{*/
+/*			Lo[i] += A[i - j] * M1[j];*/
+/*			Hi[i] += A[N/2 + i - j] * M1[N/2 + j];*/
+/*			Mid[i] += (A[i - j] + A[i - j + N/2]) * (M1[j] + M1[j + N/2]);*/
+/*		}*/
+/*		_PRAGMAGCCUNROLLLOOP_*/
+/*		for(j = i + 1; j < N/2; j++)*/
+/*		{*/
+/*			Lo[i + N/2] += A[i + N/2 - j] * M1[j];*/
+/*			Hi[i + N/2] += A[N + i - j] * M1[N/2 + j];*/
+/*			Mid[i + N/2] += (A[i + N/2 - j] + A[i - j + N]) * (M1[j] + M1[j + N/2]);*/
+/*		}*/
+/*	}*/
+/*	*/
+/*	_PRAGMAGCCUNROLLLOOP_*/
+/*	for(i = 0; i < N/2; i++)*/
+/*		R[i + N/2] = Lo[i + N/2] + Hi[i + N/2] * LAMBDA + Mid[i] - Lo[i] - Hi[i];*/
+/*	*/
+/*	_PRAGMAGCCUNROLLLOOP_*/
+/*	for(i = 0; i < N/2; i++)*/
+/*		R[i] = Lo[i] + (Mid[i + N/2] + Hi[i] - Lo[i + N/2] -  Hi[i + N/2]) * LAMBDA;*/
+/*}*/
+
+#endif
 
 #endif
 
@@ -38,19 +211,24 @@ inline void mns_mod_mult_ext_red(__int128* restrict R,
 	register uint16_t i, j, k;
 	__int128 T;
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 	{
 		T = 0;
+		
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 1; j < N - i; j++)
 			T += (__int128) A->t[i + j] * B->t[N - j];
-		for(k = 0; (k < LENEXTPOLY) && (i + k < N); k++)
+		
+		_PRAGMAGCCUNROLLLOOP_
+		for(k = 0; (k < LENEXTPOLY) && (k < N-1); k++)
 			R[i + k] += T * EXTPOLY[k];
+		
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 0; j < i + 1; j++)
 			R[i] += (__int128) A->t[j] * B->t[i - j];
 	}
 }
-
-#endif
 
 #ifdef M_or_B_is_M
 
@@ -60,15 +238,25 @@ static inline void m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
 	// Function that multiplies A by M and applies external reduction using
 	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.
 	
-	register uint16_t i, j;
+	register uint16_t i, j, k;
+	__int128 T;
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 	{
-		for(j = 1; j < N - i; j++)
-			R[i] += (__int128) (A[i + j]) * MLambda[N - j];
+		T = 0;
 		
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 1; j < N - i; j++)
+			T += (__int128) A[i + j] * M[N - j];
+		
+		_PRAGMAGCCUNROLLLOOP_
+		for(k = 0; (k < LENEXTPOLY) && (k < N-1); k++)
+			R[i + k] += T * EXTPOLY[k];
+		
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 0; j < i + 1; j++)
-			R[i] += (__int128) (A[j]) * M[i - j];
+			R[i] += (__int128) A[j] * M[i - j];
 	}
 }
 
@@ -78,20 +266,32 @@ static inline void m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
 	// Function that multiplies A by M1 and applies external reduction using
 	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.
 	
-	register uint16_t i, j;
+	register uint16_t i, j, k;
+	__int128 T;
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 	{
-		R[i] = 0;
-		for(j = 1; j < N - i; j++)
-			R[i] += ((uint64_t)A[i + j]) * M1Lambda[N - j];
+		T = 0;
 		
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 1; j < N - i; j++)
+			T += ((uint64_t)A[i + j]) * M1[N - j];
+		
+		_PRAGMAGCCUNROLLLOOP_
+		for(k = 0; (k < LENEXTPOLY) && (k < N-1); k++)
+			R[i + k] += T * EXTPOLY[k];
+		
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 0; j < i + 1; j++)
 			R[i] += ((uint64_t)A[j]) * M1[i - j];
 	}
 }
 
 #endif
+
+#endif
+
 
 #ifdef M_or_B_is_B
 
@@ -101,8 +301,10 @@ static inline void m_or_b_mns_mod_mult_ext_red(__int128* restrict R,
 	// Vector-Matrix multiplication between A and B, result in R.
 	register uint16_t i, j;
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 	{
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 0; j < N; j++)
 			R[i] += (__int128) A[j] * B[j][i];
 	}
@@ -114,9 +316,11 @@ static inline void m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
 	// Vector-Matrix multiplication between A and B1, result in R.
 	register uint16_t i, j;
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 	{
 		R[i] = 0;
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 0; j < N; j++)
 			R[i] += ((uint64_t)A[j]) * B1[j][i];
 	}
@@ -134,6 +338,7 @@ inline void mns_montg_int_red(restrict poly res, __int128* restrict R)
 	
 	m_or_b_mns_mod_mult_ext_red(R, T);
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 		res->t[i] = (R[i] >> 64) + ((int64_t) R[i] != 0);
 }
@@ -151,44 +356,6 @@ inline void amns_montg_mult(restrict poly res, const restrict poly A,
 	mns_mod_mult_ext_red(R, A, B);
 
 	mns_montg_int_red(res, R);
-}
-
-static inline void UNROLLED_mns_montg_int_red(restrict poly res, __int128* restrict R)
-{
-	// Unrolled version
-	uint64_t V[N], V2[N];
-	int64_t T[N] = {0};
-	register uint16_t i;
-	
-	for(i = 0; i < N; i++)
-	{
-		V[i] = R[i];
-		res->t[i] = R[i];
-		V2[i] = (R[i] >> 64);
-		R[i] = 0;
-	}
-	
-	UNROLLED_m1_or_b1_mns_mod_mult_ext_red(T, res);
-	
-	for(i = 0; i < N; i++)
-		res->t[i] = T[i];
-	
-	UNROLLED_m_or_b_mns_mod_mult_ext_red(R, res);
-	
-	for(i = 0; i < N; i++)
-		res->t[i] = V2[i] + (R[i] >> 64) + (V[i] != 0);
-}
-
-inline void UNROLLED_amns_montg_mult(restrict poly res, const restrict poly A,
-	const restrict poly B)
-{
-	// Unrolled version
-	
-	__int128 R[N] = {0};
-	
-	UNROLLED_mns_mod_mult_ext_red(R, A, B);
-
-	UNROLLED_mns_montg_int_red(res, R);
 }
 
 void amns_rtl_sqandmult(restrict poly res, const restrict poly base,
@@ -214,16 +381,16 @@ void amns_rtl_sqandmult(restrict poly res, const restrict poly base,
 		for(j = 0; j < 32; j++)
 			{
 				if(aux & 1)
-					AMNS_MONTG_MULT(tmp, res, stok);
+					amns_montg_mult(tmp, res, stok);
 				else
-					AMNS_MONTG_MULT(tmp, res, &__theta__);
-				AMNS_MONTG_MULT(num, stok, stok);
+					amns_montg_mult(tmp, res, &__theta__);
+				amns_montg_mult(num, stok, stok);
 				aux >>= 1;
 				if(aux & 1)
-					AMNS_MONTG_MULT(res, tmp, num);
+					amns_montg_mult(res, tmp, num);
 				else
-					AMNS_MONTG_MULT(res, tmp, &__theta__);
-				AMNS_MONTG_MULT(stok, num, num);
+					amns_montg_mult(res, tmp, &__theta__);
+				amns_montg_mult(stok, num, num);
 				aux >>= 1;
 			}
 	}
@@ -233,16 +400,16 @@ void amns_rtl_sqandmult(restrict poly res, const restrict poly base,
 	while(aux)
 	{
 		if(aux & 1)
-			AMNS_MONTG_MULT(tmp, res, stok);
+			amns_montg_mult(tmp, res, stok);
 		else
-			AMNS_MONTG_MULT(tmp, res, &__theta__);
-		AMNS_MONTG_MULT(num, stok, stok);
+			amns_montg_mult(tmp, res, &__theta__);
+		amns_montg_mult(num, stok, stok);
 		aux >>= 1;
 		if(aux & 1)
-			AMNS_MONTG_MULT(res, tmp, num);
+			amns_montg_mult(res, tmp, num);
 		else
-			AMNS_MONTG_MULT(res, tmp, &__theta__);
-		AMNS_MONTG_MULT(stok, num, num);
+			amns_montg_mult(res, tmp, &__theta__);
+		amns_montg_mult(stok, num, num);
 		aux >>= 1;
 	}
 	
@@ -267,11 +434,11 @@ void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
 	aux = exponent->t[exponent->deg - 1];
 	for(j = __builtin_clz(aux); j < 64; j++)
 	{
-		AMNS_MONTG_MULT(tmp, res, res);
+		amns_montg_mult(tmp, res, res);
 		if(aux & (1ULL << (63 - j)))
-			AMNS_MONTG_MULT(res, tmp, base);
+			amns_montg_mult(res, tmp, base);
 		else
-			AMNS_MONTG_MULT(res, tmp, &__theta__);
+			amns_montg_mult(res, tmp, &__theta__);
 	}
 	
 	for(i = 0; i < exponent->deg - 1; i++)
@@ -279,11 +446,11 @@ void amns_ltr_sqandmult(restrict poly res, const restrict poly base,
 		aux = exponent->t[exponent->deg - 2 - i];
 		for(j = 0; j < 64; j++)
 		{
-			AMNS_MONTG_MULT(tmp, res, res);
+			amns_montg_mult(tmp, res, res);
 			if(aux & (1ULL << (63 - j)))
-				AMNS_MONTG_MULT(res, tmp, base);
+				amns_montg_mult(res, tmp, base);
 			else
-				AMNS_MONTG_MULT(res, tmp, &__theta__);
+				amns_montg_mult(res, tmp, &__theta__);
 		}
 	}
 	
@@ -312,8 +479,8 @@ void amns_montg_ladder(restrict poly res, const restrict poly base,
 	for(j = __builtin_clz(aux); j < 64; j++)
 	{
 		b = (aux & (1ULL << (63 - j))) >> (63 - j);
-		AMNS_MONTG_MULT(R[1 - b], R[1 - b], R[b]);
-		AMNS_MONTG_MULT(R[b], R[b], R[b]);
+		amns_montg_mult(R[1 - b], R[1 - b], R[b]);
+		amns_montg_mult(R[b], R[b], R[b]);
 	}
 	
 	for(i = 0; i < exponent->deg - 1; i++)
@@ -322,8 +489,8 @@ void amns_montg_ladder(restrict poly res, const restrict poly base,
 		for(j = 0; j < 64; j++)
 		{
 			b = (aux & (1ULL << (63 - j))) >> (63 - j);
-			AMNS_MONTG_MULT(R[1 - b], R[1 - b], R[b]);
-			AMNS_MONTG_MULT(R[b], R[b], R[b]);
+			amns_montg_mult(R[1 - b], R[1 - b], R[b]);
+			amns_montg_mult(R[b], R[b], R[b]);
 		}
 	}
 	
@@ -492,28 +659,4 @@ void __multchecks__(char* nbmults)
 	}
 	
 	free_polys(a, b, c, NULL);
-}
-
-void __sqandmultdemo(void)
-{
-	// TODO: delete it, used to check point to point process.
-	const char a[] = "0xffffffffffffffffffffffffffffffffffffffffffffffff", // "7609d69beaadb6de37a7b36cd193b33b120489bd4298534e830eeeaf9a65b15c12268aea1447f610377ea045afc463fb193a531e46cf70052ee6143d782b27aee363d426ad73085f7c24376b676070214cbf1b69f93fd5fdd70b8c77dd2268cbf3f210366b932c7351d9332608fb294ebb44bc7b17bfa3e115dd06c642670d67",
-		b[] = "0xffffffffffffffffffffffffffffffffffffffffffffffff", // "78a5cc1a942f42e81aa0dc980d3b6a7f987bf9847fb30f8d17c327283745d1365e6bd495a6b4bc2f6a16dca99668ee8591b5b04d12e15d5c4f5f22aafca94fcc3973e7e7714c84b0fb514f862d3444fd36f82f54ccb6c2f2ac3510d3aaea94953533e511076ba29103afb13ba6387001f1055b400b5abfc5b7cd0cdb4b2ebf2a",
-		c[] = "0xfca02b1ec94f1d1a5afdbacd6c0b04b9ded8463b62fade4d35e64f3de3a20e8b172382d318083548be85676b8b7dd347c32841c3efa88c928e7cc945f5e2253708053c8f75ff222717ea374b7f0b6ceafd6ac0b119d23300ac9b6a23cd0b332b438f7be9f6c4ee4cdbbe93444343a8011583e10a8c4cc0f07b67d1467b9a73e"; // "606ddc8f63ff63abfacb0ced7fcef39d42f0831e9e84459bbffbc1a04b866aaf572571e876a087dc633ab189b40eb861be2f7e194ac5f24ad7886eeb070028bc91a3970ea828cdd5da8eea173d0a38da1bc072837e5835ff2bd266ebcc4788870c7dca82e5b87cd1a844a5120339d2ef1620f1484888538824c5474fe77014e6";
-	
-	poly C;
-	mpnum aux;
-	init_poly(N, &C);
-	init_mpnum(1, &aux);
-	
-	amns_sqandmult(C, a, b);
-	
-	convert_amns_to_multipre(&aux, C);
-	
-	printf("\n%s\n\n", c);
-	mp_print(aux);
-	printf("\n");
-	
-	free_poly(C);
-	free_mpnum(aux);
 }

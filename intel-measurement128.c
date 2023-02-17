@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <gmp.h>
+//#include <gmp.h>
 #include <immintrin.h>
 #include <time.h>
 #include <inttypes.h>

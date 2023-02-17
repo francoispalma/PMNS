@@ -8,6 +8,5 @@ int main(int argc, char** argv)
 		__multchecks__(argv[1]);
 	else
 		__multchecks__('\0');
-	//__sqandmultdemo();
 	return 0;
 }

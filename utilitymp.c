@@ -10,7 +10,7 @@ void __print128(register const __int128 Val)
 {
 	int64_t hi = Val >> 64;
 	uint64_t lo = Val;
-	printf("0x%lx%016lx\n", hi, lo);
+	printf("%lx%016lx", hi, lo);
 }
 
 void mp_reduce(restrict mpnum A)

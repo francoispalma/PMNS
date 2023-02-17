@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <gmp.h>
+//#include <gmp.h>
 #include <immintrin.h>
 #include <time.h>
 #include <inttypes.h>
@@ -28,8 +28,6 @@
 unsigned long rdpmc_instructions(void) { return 1;}
 
 extern void amns_montg_mult(restrict poly res, const restrict poly A,
-	const restrict poly B);
-extern void UNROLLED_amns_montg_mult(restrict poly res, const restrict poly A,
 	const restrict poly B);
 void randpoly(poly);
 
@@ -146,10 +144,7 @@ int main(int argc, char** argv)
 	init_polys(N, &a, &b, &c, &soak1, &soak2, NULL);
 	
 	void (*amns_mult)(restrict poly, const restrict poly, const restrict poly);
-	if (argc > 1 && (strncmp(argv[1], "pre", 3) == 0))
-		amns_mult = UNROLLED_amns_montg_mult;
-	else
-		amns_mult = amns_montg_mult;
+	amns_mult = amns_montg_mult;
 
   cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
 

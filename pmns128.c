@@ -6,6 +6,8 @@
 #include "pmns128.h"
 #include "utilitymp.h"
 
+#define _PRAGMAGCCUNROLLLOOP_ _Pragma("GCC unroll 80")
+
 #define AMNS128_MONTG_MULT amns128_montg_mult
 
 static inline void multadd128(__int128* restrict Rhi,
@@ -48,14 +50,6 @@ static inline void mns_multadd128(__int128* restrict Rhi,
 	*Rhi += (__int128) A1B1 + HIGH(A1B0_A0B1) + add_overflow(Rlo, tmplo);
 }
 
-static inline void m1_multadd128(unsigned __int128* restrict Rlo,
-	unsigned __int128 A, __int128 B)
-{
-	// Multiplies A and B and adds the result to R in the case where we only
-	// want the lower part of the result.
-	*Rlo += (__int128) A * B;
-}
-
 #ifdef LAMBDA
 
 inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
@@ -65,22 +59,53 @@ inline void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	// Function that multiplies A by B and applies external reduction using
 	// E(X) = X^n - lambda as a polynomial used for reduction.
 	register uint16_t i, j;
-	unsigned __int128 aux1, aux2;
+	unsigned __int128 A1B0_A0B1;
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 	{
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 1; j < N - i; j++)
-			mns_multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],
-				B->hi[N - j], B->lo[N - j]);
+			Rhi[i] += ((__int128) A->hi[i + j] * B->hi[N - j] * LAMBDA);
 		
-		aux1 = (unsigned __int128) LOW(Rlo[i]) * LAMBDA;
-		aux2 = (unsigned __int128) HI(Rlo[i]) * LAMBDA + HIGH(aux1);
-		Rlo[i] = ((__int128) aux2 << 64) | LOW(aux1);
-		Rhi[i] = (__int128) Rhi[i] * LAMBDA + HIGH(aux2);
-		
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 0; j < i + 1; j++)
-			mns_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],
-				B->hi[i - j], B->lo[i - j]);
+			Rhi[i] += ((__int128) A->hi[j] * B->hi[i - j]);
+		
+		A1B0_A0B1 = 0;
+		
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 1; j < N - i; j++)
+			A1B0_A0B1 += ((__int128) A->hi[i + j] * B->lo[N - j] * LAMBDA) + ((__int128) A->lo[i + j] * B->hi[N - j] * LAMBDA);
+		
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 0; j < i + 1; j++)
+			A1B0_A0B1 += ((__int128) A->hi[j] * B->lo[i - j]) + ((__int128) A->lo[j] * B->hi[i - j]);
+		
+		Rhi[i] += HIGH(A1B0_A0B1) + add_overflow(Rlo + i, (__int128) ((__int128)A1B0_A0B1 << 64));
+		
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 1; j < N - i; j++)
+			Rhi[i] += add_overflow(Rlo + i, (__int128) A->lo[i + j] * B->lo[N - j] * LAMBDA);
+		
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 0; j < i + 1; j++)
+			Rhi[i] += add_overflow(Rlo + i, (__int128) A->lo[j] * B->lo[i - j]);
+		
+/*		_PRAGMAGCCUNROLLLOOP_*/
+/*		for(j = 1; j < N - i; j++)*/
+/*			mns_multadd128(Rhi + i, Rlo + i, A->hi[i + j], A->lo[i + j],*/
+/*				B->hi[N - j], B->lo[N - j]);*/
+		
+/*		aux1 = (unsigned __int128) LOW(Rlo[i]) * LAMBDA;*/
+/*		aux2 = (unsigned __int128) HI(Rlo[i]) * LAMBDA + HIGH(aux1);*/
+/*		Rlo[i] = ((__int128) aux2 << 64) | LOW(aux1);*/
+/*		Rhi[i] = (__int128) Rhi[i] * LAMBDA + HIGH(aux2);*/
+		
+/*		_PRAGMAGCCUNROLLLOOP_*/
+/*		for(j = 0; j < i + 1; j++)*/
+/*			mns_multadd128(Rhi + i, Rlo + i, A->hi[j], A->lo[j],*/
+/*				B->hi[i - j], B->lo[i - j]);*/
 	}
 }
 
@@ -175,14 +200,45 @@ static inline void m_or_b_mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	// Vector-Matrix multiplication between A and B, result in R.
 	
 	register uint16_t i, j;
+	unsigned __int128 A0B1;
+	__int128 A1B0, aux;
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 	{
-		Rhi[i] += Rlo[i] != 0;
-		Rlo[i] = 0;
+		aux = 0;
+		
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 0; j < N; j++)
-			multadd128(Rhi + i, Rlo + i, HIGH(A[j]), LOW(A[j]),
-				Bhi[j][i], Blo[j][i]);
+			Rhi[i] += (__int128) HIGH(A[j]) * Bhi[j][i] + add_overflow(Rlo + i, ((__int128) LOW(A[j]) * Blo[j][i]));
+		
+		A0B1 = 0;
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 0; j < N; j++)
+			A0B1 += ((__int128) LOW(A[j]) * Bhi[j][i]);
+		
+		_PRAGMAGCCUNROLLLOOP_
+		for(j = 0; j < N; j++)
+		{
+			A1B0 = (__int128) HIGH(A[j]) * Blo[j][i];
+/*			aux += add_overflow(&A0B1, A1B0) * (1 - 2 * (A1B0 < 0));*/
+			Rhi[i] += HIGH(A1B0) + add_overflow(Rlo + i, ((__int128)(LOW(A1B0)) << 64));
+		}
+		
+/*		A0B1 = 0;*/
+/*		_PRAGMAGCCUNROLLLOOP_*/
+/*		for(j = 0; j < N; j++)*/
+/*			A0B1 += ((__int128) LOW(A[j]) * Bhi[j][i]);*/
+		
+		Rhi[i] += ((__int128) aux << 64) + HIGH(A0B1) + add_overflow(Rlo + i, ((__int128)LOW(A0B1) << 64));
+		
+/*		Rhi[i] += Rlo[i] != 0;*/
+/*		Rlo[i] = 0;*/
+/*		*/
+/*		_PRAGMAGCCUNROLLLOOP_*/
+/*		for(j = 0; j < N; j++)*/
+/*			multadd128(Rhi + i, Rlo + i, HIGH(A[j]), LOW(A[j]),*/
+/*				Bhi[j][i], Blo[j][i]);*/
 	}
 }
 
@@ -194,11 +250,14 @@ static inline void m1_or_b1_mns128_mod_mult_ext_red(unsigned __int128* restrict 
 	
 	register uint16_t i, j;
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 	{
 		Rlo[i] = 0;
+		
+		_PRAGMAGCCUNROLLLOOP_
 		for(j = 0; j < N; j++)
-			m1_multadd128(Rlo + i, A[j], ((__int128) B1hi[j][i] << 64) | B1lo[j][i]);
+			Rlo[i] += ((__int128) A[j] * (((__int128) LOW(B1hi[j][i]) << 64) | B1lo[j][i]));
 	}
 }
 
@@ -216,6 +275,7 @@ static inline void mns128_montg_int_red(poly128 res, __int128* restrict Rhi,
 	
 	m_or_b_mns128_mod_mult_ext_red(Rhi, Rlo, V);
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 	{
 		res->lo[i] = LOW(Rhi[i]);
@@ -234,6 +294,7 @@ static inline void UNROLLED_mns128_montg_int_red(poly128 res, __int128* restrict
 	
 	UNROLLED_m_or_b_mns128_mod_mult_ext_red(Rhi, Rlo, V);
 	
+	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
 	{
 		res->lo[i] = LOW(Rhi[i]);
