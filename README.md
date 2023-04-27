@@ -8,6 +8,8 @@ The implementation itself is in C with utility functions in Python for generatio
 
 Currently a 64 bit and 128 bit versions are available. A 104 bit version using AVX512IFMA is possible in the future.
 
+In construction: the "guided tour" folder should contain all the code necessary to recreate the tables in "PMNS for cryptography: a guided tour" but it is currently in construction.
+
 ## Requirements
 
 Installing sagemath is required to use the code generation.
