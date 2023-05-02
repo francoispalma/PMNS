@@ -74,12 +74,12 @@ void quicksort(uint64_t* t, int n)
 	}
 }
 
-unsigned long long *quartiles(uint64_t *tab, uint64_t size)
+uint64_t *quartiles(uint64_t *tab, uint64_t size)
 {
-	unsigned long long *result ;
+	uint64_t *result ;
 	uint64_t aux ;
 	
-	result = malloc(3*sizeof(unsigned long long));
+	result = malloc(3*sizeof(uint64_t));
 	quicksort(tab, size);
 	aux = size >> 2;
 	if (size % 4) aux++;
@@ -124,383 +124,81 @@ static inline uint64_t cpucyclesStop(void) {
 	return ((uint64_t)lo)^(((uint64_t)hi)<<32);
 }
 
+uint64_t do_bench(void (*pmns_mult)(restrict poly, const restrict poly, const restrict poly), const uint8_t N, const uint8_t RHO)
+{
+	uint64_t *cycles = (uint64_t *)calloc(NTEST,sizeof(uint64_t)), *statTimer;
+	uint64_t timermin , timermax, meanTimermin =0,	medianTimer = 0,
+	meanTimermax = 0, t1,t2, diff_t;
+	poly a, b, c;
+	init_polys(N, &a, &b, &c, NULL);
+	
+	for(int i=0;i<NTEST;i++)
+	{
+	// Here we "heat" the cache memory.
+		randpoly(a, RHO);
+		randpoly(b, RHO);
+		pmns_mult(c, a, b);
+	}
+	
+	for(int i=0;i<NSAMPLES;i++)
+	{
+		// Here we generate a random dataset to use for our test each iteration.
+		randpoly(a, RHO);
+		randpoly(b, RHO);
+		timermin = (uint64_t)0x1<<63;
+		timermax = 0;
+		memset(cycles,0,NTEST*sizeof(uint64_t));
+		for(int j=0;j<NTEST;j++)
+		{
+			t1 = cpucyclesStart();
+			// We call the function 10 times to get an accurate measurement.
+			pmns_mult(c, a, b);
+			pmns_mult(c, a, b);
+			pmns_mult(c, a, b);
+			pmns_mult(c, a, b);
+			pmns_mult(c, a, b);
+			pmns_mult(c, a, b);
+			pmns_mult(c, a, b);
+			pmns_mult(c, a, b);
+			pmns_mult(c, a, b);
+			pmns_mult(c, a, b);
+			t2 = cpucyclesStop();
+			if (t2 < t1){
+				diff_t = 18446744073709551615ULL-t1;
+				diff_t = t2+diff_t+1;
+			}
+			else
+				diff_t = t2-t1;
+			if(timermin > diff_t) timermin = diff_t;
+			else if(timermax < diff_t) timermax = diff_t;
+			cycles[j]=diff_t;
+		}
+		meanTimermin += timermin;
+		meanTimermax += timermax;
+		statTimer = quartiles(cycles,NTEST);
+		medianTimer += statTimer[1];
+		free(statTimer);
+	}
+	
+	free(cycles);
+	free_polys(a, b, c, NULL);
+	return medianTimer/NSAMPLES/10; // We divide by 10 since we measured 10 calls.
+}
 
 int main(void)
 {
-	uint64_t *cycles1 ;
-	unsigned long long timermin1 , timermax1, meanTimer1min =0,	medianTimer1 = 0,
-	meanTimer1max = 0, t1,t2, diff_t;
 	
-	unsigned long long *statTimer1 ;
-	
-	uint64_t polycycles256, lattcycles256, polycycles512, lattcycles512, polycycles1024, lattcycles1024;
 	const uint8_t N256 = 5, N512 = 10, N1024 = 19;
 	const uint8_t RHO256 = 54, RHO512 = 54, RHO1024 = 58;
-	uint8_t N, RHO;
+	uint64_t polycycles256, lattcycles256, polycycles512, lattcycles512, polycycles1024, lattcycles1024;
 	
-	poly a, b, c;
+	polycycles256 = do_bench(poly_pmns256_montg_mult, N256, RHO256);
+	polycycles512 = do_bench(poly_pmns512_montg_mult, N512, RHO512);
+	polycycles1024 = do_bench(poly_pmns1024_montg_mult, N1024, RHO1024);
+	lattcycles256 = do_bench(latt_pmns256_montg_mult, N256, RHO256);
+	lattcycles512 = do_bench(latt_pmns512_montg_mult, N512, RHO512);
+	lattcycles1024 = do_bench(latt_pmns1024_montg_mult, N1024, RHO1024);
 	
-	void (*pmns_mult)(restrict poly, const restrict poly, const restrict poly);
-	
-	N = N256; RHO = RHO256; 	
-	
-	init_polys(N, &a, &b, &c, NULL);
-	
-	cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
-	pmns_mult = poly_pmns256_montg_mult;
-	for(int i=0;i<NTEST;i++)
-	{
-	// Here we "heat" the cache memory.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		pmns_mult(c, a, b);
-	}
-	
-	for(int i=0;i<NSAMPLES;i++)
-	{
-		// Here we generate a random dataset to use for our test each iteration.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		timermin1 = (unsigned long long int)0x1<<63;
-		timermax1 = 0;
-		memset(cycles1,0,NTEST*sizeof(uint64_t));
-		for(int j=0;j<NTEST;j++)
-		{
-			t1 = cpucyclesStart();
-			// We call the function 10 times to get an accurate measurement.
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			t2 = cpucyclesStop();
-			if (t2 < t1){
-				diff_t = 18446744073709551615ULL-t1;
-				diff_t = t2+diff_t+1;
-			}
-			else
-				diff_t = t2-t1;
-			if(timermin1>diff_t) timermin1 = diff_t;
-			else if(timermax1 < diff_t) timermax1 = diff_t;
-			cycles1[j]=diff_t;
-		}
-		meanTimer1min += timermin1;
-		meanTimer1max += timermax1;
-		statTimer1	 = quartiles(cycles1,NTEST);
-		medianTimer1 += statTimer1[1];
-		free(statTimer1);
-	}
-	
-	// We divide by 10 since we measured 10 calls.
-	polycycles256 = medianTimer1/NSAMPLES/10;
-	
-	free(cycles1);
-	
-	meanTimer1min = 0; medianTimer1 = 0; meanTimer1max = 0;
-	cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
-	pmns_mult = latt_pmns256_montg_mult;
-	for(int i=0;i<NTEST;i++)
-	{
-	// Here we "heat" the cache memory.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		pmns_mult(c, a, b);
-	}
-	
-	for(int i=0;i<NSAMPLES;i++)
-	{
-		// Here we generate a random dataset to use for our test each iteration.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		timermin1 = (unsigned long long int)0x1<<63;
-		timermax1 = 0;
-		memset(cycles1,0,NTEST*sizeof(uint64_t));
-		for(int j=0;j<NTEST;j++)
-		{
-			t1 = cpucyclesStart();
-			// We call the function 10 times to get an accurate measurement.
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			t2 = cpucyclesStop();
-			if (t2 < t1){
-				diff_t = 18446744073709551615ULL-t1;
-				diff_t = t2+diff_t+1;
-			}
-			else
-				diff_t = t2-t1;
-			if(timermin1>diff_t) timermin1 = diff_t;
-			else if(timermax1 < diff_t) timermax1 = diff_t;
-			cycles1[j]=diff_t;
-		}
-		meanTimer1min += timermin1;
-		meanTimer1max += timermax1;
-		statTimer1	 = quartiles(cycles1,NTEST);
-		medianTimer1 += statTimer1[1];
-		free(statTimer1);
-	}
-	
-	// We divide by 10 since we measured 10 calls.
-	lattcycles256 = medianTimer1/NSAMPLES/10;
-	
-	free_polys(a, b, c, NULL);
-	free(cycles1);
-	meanTimer1min = 0; medianTimer1 = 0; meanTimer1max = 0;
-	
-	
-	/*************************************************
-	512 bits
-	*************************************************/
-	
-	N = N512; RHO = RHO512;
-	
-	init_polys(N, &a, &b, &c, NULL);
-	
-	cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
-	pmns_mult = poly_pmns512_montg_mult;
-	for(int i=0;i<NTEST;i++)
-	{
-	// Here we "heat" the cache memory.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		pmns_mult(c, a, b);
-	}
-	
-	for(int i=0;i<NSAMPLES;i++)
-	{
-		// Here we generate a random dataset to use for our test each iteration.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		timermin1 = (unsigned long long int)0x1<<63;
-		timermax1 = 0;
-		memset(cycles1,0,NTEST*sizeof(uint64_t));
-		for(int j=0;j<NTEST;j++)
-		{
-			t1 = cpucyclesStart();
-			// We call the function 10 times to get an accurate measurement.
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			t2 = cpucyclesStop();
-			if (t2 < t1){
-				diff_t = 18446744073709551615ULL-t1;
-				diff_t = t2+diff_t+1;
-			}
-			else
-				diff_t = t2-t1;
-			if(timermin1>diff_t) timermin1 = diff_t;
-			else if(timermax1 < diff_t) timermax1 = diff_t;
-			cycles1[j]=diff_t;
-		}
-		meanTimer1min += timermin1;
-		meanTimer1max += timermax1;
-		statTimer1	 = quartiles(cycles1,NTEST);
-		medianTimer1 += statTimer1[1];
-		free(statTimer1);
-	}
-	
-	// We divide by 10 since we measured 10 calls.
-	polycycles512 = medianTimer1/NSAMPLES/10;
-	
-	free(cycles1);
-	
-	meanTimer1min = 0; medianTimer1 = 0; meanTimer1max = 0;
-	cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
-	pmns_mult = latt_pmns512_montg_mult;
-	for(int i=0;i<NTEST;i++)
-	{
-	// Here we "heat" the cache memory.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		pmns_mult(c, a, b);
-	}
-	
-	for(int i=0;i<NSAMPLES;i++)
-	{
-		// Here we generate a random dataset to use for our test each iteration.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		timermin1 = (unsigned long long int)0x1<<63;
-		timermax1 = 0;
-		memset(cycles1,0,NTEST*sizeof(uint64_t));
-		for(int j=0;j<NTEST;j++)
-		{
-			t1 = cpucyclesStart();
-			// We call the function 10 times to get an accurate measurement.
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			t2 = cpucyclesStop();
-			if (t2 < t1){
-				diff_t = 18446744073709551615ULL-t1;
-				diff_t = t2+diff_t+1;
-			}
-			else
-				diff_t = t2-t1;
-			if(timermin1>diff_t) timermin1 = diff_t;
-			else if(timermax1 < diff_t) timermax1 = diff_t;
-			cycles1[j]=diff_t;
-		}
-		meanTimer1min += timermin1;
-		meanTimer1max += timermax1;
-		statTimer1	 = quartiles(cycles1,NTEST);
-		medianTimer1 += statTimer1[1];
-		free(statTimer1);
-	}
-	
-	// We divide by 10 since we measured 10 calls.
-	lattcycles512 = medianTimer1/NSAMPLES/10;
-	
-	free_polys(a, b, c, NULL);
-	free(cycles1);
-	
-	/*************************************************
-	1024 bits
-	*************************************************/
-	
-	N = N1024; RHO = RHO1024;
-	
-	init_polys(N, &a, &b, &c, NULL);
-	
-	meanTimer1min = 0; medianTimer1 = 0; meanTimer1max = 0;
-	cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
-	pmns_mult = poly_pmns1024_montg_mult;
-	for(int i=0;i<NTEST;i++)
-	{
-	// Here we "heat" the cache memory.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		pmns_mult(c, a, b);
-	}
-	
-	for(int i=0;i<NSAMPLES;i++)
-	{
-		// Here we generate a random dataset to use for our test each iteration.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		timermin1 = (unsigned long long int)0x1<<63;
-		timermax1 = 0;
-		memset(cycles1,0,NTEST*sizeof(uint64_t));
-		for(int j=0;j<NTEST;j++)
-		{
-			t1 = cpucyclesStart();
-			// We call the function 10 times to get an accurate measurement.
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			t2 = cpucyclesStop();
-			if (t2 < t1){
-				diff_t = 18446744073709551615ULL-t1;
-				diff_t = t2+diff_t+1;
-			}
-			else
-				diff_t = t2-t1;
-			if(timermin1>diff_t) timermin1 = diff_t;
-			else if(timermax1 < diff_t) timermax1 = diff_t;
-			cycles1[j]=diff_t;
-		}
-		meanTimer1min += timermin1;
-		meanTimer1max += timermax1;
-		statTimer1	 = quartiles(cycles1,NTEST);
-		medianTimer1 += statTimer1[1];
-		free(statTimer1);
-	}
-	
-	// We divide by 10 since we measured 10 calls.
-	polycycles1024 = medianTimer1/NSAMPLES/10;
-	
-	free(cycles1);
-	
-	meanTimer1min = 0; medianTimer1 = 0; meanTimer1max = 0;
-	cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
-	pmns_mult = latt_pmns1024_montg_mult;
-	for(int i=0;i<NTEST;i++)
-	{
-	// Here we "heat" the cache memory.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		pmns_mult(c, a, b);
-	}
-	
-	for(int i=0;i<NSAMPLES;i++)
-	{
-		// Here we generate a random dataset to use for our test each iteration.
-		randpoly(a, RHO);
-		randpoly(b, RHO);
-		timermin1 = (unsigned long long int)0x1<<63;
-		timermax1 = 0;
-		memset(cycles1,0,NTEST*sizeof(uint64_t));
-		for(int j=0;j<NTEST;j++)
-		{
-			t1 = cpucyclesStart();
-			// We call the function 10 times to get an accurate measurement.
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			pmns_mult(c, a, b);
-			t2 = cpucyclesStop();
-			if (t2 < t1){
-				diff_t = 18446744073709551615ULL-t1;
-				diff_t = t2+diff_t+1;
-			}
-			else
-				diff_t = t2-t1;
-			if(timermin1>diff_t) timermin1 = diff_t;
-			else if(timermax1 < diff_t) timermax1 = diff_t;
-			cycles1[j]=diff_t;
-		}
-		meanTimer1min += timermin1;
-		meanTimer1max += timermax1;
-		statTimer1	 = quartiles(cycles1,NTEST);
-		medianTimer1 += statTimer1[1];
-		free(statTimer1);
-	}
-	
-	// We divide by 10 since we measured 10 calls.
-	lattcycles1024 = medianTimer1/NSAMPLES/10;
-	
-	free_polys(a, b, c, NULL);
-	free(cycles1);
-	meanTimer1min = 0; medianTimer1 = 0; meanTimer1max = 0;
 	printf("\n=========================================================================\n");
 	printf("|\tAlg.\\size of p\t|\t256\t|\t512\t|\t1024\t|\n");
 	printf("=========================================================================\n");
