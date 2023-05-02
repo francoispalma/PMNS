@@ -388,6 +388,7 @@ int main(void)
 	
 	init_polys(N, &a, &b, &c, NULL);
 	
+	meanTimer1min = 0; medianTimer1 = 0; meanTimer1max = 0;
 	cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
 	pmns_mult = poly_pmns1024_montg_mult;
 	for(int i=0;i<NTEST;i++)
