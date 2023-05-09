@@ -29,41 +29,38 @@ static inline void pmns_mod_mult_ext_red(__int128* restrict R,
 	}
 }
 
-static inline void m_pmns_mod_mult_ext_red(__int128* restrict R,
-	const int64_t* restrict A)
+static inline void b_pmns_mult(__int128* restrict R,
+	int64_t* restrict A)
 {
-	// Function that multiplies A by M and applies external reduction using
-	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.
+	// Vector-Matrix multiplication between A and B, result in R.
 	
 	__int128 somme;
+	
 	
 	_PRAGMAGCCUNROLLLOOP_
 	for(int i = 0; i < N; i++)
 	{
-		somme = (__int128) matrM[N - 1 + i] * A[0];
-		_PRAGMAGCCUNROLLLOOP_
-		for(int j = 1; j < N; j++)
-			somme += (__int128) matrM[N - 1 - j + i] * A[j];
+		somme = (__int128)B[0][i]*A[0];
+		for (int j = 1; j < N; j++)
+			somme += (__int128)B[j][i]*A[j];
 		
 		R[i] += somme;
 	}
 }
 
-static inline void m1_pmns_mod_mult_ext_red(int64_t* restrict R,
+static inline void b1_pmns_mult(int64_t* restrict R,
 	__int128* restrict A)
 {
-	// Function that multiplies A by M^-1 and applies external reduction using
-	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.
+	// Vector-Matrix multiplication between A and B^-1, result in R.
 	
 	uint64_t somme;
 	
 	_PRAGMAGCCUNROLLLOOP_
 	for(int i = 0; i < N; i++)
 	{
-		somme = (uint64_t) matrM1[N - 1 + i] * A[0];
-		_PRAGMAGCCUNROLLLOOP_
-		for(int j = 1; j < N; j++)
-			somme += (uint64_t) matrM1[N - 1 - j + i] * A[j];
+		somme = (uint64_t)B1[0][i]*A[0];
+		for (int j = 1; j < N; j++)
+			somme += (uint64_t)B1[j][i]*A[j];
 		R[i] = somme;
 	}
 }
@@ -74,9 +71,9 @@ static inline void pmns_montg_int_red(restrict poly res, __int128* restrict R)
 	int64_t T[N];
 	register uint16_t i;
 	
-	m1_pmns_mod_mult_ext_red(T, R);
+	b1_pmns_mult(T, R);
 	
-	m_pmns_mod_mult_ext_red(R, T);
+	b_pmns_mult(R, T);
 	
 	_PRAGMAGCCUNROLLLOOP_
 	for(i = 0; i < N; i++)
