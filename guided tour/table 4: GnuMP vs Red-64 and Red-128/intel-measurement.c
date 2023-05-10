@@ -1,12 +1,8 @@
-#include <unistd.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <immintrin.h>
-#include <time.h>
-#include <inttypes.h>
 
 #include "structs.h"
 #include "pmns1024.h"
