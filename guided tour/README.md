@@ -1,4 +1,4 @@
-This folder contains the code to generate each of the tables in the "PMNS for cryptography: a guided tour" paper. You will need gcc and gmp to compile the codes.
+This folder contains the code to generate each of the tables in the "PMNS for cryptography: a guided tour" paper. You will need GCC and GnuMP to compile the codes.
 
 For each folder to compile and run the code to generate the table:
 make && ./main.exe
