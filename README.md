@@ -2,13 +2,11 @@
 
 This project is an implementation of the Polynomial Modular Number System (PMNS), a system for fast modular arithmetic operations for use in cryptography.
 
-Focus is put on the Adapted Modular Number System (AMNS) so far. Generation is done for those for now. Support for other PMNS exists currently but accompanying generation doesn't exist as of yet.
+The main folder is currently being updated, for the latest code, see the "guided tour" folder for now.
+
+The "guided tour" folder contains all the code necessary to recreate the tables in "PMNS for cryptography: a guided tour".
 
 The implementation itself is in C with utility functions in Python for generation purposes.
-
-Currently a 64 bit and 128 bit versions are available. A 104 bit version using AVX512IFMA is possible in the future.
-
-In construction: the "guided tour" folder should contain all the code necessary to recreate the tables in "PMNS for cryptography: a guided tour" but it is currently in construction.
 
 ## Requirements
 
