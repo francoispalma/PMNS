@@ -1,4 +1,4 @@
-#PMNS for cryptography: a guided tour
+# PMNS for cryptography: a guided tour
 
 This folder contains the code to generate each of the tables in the "PMNS for cryptography: a guided tour" paper. You will need GCC and GnuMP to compile the codes.
 
