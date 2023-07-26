@@ -1,5 +1,5 @@
 import sys
-from math import ceil
+from math import ceil, log2
 from sage.all import matrix
 
 from ops import horner_modulo, amns_montg_mult as amns_montg_mult_poly, amns_montg_mult_base
@@ -32,6 +32,9 @@ def do_precalcs(p, n, gamma, lam, rho, M_or_B, M1_or_B1):
 	else:
 		print(f"#define LENEXTPOLY {len(lam)}")
 		print(f"static const int8_t EXTPOLY[{len(lam)}] = {{ {str(lam)[1:-1]} }};")
+	if phi > 2**64:
+		print(f"#define PHI {int(log2(phi))}")
+
 
 	# We determine if we're using the base matrix or a polynomial
 	if type(M_or_B[0]) == int:
@@ -46,8 +49,22 @@ def do_precalcs(p, n, gamma, lam, rho, M_or_B, M1_or_B1):
 		rho_div_convert_to_mns = rho_div_convert_to_mns_poly
 
 		# We print
-		print("static const int64_t M[N] = {" + str(M)[1:-1] + "},")
-		print("\tM1[N] = {" + str(M1)[1:-1] + "};")
+		#print("static const int64_t M[N] = {" + str(M)[1:-1] + "},")
+		#print("\tM1[N] = {" + str(M1)[1:-1] + "};")
+		#matrM = M[:] + [M[-1-i] * lam for i in range(n-1)]
+		matrM = [elem * lam for elem in M[1:]] + M[:]
+		twonminusone = 2*n - 1
+		print("static const int64_t matrM[" + str(twonminusone) + "] = {" + str(matrM)[1:-1] + "};")
+		#matrM1 = M1[:] + [(M1[-1-i] * lam) % phi for i in range(n-1)]
+		matrM1 = [(elem * lam) % phi for elem in M1[1:]] + M1[:]
+		matrM1 = [matrM1[i] - phi if matrM1[i] >= (phi >> 1) else matrM1[i] for i in range(twonminusone)]
+		if phi <= 2**64:
+			print("static const int64_t matrM1[" + str(twonminusone) + "] = {" + str(matrM1)[1:-1] + "};")
+		else:
+			print(f"static const __int128 matrM1[{twonminusone}] = {{")
+			for i in range(twonminusone - 1):
+				print(f"((__int128) ((uint64_t){matrM1[i] >> 64}) << 64) | {matrM1[i] % 2**64}u, ", end="")
+			print(f"((__int128) ((uint64_t){matrM1[-1] >> 64}) << 64) | {matrM1[-1] % 2**64}u }};")
 #		ML = [elem * lam for elem in M]
 #		print("\tMLambda[N] = {" + str(ML)[1:-1] + "},")
 #		M1L = [(elem * lam) % phi for elem in M1]
@@ -59,12 +76,28 @@ def do_precalcs(p, n, gamma, lam, rho, M_or_B, M1_or_B1):
 		B = M_or_B
 		B1 = [tuple([-val + (phi * (val >= (phi >> 1))) for val in lig]) for lig in M1_or_B1]
 
-		print(f"static const int64_t B[N][N] = {{\n{str(B)[1:-1].replace('(',  '{').replace(')', '}').replace('[',  '{').replace(']', '}')}\n\t\t}},")
-		print(f"\tB1[N][N] = {{\n{str(B1)[1:-1].replace('(',  '{').replace(')', '}').replace('[',  '{').replace(']', '}').replace(', ', 'u, ').replace('}u,', '},').replace('}', 'u}')}\n\t\t}};")
+		print(f"static const int64_t B[N][N] = {{\n{str(B)[1:-1].replace('(',  '{').replace(')', '}').replace('[',  '{').replace(']', '}')}\n\t\t}};")
+		if phi <= 2**64:
+			print(f"static const int64_t B1[N][N] = {{\n{str(B1)[1:-1].replace('(',  '{').replace(')', '}').replace('[',  '{').replace(']', '}').replace(', ', 'u, ').replace('}u,', '},').replace('}', 'u}')}\n\t\t}};")
+		else:
+			print("static const __int128 B1[N][N] = {")
+			for i in range(n):
+				print("\t{ ")
+				for j in range(n - 1):
+					print(f"((__int128) ((uint64_t){B1[i][j] >> 64}) << 64) | {B1[i][j] % 2**64}u, ", end="")
+				print(f"((__int128) ((uint64_t){B1[i][-1] >> 64}) << 64) | {B1[i][-1] % 2**64}u }}", end="")
+				if i != n - 1:
+					print(",")
+				else:
+					print("\n\t\t};")
 
 		amns_montg_mult = amns_montg_mult_base
 		montgomery_convert_to_mns = montgomery_convert_to_mns_base
 		rho_div_convert_to_mns = rho_div_convert_to_mns_base
+
+	else:
+		print("Error")
+		print(type(M_or_B[0]))
 
 	# We then get the Pi and print it
 	phinmoinsun = pow(phi, n - 1, p)

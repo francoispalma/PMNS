@@ -5,7 +5,10 @@
 #include <stdlib.h>
 
 #include "structs.h"
-#include "params.h"
+
+extern const uint8_t PDEGREE;
+
+void randpoly(poly P);
 
 void convert_string_to_amns(restrict poly res, const char* string);
 void convert_amns_to_multipre(restrict mpnum* res, const restrict poly P);

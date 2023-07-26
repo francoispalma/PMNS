@@ -20,22 +20,22 @@
 #define NTEST 511
 #define NSAMPLES 1001
 
-/*inline static unsigned long rdpmc_instructions(void)*/
-/*{*/
-/*   unsigned a, d, c;*/
+inline static unsigned long rdpmc_instructions(void)
+{
+   unsigned a, d, c;
 
-/*   c = (1<<30);*/
-/*   __asm__ __volatile__("rdpmc" : "=a" (a), "=d" (d) : "c" (c));*/
+   c = (1<<30);
+   __asm__ __volatile__("rdpmc" : "=a" (a), "=d" (d) : "c" (c));
 
-/*   return ((unsigned long)a) | (((unsigned long)d) << 32);;*/
-/*}*/
+   return ((unsigned long)a) | (((unsigned long)d) << 32);;
+}
 
-unsigned long rdpmc_instructions(void) { return 1;}
+//unsigned long rdpmc_instructions(void) { return 1;}
 
 extern void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
-extern void UNROLLED_amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
-	const restrict poly128 B);
+/*extern void UNROLLED_amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
+	const restrict poly128 B);*/
 void randpoly128(poly128);
 
 // NTEST*NSAMPLES must be odd
@@ -152,10 +152,11 @@ int main(int argc, char** argv)
 	
 	void (*amns128_mult)(restrict poly128, const restrict poly128,
 		const restrict poly128);
-	if (argc > 1 && (strncmp(argv[1], "pre", 3) == 0))
+	/*if (argc > 1 && (strncmp(argv[1], "pre", 3) == 0))
 		amns128_mult = UNROLLED_amns128_montg_mult;
 	else
-		amns128_mult = amns128_montg_mult;
+		amns128_mult = amns128_montg_mult;*/
+	amns128_mult = amns128_montg_mult;
 
   cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
 

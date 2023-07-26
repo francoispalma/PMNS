@@ -1,6 +1,5 @@
 void __multchecks__(char* nbmults);
-//void __sqandmultdemo(void);
-//void __main__(void);
+
 
 int main(int argc, char** argv)
 {

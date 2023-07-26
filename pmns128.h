@@ -16,16 +16,16 @@
 void convert_string_to_amns128(restrict poly128 res, const char* string);
 void convert_amns128_to_multipre(restrict mpnum* res, const restrict poly128 P);
 
-extern void mns128_mod_mult_ext_red(__int128* restrict Rhi,
+void mns128_mod_mult_ext_red(__int128* restrict Rhi,
 	unsigned __int128* restrict Rlo, const restrict poly128 A,
 	const restrict poly128 B);
-extern void m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
+void m1_mns128_mod_mult_ext_red(unsigned __int128* restrict Rlo,
 	unsigned __int128* restrict A);
-extern void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
+void amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
-extern void UNROLLED_amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
+void UNROLLED_amns128_montg_mult(restrict poly128 res, const restrict poly128 A,
 	const restrict poly128 B);
-extern void amns128_sqandmult(restrict poly128 res, const char* restrict base,
+void amns128_sqandmult(restrict poly128 res, const char* restrict base,
 	const char* restrict exponent);
 
 #endif

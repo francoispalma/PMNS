@@ -1,84 +1,77 @@
-#include <unistd.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-//#include <gmp.h>
-#include <immintrin.h>
-#include <time.h>
-#include <inttypes.h>
 
+#include "pmns.h"
 #include "structs.h"
-#include "params.h"
 
-#define NTEST 511
+#define NTEST 501
 #define NSAMPLES 1001
-
-/*inline static unsigned long rdpmc_instructions(void)*/
-/*{*/
-/*   unsigned a, d, c;*/
-
-/*   c = (1<<30);*/
-/*   __asm__ __volatile__("rdpmc" : "=a" (a), "=d" (d) : "c" (c));*/
-
-/*   return ((unsigned long)a) | (((unsigned long)d) << 32);;*/
-/*}*/
-
-unsigned long rdpmc_instructions(void) { return 1;}
-
-extern void amns_montg_mult(restrict poly res, const restrict poly A,
-	const restrict poly B);
-void randpoly(poly);
 
 // NTEST*NSAMPLES must be odd
 // it's easier to compute median value
 
+#ifndef RDPMC_ALLOWED
+
+unsigned long rdpmc_instructions(void) { return 1;}
+
+#else
+
+inline static unsigned long rdpmc_instructions(void)
+{
+	unsigned a, d, c;
+	
+	c = (1<<30);
+	__asm__ __volatile__("rdpmc" : "=a" (a), "=d" (d) : "c" (c));
+	
+	return ((unsigned long)a) | (((unsigned long)d) << 32);;
+}
+
+#endif
 
 /**** Measurements procedures according to INTEL white paper
 
-  "How to benchmark code execution times on INTEL IA-32 and IA-64"
+	"How to benchmark code execution times on INTEL IA-32 and IA-64"
 
- *****/
-
-void quicksort(uint64_t *tab, int n);
-unsigned long long *quartiles(uint64_t *tab, uint64_t size);
+*****/
 
 void quicksort(uint64_t* t, int n)
 {
-  if (n > 0)
-  {
-    /* partitionning */
-    int i, j, temp;
-
-    j=0;
-    for (i=0; i<n-1; i++)
-    {
-      /* at least as big as the pivot */
-      if (t[i] < t[n-1])
-      {
-        temp = t[j];
-        t[j] = t[i];
-        t[i] = temp;
-        j++;
-      }
-    }
-    /*replacing the pivot */
-    temp = t[j];
-    t[j] = t[n-1];
-    t[n-1] = temp;
-
-    quicksort(t, j);
-    quicksort(&t[j+1], n-j-1);
-  }
+	if (n > 0)
+	{
+	/* partitionning */
+	int i, j, temp;
+	
+	j=0;
+	for (i=0; i<n-1; i++)
+	{
+		/* at least as big as the pivot */
+		if (t[i] < t[n-1])
+		{
+		temp = t[j];
+		t[j] = t[i];
+		t[i] = temp;
+		j++;
+		}
+	}
+	/*replacing the pivot */
+	temp = t[j];
+	t[j] = t[n-1];
+	t[n-1] = temp;
+	
+	quicksort(t, j);
+	quicksort(&t[j+1], n-j-1);
+	}
 }
 
-unsigned long long *quartiles(uint64_t *tab, uint64_t size)
+uint64_t *quartiles(uint64_t *tab, uint64_t size)
 {
-	unsigned long long *result ;
+	uint64_t *result ;
 	uint64_t aux ;
-
-	result = malloc(3*sizeof(unsigned long long));
+	
+	result = malloc(3*sizeof(uint64_t));
 	quicksort(tab, size);
 	aux = size >> 2;
 	if (size % 4) aux++;
@@ -86,92 +79,73 @@ unsigned long long *quartiles(uint64_t *tab, uint64_t size)
 	result[0] = tab[aux-1];
 	// Mediane
 	// size is odd hence it's easy
-	result[1]  = tab[(size+1)/2 - 1];
+	result[1]	= tab[(size+1)/2 - 1];
 	// Q3
 	aux = (3*size) >> 2;
 	if ((3*size) % 4) aux++;
-	result[2]  = tab[aux - 1];
-
+	result[2]	= tab[aux - 1];
+	
 	return result;
 }
 
-inline static uint64_t cpucyclesStart (void) {
-
-	unsigned hi, lo;
-	__asm__ __volatile__ (	"CPUID\n\t"
-			"RDTSC\n\t"
-			"mov %%edx, %0\n\t"
-			"mov %%eax, %1\n\t"
-			: "=r" (hi), "=r" (lo)
-			:
-			: "%rax", "%rbx", "%rcx", "%rdx");
-
-	return ((uint64_t)lo)^(((uint64_t)hi)<<32);
-
-
-}
-
-inline static uint64_t cpucyclesStop (void) {
-
-	unsigned hi, lo;
-	__asm__ __volatile__(	"RDTSCP\n\t"
-			"mov %%edx, %0\n\t"
-			"mov %%eax, %1\n\t"
-			"CPUID\n\t"
-			: "=r" (hi), "=r" (lo)
-			:
-			: "%rax", "%rbx", "%rcx", "%rdx");
-
-	return ((uint64_t)lo)^(((uint64_t)hi)<<32);
-
-
-}
-
-
-int main(int argc, char** argv)
+static inline uint64_t cpucyclesStart(void)
 {
-  uint64_t *cycles1 ;
-  unsigned long long timermin1 , timermax1, meanTimer1min =0,  medianTimer1 = 0,
-  meanTimer1max = 0, t1,t2, diff_t;
-
-  unsigned long long *statTimer1 ;
-
-	unsigned long long int timer = 0;
-	uint64_t mini = (uint64_t)-1L;
-	unsigned long long int START, STOP;
-
-	poly a, b, c, soak1, soak2;
-	init_polys(N, &a, &b, &c, &soak1, &soak2, NULL);
+	unsigned hi, lo;
+	__asm__ __volatile__ (	"CPUID\n    "
+			"RDTSC\n    "
+			"mov %%edx, %0\n    "
+			"mov %%eax, %1\n    "
+			: "=r" (hi), "=r" (lo)
+			:
+			: "%rax", "%rbx", "%rcx", "%rdx");
 	
-	void (*amns_mult)(restrict poly, const restrict poly, const restrict poly);
-	amns_mult = amns_montg_mult;
+	return ((uint64_t)lo)^(((uint64_t)hi)<<32);
+}
 
-  cycles1 = (uint64_t *)calloc(NTEST,sizeof(uint64_t));
+static inline uint64_t cpucyclesStop(void) {
+	
+	unsigned hi, lo;
+	__asm__ __volatile__(	"RDTSCP\n    "
+			"mov %%edx, %0\n    "
+			"mov %%eax, %1\n    "
+			"CPUID\n    "
+			: "=r" (hi), "=r" (lo)
+			:
+			: "%rax", "%rbx", "%rcx", "%rdx");
+	
+	return ((uint64_t)lo)^(((uint64_t)hi)<<32);
+}
 
-  for(int i=0;i<NTEST;i++)
-  {
-    // ici tirage de donnees aleatoires
-    // et execution de la fonction a mesurer
-    // pour chauffer les caches
-		randpoly(a);
-		randpoly(b);
-		amns_mult(c, a, b);
-  }
-
-  for(int i=0;i<NSAMPLES;i++)
+void do_bench(uint64_t retcycles[3], void (*pmns_mult)(restrict poly, const restrict poly, const restrict poly), const uint8_t W)
+{
+	uint64_t *cycles = (uint64_t *)calloc(NTEST,sizeof(uint64_t)), *statTimer;
+	uint64_t timermin , timermax, meanTimermin =0,	medianTimer = 0,
+	meanTimermax = 0, t1,t2, diff_t;
+	poly a, b, c;
+	init_polys(PDEGREE, &a, &b, &c, NULL);
+	
+	for(int i=0;i<NTEST;i++)
 	{
-		// generer ici un jeu de parametres aleatoire pour la
-		// fonction a mesurer
+	// Here we "heat" the cache memory.
 		randpoly(a);
 		randpoly(b);
-		timermin1 = (unsigned long long int)0x1<<63;
-		timermax1 = 0;
-        memset(cycles1,0,NTEST*sizeof(uint64_t));
+		pmns_mult(c, a, b);
+	}
+	
+	for(int i=0;i<NSAMPLES;i++)
+	{
+		// Here we generate a random dataset to use for our test each iteration.
+		randpoly(a);
+		randpoly(b);
+		timermin = (uint64_t)0x1<<63;
+		timermax = 0;
+		memset(cycles,0,NTEST*sizeof(uint64_t));
 		for(int j=0;j<NTEST;j++)
 		{
 			t1 = cpucyclesStart();
-            // appel de la fonction a mesurer
-			amns_mult(c, a, b);
+			// We call the function W times to get an accurate measurement.
+			for(int soak=0; soak < W; soak++)
+				pmns_mult(c, a, b);
 			t2 = cpucyclesStop();
 			if (t2 < t1){
 				diff_t = 18446744073709551615ULL-t1;
@@ -179,41 +153,83 @@ int main(int argc, char** argv)
 			}
 			else
 				diff_t = t2-t1;
-			if(timermin1>diff_t) timermin1 = diff_t;
-			else if(timermax1 < diff_t) timermax1 = diff_t;
-			cycles1[j]=diff_t;
+			if(timermin > diff_t) timermin = diff_t;
+			else if(timermax < diff_t) timermax = diff_t;
+			cycles[j]=diff_t;
 		}
-        meanTimer1min += timermin1;
-		meanTimer1max += timermax1;
-        statTimer1   = quartiles(cycles1,NTEST);
-        medianTimer1 += statTimer1[1];
-        free(statTimer1);
+		meanTimermin += timermin;
+		meanTimermax += timermax;
+		statTimer = quartiles(cycles,NTEST);
+		medianTimer += statTimer[1];
+		free(statTimer);
 	}
 	
-	timer=0;
+	free(cycles);
+	free_polys(a, b, c, NULL);
+	// We divide by W since we measured W calls.
+	retcycles[0] = meanTimermin/NSAMPLES/W;
+	retcycles[1] = meanTimermax/NSAMPLES/W;
+	retcycles[2] = medianTimer/NSAMPLES/W;
+}
+
+uint64_t do_instructions(void (*pmns_mult)(restrict poly, const restrict poly, const restrict poly), const uint8_t W)
+{
+	uint64_t timer = 0, START, STOP, mini = (uint64_t)-1LL;
+	poly a, b, c;
+	init_polys(PDEGREE, &a, &b, &c, NULL);
 	
-	for(int k=0; k<NSAMPLES;k++)
+	for(int i=0;i<NTEST;i++)
 	{
+	// Here we "heat" the cache memory.
+		randpoly(a);
+		randpoly(b);
+		pmns_mult(c, a, b);
+	}
+	
+	for(int k=0;k<NSAMPLES;k++)
+	{
+		// Here we generate a random dataset to use for our test each iteration.
+		randpoly(a);
+		randpoly(b);
 		for(int i=0;i<NTEST;i++)
 		{
-			amns_mult(c, a, b);
+			pmns_mult(c, a, b);
 		}
 		
 		for(int i=0;i<NTEST;i++)
 		{
 			
 			START = rdpmc_instructions();
-			amns_mult(c, a, b);
+			for(int soak=0; soak < W; soak++)
+				pmns_mult(c, a, b);
 			STOP = rdpmc_instructions();
 			
 			if(mini>STOP-START) mini = STOP-START;
 		}
 		timer += mini;
 	}
+	free_polys(a, b, c, NULL);
+	return timer/NSAMPLES/W; // We divide by W since we measured W calls.
+}
+
+int main(void)
+{
+	//time_t seed;
+	//srand((unsigned) (time(&seed)));
 	
-	printf("(%lld, %lld, %lld, %lld)\n", meanTimer1min/NSAMPLES, meanTimer1max/NSAMPLES, medianTimer1/NSAMPLES, timer/NSAMPLES);
-	free_polys(a, b, c, soak1, soak2, NULL);
-	free(cycles1);
+	uint64_t cycles[3];
+	
+	#if (PDEGREE <= 15)
+		const uint8_t W = 10;
+	#else
+		const uint8_t W = 1;
+	#endif
+	
+	do_bench(cycles, amns_montg_mult, W);
+	
+	uint64_t timer = do_instructions(amns_montg_mult, W);
+	
+	printf("(%ld, %ld, %ld, %ld)\n", cycles[0], cycles[1], cycles[2], timer);
 	return 0;
 }
 
