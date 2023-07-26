@@ -93,7 +93,7 @@ TOEP33TOP(9, schoolbook3x3)
 
 #if BINOMIAL_B == 1
 
-#if N == 9 == 0
+#if N == 9
 
 void pmns_mod_mult_ext_red(__int128* restrict R,
 	const restrict poly A, const restrict poly B)
@@ -325,11 +325,17 @@ void m1_pmns_mod_mult_ext_red(uint64_t* restrict R,
 	// Function that multiplies A by M1 and applies external reduction using
 	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.
 	
-	for(int i = 0; i < N; i++)
+	uint64_t Z = 0;
+	
+	for(int j = 0; j < N; j++)
+		Z += (uint64_t)A[j] * (uint64_t)lastcol[j];
+	
+	
+	R[N - 1] = Z;
+	for(int i = 0; i < N - 1; i++)
 	{
-		R[i] = 0;
-		for(int j = 0; j < N; j++)
-			R[i] += (uint64_t) A[j] * (uint64_t)matrM1[N - 1 - j + i];
+		Z = (uint64_t)Z*GAMMA - (uint64_t)A[N - 1 - i];
+		R[N - 2 - i] = Z;
 	}
 }
 
@@ -342,7 +348,7 @@ void m1_pmns_mod_mult_ext_red(uint64_t* restrict R,
 void pmns_montg_int_red(restrict poly res, __int128* restrict R)
 {
 	// Internal reduction of R via the Montgomery method.
-	int64_t T[N];
+	uint64_t T[N];
 	register uint16_t i;
 	
 	m1_pmns_mod_mult_ext_red(T, R);

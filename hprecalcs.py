@@ -10,7 +10,7 @@ from generated.pmns25664n5 import pmnsdict
 from generated.pmns51264n9 import pmnsdict
 from generated.pmns52164n9 import pmnsdict
 primes = list(pmnsdict.keys())
-p, n, gamma, lam, rho, B, B1 = pmnsdict[primes[0]]
+p, n, gamma, lam, rho, B, B1 = pmnsdict[primes[20]]
 phi = 2**64
 
 def convert_to_int_tabs(num):
@@ -39,10 +39,11 @@ def do_precalcs(p, n, gamma, lam, rho, B, B1):
 			M, M1 = findm(p, n, gamma, lam, rho, B, B1, phi)
 			print(f"#define GAMMA {gamma}")
 			if count_nonzero(M1) != 2:
-				twonminusone = 2*n - 1
-				matrM1 = [(elem * lam) % phi for elem in M1[1:]] + list(M1)[:]
-				#matrM1 = [matrM1[i] - phi if matrM1[i] >= (phi >> 1) else matrM1[i] for i in range(twonminusone)]
-				print("static const uint64_t matrM1[" + str(twonminusone) + "] = {" + str(matrM1)[1:-1] + "};")
+				#lastcol = [(pow(p, -1, phi)*gamma**i) % phi for i in range(n)]
+				print(f"static const uint64_t lastcol[{n}] = {{", end="")
+				for i in range(n):
+				 print(str((pow(p, -1, phi)*gamma**i) % phi) + "u, ")
+				print("};\n")
 			else:
 				print("#define HOLLOWM1")
 				print(f"#define GAMMALAMM1 {M1[-2]}")
