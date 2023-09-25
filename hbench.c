@@ -508,8 +508,8 @@ int main(void)
 	cycles = do_bernbench(alabern, 200);
 	printf("bern %ld\n", cycles);*/
 	
-	/*cycles = do_mersennebench(mersenne521, 200);
-	printf("%ld\n", cycles);*/
+	cycles = do_mersennebench(mersenne521, 200);
+	printf("%ld\n", cycles);
 	
 	return 0;
 }

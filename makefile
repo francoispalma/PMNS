@@ -1,4 +1,6 @@
 FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict -funroll-loops -fopenmp
+O2FLAGS= -falign-functions -falign-functions=16 -falign-jumps -falign-jumps=16:11:8 -falign-labels -falign-labels=0:0:8 -falign-loops -falign-loops=16:11:8 -fcaller-saves -fcode-hoisting -fcrossjumping -fcse-follow-jumps -fdevirtualize -fdevirtualize-speculatively -fexpensive-optimizations -fgcse -fhoist-adjacent-loads -findirect-inlining -finline-functions -finline-small-functions -fipa-bit-cp -fipa-cp -fipa-icf -fipa-icf-functions -fipa-icf-variables -fipa-ra -fipa-sra -fipa-vrp -fisolate-erroneous-paths-dereference -flra-remat -foptimize-sibling-calls -foptimize-strlen -fpartial-inlining -fpeephole2 -free -freorder-blocks-algorithm=stc -freorder-blocks-and-partition -freorder-functions -frerun-cse-after-loop -fschedule-insns2 -fstore-merging -fstrict-aliasing -fthread-jumps -ftree-loop-distribute-patterns -ftree-pre -ftree-switch-conversion -ftree-tail-merge -ftree-vrp -fvect-cost-model=cheap 
+O3FLAGS = -fgcse-after-reload -fipa-cp-clone -floop-interchange -floop-unroll-and-jam -fpeel-loops -fpredictive-commoning -fsplit-loops -fsplit-paths -ftree-loop-distribution -ftree-loop-vectorize -ftree-partial-pre -ftree-slp-vectorize -funroll-completely-grow-size -funswitch-loops -fvect-cost-model=dynamic -fversion-loops-for-strides
 CC = gcc-12
 PSIZE = 1024
 INDEX = 0
@@ -12,10 +14,10 @@ main.exe: main.c pmns.o structs.o utilitymp.o
 hmain.exe: main.c hpmns.o structs.o utilitymp.o
 	$(CC) -o $@ $^ $(FLAGS)
 
-pmns.o: pmns.c pmns.h 
+pmns.o: pmns.c pmns.h params.h
 	$(CC) -c $< $(FLAGS) 
 
-params.h: precalcs.py
+params.h: precalcs.py pyparams.py 
 	python3 $< > $@
 
 structs.o: structs.c structs.h
@@ -68,6 +70,9 @@ bench256.exe: pmns256.o
 
 hbench.exe: hbench.c hpmns.o structs.o utilitymp.o
 	$(CC) -o $@ $^ $(FLAGS) -lgmp
+
+equalitytest.exe: equalitytest.c pmns.o structs.o utilitymp.o makefile
+	$(CC) -o $@ equalitytest.c pmns.o structs.o utilitymp.o $(FLAGS) -ffast-math -ffinite-math-only -fno-signaling-nans -march=nehalem -mtune=nehalem -mfma -fno-tree-vectorize
 
 multbench.exe: multmeasurement.c pmns.o structs.o utilitymp.o
 	$(CC) -o $@ $^ $(FLAGS)

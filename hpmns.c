@@ -334,7 +334,8 @@ void m1_pmns_mod_mult_ext_red(uint64_t* restrict R,
 	R[N - 1] = Z;
 	for(int i = 0; i < N - 1; i++)
 	{
-		Z = (uint64_t)Z*GAMMA - (uint64_t)A[N - 1 - i];
+		Z *= GAMMA;
+		Z -= (uint64_t)A[N - 1 - i];
 		R[N - 2 - i] = Z;
 	}
 }

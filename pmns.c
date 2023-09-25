@@ -90,8 +90,8 @@ void m1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R, __int128* restrict A)
 			//soma += ( A[j] >> (PHI - 64)) * matrM1[N - 1 - j + i];
 			somme += matrM1[N - 1 - j + i] * A[j];
 		}
-		/*printf("0x"); __print128(somme >> (PHI - 64)); printf("\n");
-		printf("0x"); __print128(soma); printf("\n\n");*/
+		//printf("0x"); __print128(somme >> (PHI - 64)); printf("\n");
+		//printf("0x"); __print128(soma); printf("\n\n");
 		R[i] = somme >> (PHI - 64);
 	}
 }
@@ -171,14 +171,14 @@ void normmns_mod_mult_ext_red(__int128* restrict R,
 	
 	__int128 somme;
 	
-	/*int64_t matrix[2*N - 1];
+	//int64_t matrix[2*N - 1];
 	
-	for(int i = 0; i < N-1; i++)
-	{
-		matrix[i + N - 1] = B->t[i];
-		matrix[i] = B->t[1 + i] * LAMBDA;
-	}
-	matrix[2*N - 2] = B->t[N - 1];*/
+	//for(int i = 0; i < N-1; i++)
+	//{
+	//	matrix[i + N - 1] = B->t[i];
+	//	matrix[i] = B->t[1 + i] * LAMBDA;
+	//}
+	//matrix[2*N - 2] = B->t[N - 1];
 	
 	#ifdef MULTITHREAD
 	#pragma omp parallel for shared(A, B, R) private(somme) num_threads(NBTHREADZ)
@@ -187,11 +187,11 @@ void normmns_mod_mult_ext_red(__int128* restrict R,
 	#endif
 	for(int i = 0; i < N; i++)
 	{
-		/*somme = 0;
-		_PRAGMAGCCUNROLLLOOP_
-		for(int j = 0; j < N; j++)
-			somme += (__int128) A->t[j] * matrix[N - 1 - j + i];
-		R[i] = somme;*/
+		//somme = 0;
+		//_PRAGMAGCCUNROLLLOOP_
+		//for(int j = 0; j < N; j++)
+		//	somme += (__int128) A->t[j] * matrix[N - 1 - j + i];
+		//R[i] = somme;
 		
 		somme = 0;
 		_PRAGMAGCCUNROLLLOOP_
@@ -218,13 +218,13 @@ void toeplitzmns_mod_mult_ext_red(__int128* restrict R,
 	
 	int64_t matr[2*N - 1];
 	
-	/*_PRAGMAGCCUNROLLLOOP_
-	for(i = 0; i < N-1; i++)
-	{
-		matr[i] = B->t[i];
-		matr[i + N] = B->t[N - 1 - i] * LAMBDA;
-	}
-	matr[N - 1] = B->t[N - 1];*/
+	//_PRAGMAGCCUNROLLLOOP_
+	//for(i = 0; i < N-1; i++)
+	//{
+	//	matr[i] = B->t[i];
+	//	matr[i + N] = B->t[N - 1 - i] * LAMBDA;
+	//}
+	//matr[N - 1] = B->t[N - 1];
 	
 	for(int i = 0; i < N-1; i++)
 	{
@@ -233,16 +233,16 @@ void toeplitzmns_mod_mult_ext_red(__int128* restrict R,
 	}
 	matr[2*N - 2] = B->t[N - 1];
 	
-/*	_PRAGMAGCCUNROLLLOOP_*/
-/*	for(i = 0; i < N-1; i++)*/
-/*	{*/
-/*		matr[N - 1 - i] = B->t[i];*/
-/*		matr[N + i] = B->t[N - 1 - i] * LAMBDA;*/
-/*	}*/
-/*	matr[0] = B->t[N - 1];*/
+	//_PRAGMAGCCUNROLLLOOP_
+	//for(i = 0; i < N-1; i++)
+	//{
+	//	matr[N - 1 - i] = B->t[i];
+	//	matr[N + i] = B->t[N - 1 - i] * LAMBDA;
+	//}
+	//matr[0] = B->t[N - 1];
 	
 	//toeplitz_vm3x3_192x192(R, A->t, matr);
-/*	toeplitz_vm(R, A->t, matr, N);*/
+	//toeplitz_vm(R, A->t, matr, N);
 }
 
 void karamns_mod_mult_ext_red(__int128* restrict R,
@@ -292,7 +292,7 @@ void normm_or_b_mns_mod_mult_ext_red(__int128* restrict R,
 	
 	__int128 somme;
 	
-/*	_PRAGMAGCCUNROLLLOOP_*/
+	//_PRAGMAGCCUNROLLLOOP_
 	//omp_set_num_threads(8);
 	#ifdef MULTITHREAD
 	#pragma omp parallel for shared(A, M, R) private(somme) num_threads(NBTHREADZ)
@@ -305,15 +305,15 @@ void normm_or_b_mns_mod_mult_ext_red(__int128* restrict R,
 		_PRAGMAGCCUNROLLLOOP_
 		for(int j = 0; j < N; j++)
 			somme += (__int128) A[j] * matrM[N - 1 - j + i];
-		/*_PRAGMAGCCUNROLLLOOP_
-		for(int j = 1; j < N - i; j++)
-			somme += (__int128) (A[i + j]) * M[N - j];
+		//_PRAGMAGCCUNROLLLOOP_
+		//for(int j = 1; j < N - i; j++)
+		//	somme += (__int128) (A[i + j]) * M[N - j];
 		
-		somme *= LAMBDA;
+		//somme *= LAMBDA;
 		
-		_PRAGMAGCCUNROLLLOOP_
-		for(int j = 0; j < i + 1; j++)
-			somme += (__int128) (A[j]) * M[i - j];*/
+		//_PRAGMAGCCUNROLLLOOP_
+		//for(int j = 0; j < i + 1; j++)
+		//	somme += (__int128) (A[j]) * M[i - j];
 		
 		R[i] += somme;
 	}
@@ -382,7 +382,7 @@ void normm1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
 	
 	__int128 somme;
 	
-/*	_PRAGMAGCCUNROLLLOOP_*/
+	//_PRAGMAGCCUNROLLLOOP_
 	//omp_set_num_threads(8);
 	#ifdef MULTITHREAD
 	#pragma omp parallel for shared(A, M1, R) private(somme) num_threads(NBTHREADZ)
@@ -395,15 +395,15 @@ void normm1_or_b1_mns_mod_mult_ext_red(int64_t* restrict R,
 		_PRAGMAGCCUNROLLLOOP_
 		for(int j = 0; j < N; j++)
 			R[i] += (int64_t) A[j] * matrM1[N - 1 - j + i];
-/*		_PRAGMAGCCUNROLLLOOP_*/
-/*		for(int j = 1; j < N - i; j++)*/
-/*			somme += ((uint64_t)A[i + j]) * M1[N - j];*/
-/*		*/
-/*		somme *= LAMBDA;*/
-/*		*/
-/*		_PRAGMAGCCUNROLLLOOP_*/
-/*		for(int j = 0; j < i + 1; j++)*/
-/*			somme += ((uint64_t)A[j]) * M1[i - j];*/
+		//_PRAGMAGCCUNROLLLOOP_
+		//for(int j = 1; j < N - i; j++)
+		//	somme += ((uint64_t)A[i + j]) * M1[N - j];
+		
+		//somme *= LAMBDA;
+		
+		//_PRAGMAGCCUNROLLLOOP_
+		//for(int j = 0; j < i + 1; j++)
+		//	somme += ((uint64_t)A[j]) * M1[i - j];
 		
 		//R[i] = somme;
 	}
@@ -545,19 +545,19 @@ inline void mns_mod_mult_ext_red(__int128* restrict R, const restrict poly A,
 {
 	normmns_mod_mult_ext_red(R, A, B);
 	//toeplitzmns_mod_mult_ext_red(R, A, B);
-	/*int64_t matr[2*N - 1];
-	for(int i = 0; i < N-1; i++) 
-	{
-		matr[i + N - 1] = B->t[i];
-		matr[i] = B->t[1 + i] * LAMBDA;
-	}
-	matr[2*N - 2] = B->t[N - 1];
+	//int64_t matr[2*N - 1];
+	//for(int i = 0; i < N-1; i++) 
+	//{
+	//	matr[i + N - 1] = B->t[i];
+	//	matr[i] = B->t[1 + i] * LAMBDA;
+	//}
+	//matr[2*N - 2] = B->t[N - 1];
 	//toeplitz_vm3x3_189x189(R, A->t, matr);
 	//toeplitz_vm3x3_84x84(R, A->t, matr);
 	//toeplitz_vm3x3_42x42(R, A->t, matr);
 	//toeplitz_vm_40x40(R, A->t, matr);
 	//toeplitz_vm_32x32(R, A->t, matr);
-	toeplitz_vm_20x20(R, A->t, matr);*/
+	//toeplitz_vm_20x20(R, A->t, matr);
 	//new_matvec_toeplitz_par(B, A, R, N);
 }
 
@@ -1003,18 +1003,18 @@ void convert_amns_to_multipre(restrict mpnum* res, const restrict poly P)
 		mp_mod(res, tmp2, &__P__);
 	}
 	
-/*	(*res)->t[0] = a->t[0];*/
-/*	for(i = 1; i < N; i++)*/
-/*	{*/
-/*		aux->sign = 1 - 2 * (a->t[i] < 0);*/
-/*		aux->t[0] = a->t[i] * aux->sign;*/
-/*		mp_mult(&ag, aux, &Gi[i - 1]);*/
-/*		mp_copy(&tmp, *res);*/
-/*		mp_add(res, tmp, ag);*/
-/*	}*/
-/*	*/
-/*	mp_copy(&tmp, *res);*/
-/*	mp_mod(res, tmp, &__P__);*/
+	//(*res)->t[0] = a->t[0];
+	//for(i = 1; i < N; i++)
+	//{
+	//	aux->sign = 1 - 2 * (a->t[i] < 0);
+	//	aux->t[0] = a->t[i] * aux->sign;
+	//	mp_mult(&ag, aux, &Gi[i - 1]);
+	//	mp_copy(&tmp, *res);
+	//	mp_add(res, tmp, ag);
+	//}
+	
+	//mp_copy(&tmp, *res);
+	//mp_mod(res, tmp, &__P__);
 	
 	free_mpnums(aux, ag, tmp, tmp2, NULL);
 	free_poly(a);
