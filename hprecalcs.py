@@ -6,11 +6,12 @@ from numpy import count_nonzero
 from ops import horner_modulo, amns_montg_mult_base
 from convert import montgomery_convert_to_mns_base, rho_div_convert_to_mns_base
 from findm import findm
-from generated.pmns25664n5 import pmnsdict
+from generated.hpmns25664n5 import pmnsdict
 #from generated.pmns51264n9 import pmnsdict
-from generated.pmns52164n9 import pmnsdict
+#from generated.pmns52164n9 import pmnsdict
+#from generated.pmns41464n7 import pmnsdict
 primes = list(pmnsdict.keys())
-p, n, gamma, lam, rho, B, B1 = pmnsdict[primes[20]]
+p, n, gamma, lam, rho, B, B1 = pmnsdict[primes[0]]
 phi = 2**64
 
 def convert_to_int_tabs(num):

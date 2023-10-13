@@ -155,6 +155,35 @@ uint_fast8_t translatequaltest(poly A, poly AA)
 	return chk == 0;
 }
 
+uint_fast8_t translatequaltest128(const __int128 A[N], const __int128 AA[N])
+{
+	__int128 tmpp, Tlo[N];
+	uint_fast64_t aux[N];
+	
+	for(register uint_fast16_t i = 0; i < N; i++)
+		Tlo[i] = translaTlo[i] + (A[i] - AA[i]) + (((__int128)translaThi[i]) << 64);
+	
+	for(register uint_fast16_t i = 0; i < N; i++)
+	{
+		aux[i] = ((uint_fast64_t)Tlo[0])*B1[0][i];
+		for (int j = 1; j < N; j++)
+			aux[i] += ((uint_fast64_t)Tlo[j])*B1[j][i];
+	}
+	
+	int_fast64_t chk = 0;
+	register uint_fast16_t i = 0;
+	while((i < N) && chk == 0)
+	{
+		tmpp = (__int128)B[0][i]*aux[0];
+		for (register uint_fast16_t j = 1; j < N; j++)
+			tmpp += (__int128)B[j][i]*aux[j];
+		
+		chk = ((int64_t)(Tlo[i] >> 64)) + (tmpp >> 64) + 1;
+		i += 1;
+	}
+	return chk == 0;
+}
+
 uint_fast8_t floatbabaiequaltest(poly A, poly AA)
 {
 	int_fast64_t V[N];
@@ -179,6 +208,38 @@ uint_fast8_t floatbabaiequaltest(poly A, poly AA)
 		//S = B[0][i]*T[0];
 		for (register uint_fast16_t j = 0; j < N; j++)
 			V[i] -= B[j][i]*T[j];
+		chk = (V[i]);
+		i += 1;
+	}
+	return !chk;
+}
+
+uint_fast8_t floatbabaiequaltest128(const __int128 A[N], const __int128 AA[N])
+{
+	__int128 V[N];
+	int_fast64_t T[N];
+	double temporum;
+	for(register uint_fast16_t i = 0; i < N; i++)
+		V[i] = A[i] - AA[i];
+	
+	for(register uint_fast16_t i = 0; i < N; i++)
+	{
+		temporum = floL1[0][i]*V[0];
+		for (register uint_fast16_t j = 1; j < N; j++)
+			temporum += floL1[j][i]*V[j];
+		//printf("%lf\n", temporum);
+		T[i] = temporum;
+		//T[i] = temporum + 0.5*(1 - 2*(temporum < 0));
+	}
+	
+	register uint_fast16_t i = 0;
+	register uint_fast8_t chk = 0;
+	//for(register uint_fast16_t i = 0; i < N; i++)
+	while((i < N) && chk == 0)
+	{
+		//S = B[0][i]*T[0];
+		for (register uint_fast16_t j = 0; j < N; j++)
+			V[i] -= (__int128)B[j][i]*T[j];
 		chk = (V[i]);
 		i += 1;
 	}
@@ -528,23 +589,14 @@ int main()
 	time_t seed;
 	srand((unsigned) (time(&seed)));
 	
-	/*int_fast64_t tmp;
-	sixtyfourshift(&tmp, 137);
-	printf("%ld\n", tmp);
-	thirtytwoshift(&tmp, 137);
-	printf("%ld\n", tmp);
-	floamul(&tmp, 137);
-	printf("%ld\n", tmp);*/
-	//printf("%ld\n%ld\n%ld\n", do_approxbench(sixtyfourshift, 3003), do_approxbench(thirtytwoshift, 3003), do_approxbench(floamul, 3003));
-	
-	poly A, AA;
-	init_polys(N, &A, &AA, NULL);
+	poly A, AA, C;
+	init_polys(N, &A, &AA, &C, NULL);
 	
 	randpoly(A);
 	
 	poly_print(A);
 	
-	randpoly(AA);
+	randpoly(C);
 	
 	for(int i = 0; i < N; i++)
 		AA->t[i] = A->t[i];
@@ -566,6 +618,12 @@ int main()
 	printf("%d\n", floatbabaiequaltest(A, AA));
 	printf("%d\n", ratbabaiequaltest(A, AA));
 	
+	__int128 tompe[N], tumpa[N];
+	mns_mod_mult_ext_red(tompe, A, C);
+	mns_mod_mult_ext_red(tumpa, AA, C);
+	
+	printf("%d\n", translatequaltest128(tompe, tumpa));
+	printf("%d\n", floatbabaiequaltest128(tompe, tumpa));
 	
 	/*_poly display;
 	display.deg = N;
@@ -584,6 +642,6 @@ int main()
 	inequalitybench(cycles, floatbabaiequaltest, ratbabaiequaltest, translatequaltest, rep);
 	printf("| babai float | %ld |\n| babai int   | %ld |\n| translation | %ld |\n", cycles[0], cycles[1], cycles[2]);
 	
-	free_polys(A, AA, NULL);
+	free_polys(A, AA, C, NULL);
 	return 0;
 }

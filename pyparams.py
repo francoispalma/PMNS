@@ -24,11 +24,11 @@ siz = 512
 #(p, n, gamma, lam, rho, M_or_B, M1_or_B1) = pmnsWBdicts[siz][primesdict[siz][0]]
 phi = 2**64
 
-from generated.pmns51264 import pmnsdict
+from generated.pmns25664 import pmnsdict
 
 primes = list(pmnsdict.keys())
 
-(p, n, gamma, lam, rho, M_or_B, M1_or_B1) = pmnsdict[primes[8]]
+(p, n, gamma, lam, rho, M_or_B, M1_or_B1) = pmnsdict[primes[0]]
 
 #(p, n, gamma, lam, rho, M_or_B, M1_or_B1) = pmnsdict[primesdict[8192][0]] #192 not in generated
 #(p, n, gamma, lam, rho, M_or_B, M1_or_B1) = pmnsdict[primesdict[8192][29]] #187
