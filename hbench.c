@@ -663,7 +663,7 @@ int main(void)
 	uint64_t alang[langlimbcnt], blang[langlimbcnt], clang[langlimbcnt];
 	mp_limb_t ax[MPLIMB],bx[MPLIMB],cx[MPLIMB],chk[MPLIMB], tmp[MPLIMB * 2], blank[MPLIMB*2], carry;
 	uint64_t cpt = 0;
-	for(uint64_t i = 0; i < 1; i++)
+	for(uint64_t i = 0; i < 1000000000; i++)
 	{
 		randhlimbs(ax, MPLIMB);
 		randhlimbs(bx, MPLIMB);
@@ -728,7 +728,7 @@ int main(void)
 		alang[4] = ((ax[3] >> 45) + (ax[4] << 19)) % (1ULL<<59);
 		alang[5] = ((ax[4] >> 40) + (ax[5] << 24)) % (1ULL<<59);
 		alang[6] = ((ax[5] >> 35) + (ax[6] << 29)) % (1ULL<<59);
-		gmp_printf("0x%Nx\n%lx %lx %lx %lx %lx %lx %lx\n", ax, 7, alang[6], alang[5], alang[4], alang[3], alang[2], alang[1], alang[0]);
+		//gmp_printf("0x%Nx\n%lx %lx %lx %lx %lx %lx %lx\n", ax, 7, alang[6], alang[5], alang[4], alang[3], alang[2], alang[1], alang[0]);
 		blang[0] = bx[0] % (1ULL<<60);
 		blang[1] = ((bx[0] >> 60) + (bx[1] << 4)) % (1ULL<<59);
 		blang[2] = ((bx[1] >> 55) + (bx[2] << 9)) % (1ULL<<59);
@@ -737,7 +737,15 @@ int main(void)
 		blang[5] = ((bx[4] >> 40) + (bx[5] << 24)) % (1ULL<<59);
 		blang[6] = ((bx[5] >> 35) + (bx[6] << 29)) % (1ULL<<59);
 		multModC41417(clang, alang, blang);
-		cpt += (clang[0] & chk[0]) == clang[0];
+		//gmp_printf("0x%Nx\n%lx %lx %lx %lx %lx %lx %lx\n", chk, 7, clang[6], clang[5], clang[4], clang[3], clang[2], clang[1], clang[0]);
+		cpt += (((clang[0] & chk[0]) == clang[0]) &&
+		       ((((chk[0]>>60) | (chk[1]<<4)) & clang[1]) == clang[1]) &&
+		       ((((chk[1]>>55) | (chk[2]<<9)) & clang[2]) == clang[2]) &&
+		       ((((chk[2]>>50) | (chk[3]<<14)) & clang[3]) == clang[3]) &&
+		       ((((chk[3]>>45) | (chk[4]<<19)) & clang[4]) == clang[4]) &&
+		       ((((chk[4]>>40) | (chk[5]<<24)) & clang[5]) == clang[5]) &&
+		       ((((chk[5]>>35) | (chk[6]<<29)) & clang[6]) == clang[6]));
+		printf("\b%ld\r", cpt);
 	}
 	printf("%ld\n", cpt);
 	
@@ -753,8 +761,8 @@ int main(void)
 	/*cycles = do_pmersbench(multModM383, nbrepet);
 	printf("M-383 %ld\n", cycles);*/
 	
-	cycles = do_pmersbench(multModC41417, nbrepet);
-	printf("C41417 %ld\n", cycles);
+	/*cycles = do_pmersbench(multModC41417, nbrepet);
+	printf("C41417 %ld\n", cycles);*/
 	
 	return 0;
 }

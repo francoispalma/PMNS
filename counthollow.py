@@ -1,6 +1,6 @@
 import sys, os, cypari2
 
-from math import floor, ceil, log2
+from math import floor, ceil, log2, sqrt
 from sage.all import matrix, ZZ, previous_prime, next_prime, factor, next_probable_prime, is_prime, pari
 from numpy import count_nonzero
 
@@ -63,10 +63,12 @@ while alpha*highgamma**n > s*2**(PSIZE):
 print(highgamma - lowgamma)
 print("2^" + str(floor(log2(highgamma - lowgamma))))
 
+aleph = alpha
+
 if alpha == 1:
 	w = lambda lam : abs(lam)*(n-1) + 1
 else:
-	w = lambda beta : max([alpha*(n-i) + i*abs(beta) for i in range(n)])
+	w = lambda beta : max([aleph*(n-i) + i*abs(beta) for i in range(n)])
 
 
 
@@ -117,13 +119,14 @@ count = 0
 valid = 0
 hollow = 0
 vgm = 0
+mindelta, maxdelta, avdelta = 1000000,0,0
 hollows = []
 if alpha == 1:
 	n1B = lambda lam: gamma + abs(lam)
 else:
-	n1B = lambda lam: alpha*gamma + 1
+	n1B = lambda lam: aleph*gamma + 1 if aleph != 1 else gamma + abs(lam)
 maxlam = 50
-printstr = "\b{gamma - lowgamma}, vgm: {vgm}, count: {count}, valid: {valid}, {Minlab}, {round(float(vgm)/((gamma - lowgamma)/(1+HOLLOW*2**32) + 1), 4)}, {round(float(valid)/(vgm + (vgm == 0)), 4)}"
+printstr = "\b{gamma - lowgamma}, vgm: {vgm}, count: {count}, valid: {valid}, {Minlab}, {round(float(vgm)/((gamma - lowgamma)/(1+HOLLOW*2**32) + 1), 4)}, {round(float(valid)/(vgm + (vgm == 0)), 4)}, {mindelta}, {maxdelta}, {round(float(avdelta/(valid + (valid==0))),4)}"
 try:
 	while gamma <= highgamma:
 		fcfg = False
@@ -147,35 +150,52 @@ try:
 			lam = alpha*gamma**n - s*p
 			if abs(lam) < Minlab:
 				Minlab = abs(lam)
-			if not(lam % (2**powert)) and not(alpha*gamma % (2**powert)) and (
-					2*w(lam)*(n1B(lam >> powert) - 2) < PHI):
-#			if 4*w(abs(lam))*(gamma + abs(lam)) < PHI:
-				try:
-					if (True or is_prime(p)):
-						fcfg = True
-						valid += 1
-						if WRITEOUT:
-							B = matrix(ZZ, [[-((alpha*gamma)>>powert) if i == j == (n-1) else -gamma if i == j else 1 if j == i + 1 else (lam>>powert) if (i == n-1) and (j == 0) else 0 for j in range(n)] for i in range(n)])
-							with open(filename, "a") as FILE:
-								FILE.write(f"pmnsdict[{p}] = {[p, n, gamma, lam if alpha == 1 else {'a':alpha,'b':lam}, ceil(log2(n1B(lam) - 1)), list(B), list(B.inverse() % PHI)]}\n")
-							if valid == 1000:
-								raise KeyboardInterrupt
-#						cz = count_nonzero(B.inverse() % PHI)
-#						hollow += cz / NN < NBZ
-#						if cz / NN < NBZ:
-#							hollows += [factor(gamma)]
-				except cypari2.handle_error.PariError:
-					#pari.allocatemem()
-					print(f"gamm {gamma - lowgamma}")
-					print()
-					print(eval(f"f'{printstr}'"), end="\r")
-					exit(1)
-				except ZeroDivisionError:
-					print()
-					print("oops")
-					valid -= 1
-					fcfg = False
-			elif p > gamman:
+			if not(lam % (2**powert)) and not(alpha*gamma % (2**powert)):
+				if not(alpha % (2**powert)):
+					aleph = alpha >> powert
+					beth = lam >> powert
+					psi = 0
+				else: 
+					aleph = alpha
+					beth = lam
+					psi = powert
+					while not(aleph % 2):
+						aleph >>= 1
+						beth >>= 1
+						psi -= 1
+				if 2*w(beth)*(n1B(beth >> psi) - 2) < PHI:
+					currdel = floor(sqrt(PHI/(2*w(beth)*(n1B(beth >> psi) - 2)))) - 1
+					if currdel > maxdelta:
+						maxdelta = currdel
+					if currdel < mindelta:
+						mindelta = currdel
+					avdelta += currdel
+					try:
+						if (True or is_prime(p)):
+							fcfg = True
+							valid += 1
+							if WRITEOUT:
+								B = matrix(ZZ, [[-((aleph*gamma)>>psi) if i == j == (n-1) else -gamma if i == j else 1 if j == i + 1 else (lam>>powert) if (i == n-1) and (j == 0) else 0 for j in range(n)] for i in range(n)])
+								with open(filename, "a") as FILE:
+									FILE.write(f"pmnsdict[{p}] = {[p, n, gamma, beth if aleph == 1 else {'a':aleph,'b':beth}, ceil(log2(n1B(beth) - 1)), list(B), list(B.inverse() % PHI)]}\n")
+								if valid == 1000:
+									raise KeyboardInterrupt
+#							cz = count_nonzero(B.inverse() % PHI)
+#							hollow += cz / NN < NBZ
+#							if cz / NN < NBZ:
+#								hollows += [factor(gamma)]
+					except cypari2.handle_error.PariError:
+						#pari.allocatemem()
+						print(f"gamm {gamma - lowgamma}")
+						print()
+						print(eval(f"f'{printstr}'"), end="\r")
+						exit(1)
+					except ZeroDivisionError:
+						print()
+						print("oops")
+						valid -= 1
+						fcfg = False
+			if p > gamman + maxlam:
 				break
 			p = next_probable_prime(p)
 		vgm += int(fcfg)
