@@ -30,6 +30,8 @@ if len(ARGS) > 2:
 	n = int(ARGS[2])
 if len(ARGS) > 3:
 	s = int(ARGS[3])
+if len(ARGS) > 4:
+	alpha = int(ARGS[4])
 
 
 filename = f"generated/{'h'*int(HOLLOW)}pmns{PSIZE}{int(log2(PHI))}n{n}{'' if delta == 0 else 'delta' + str(delta)}.py"
@@ -126,9 +128,10 @@ if alpha == 1:
 else:
 	n1B = lambda lam: aleph*gamma + 1 if aleph != 1 else gamma + abs(lam)
 maxlam = 50
-printstr = "\b{gamma - lowgamma}, vgm: {vgm}, count: {count}, valid: {valid}, {Minlab}, {round(float(vgm)/((gamma - lowgamma)/(1+HOLLOW*2**32) + 1), 4)}, {round(float(valid)/(vgm + (vgm == 0)), 4)}, {mindelta}, {maxdelta}, {round(float(avdelta/(valid + (valid==0))),4)}"
+printstr = "\b{gamma - lowgamma}, vgm: {vgm}, count: {count}, valid: {valid}, {Minlab}, {round(float(vgm)/((gamma - lowgamma)/(1+HOLLOW*2**32) + 1), 4)}, {round(float(valid)/(vgm + (vgm == 0)), 4)}, {mindelta}, {maxdelta}, {round(float(avdelta/(vgm + (vgm==0))),4)}"
 try:
 	while gamma <= highgamma:
+		cdelta = 0
 		fcfg = False
 		#print(eval(f"f'{printstr}'"), end="\r")
 		maxlam = init_lam
@@ -165,11 +168,8 @@ try:
 						psi -= 1
 				if 2*w(beth)*(n1B(beth >> psi) - 2) < PHI:
 					currdel = floor(sqrt(PHI/(2*w(beth)*(n1B(beth >> psi) - 2)))) - 1
-					if currdel > maxdelta:
-						maxdelta = currdel
-					if currdel < mindelta:
-						mindelta = currdel
-					avdelta += currdel
+					if currdel > cdelta:
+						cdelta = currdel
 					try:
 						if (True or is_prime(p)):
 							fcfg = True
@@ -200,6 +200,12 @@ try:
 			p = next_probable_prime(p)
 		vgm += int(fcfg)
 		print(eval(f"f'{printstr}'"), end="\r")
+		if fcfg:
+			if cdelta < mindelta:
+				mindelta = cdelta
+			if cdelta > maxdelta:
+				maxdelta = cdelta
+			avdelta += cdelta
 		gamma += 1
 		if HOLLOW:
 			gamma += 2**32 - 1

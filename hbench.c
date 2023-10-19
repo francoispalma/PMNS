@@ -47,9 +47,9 @@ void randlimbs(mp_limb_t g[])
 		g[i] = randomint64();
 }
 
-void randhlimbs(mp_limb_t g[], uint8_t limbs)
+void randhlimbs(mp_limb_t g[], const uint64_t limbs)
 {
-	for(int i = 0; i < limbs; i++)
+	for(uint64_t i = 0; i < limbs; i++)
 		g[i] = randomint64();
 }
 
@@ -456,18 +456,20 @@ uint64_t do_hbernbench(void (*bernmult)(int64_t c[], const int64_t a[], const in
 	return medianTimer/NSAMPLES/W; // We divide by W since we measured W calls.
 }
 
-uint64_t do_pmersbench(void (*pmersmult)(uint64_t c[], uint64_t a[], uint64_t b[]), const uint64_t W)
+uint64_t do_pmersbench(void (*pmersmult)(uint64_t c[], uint64_t a[], uint64_t b[]), const uint64_t W, const uint64_t NBLIMB, void (*langconvert)(uint64_t a[], uint64_t b[]))
 {
 	uint64_t *cycles = (uint64_t *)calloc(NTEST,sizeof(uint64_t)), *statTimer;
 	uint64_t timermin , timermax, meanTimermin = 0, medianTimer = 0,
 	meanTimermax = 0, t1,t2, diff_t;
-	uint64_t a[MPLIMB + 1], b[MPLIMB + 1], c[MPLIMB + 1];
+	uint64_t a[NBLIMB], b[NBLIMB], c[NBLIMB];
 	
 	for(int i=0;i<NTEST;i++)
 	{
 	// Here we "heat" the cache memory.
-		randbernlimbs(a);
-		randbernlimbs(b);
+		randhlimbs(a, NBLIMB);
+		langconvert(a,a);
+		randhlimbs(b, NBLIMB);
+		langconvert(b,b);
 		pmersmult(c, a, b);
 	}
 	
@@ -478,8 +480,10 @@ uint64_t do_pmersbench(void (*pmersmult)(uint64_t c[], uint64_t a[], uint64_t b[
 	for(int i=0;i<NSAMPLES;i++)
 	{
 		// Here we generate a random dataset to use for our test each iteration.
-		randbernlimbs(a);
-		randbernlimbs(b);
+		randhlimbs(a, NBLIMB);
+		langconvert(a,a);
+		randhlimbs(b, NBLIMB);
+		langconvert(b,b);
 		timermin = (uint64_t)0x1<<63;
 		timermax = 0;
 		memset(cycles,0,NTEST*sizeof(uint64_t));
@@ -630,6 +634,49 @@ void mersenne521(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[])
 	c[8] &= 511;
 }
 
+void C25519convert(uint64_t a[], uint64_t alang[])
+{
+	uint64_t ax[5];
+	for(uint64_t i = 0; i < 5; i++)
+		ax[i] = a[i];
+	ax[4] &= 0x7fffffffffffffff;
+	alang[0] = ax[0] % (1ULL<<51);
+	alang[1] = ((ax[0] >> 51) + (ax[1] << 13)) % (1ULL<<51);
+	alang[2] = ((ax[1] >> 38) + (ax[2] << 26)) % (1ULL<<51);
+	alang[3] = ((ax[2] >> 25) + (ax[3] << 39)) % (1ULL<<51);
+	alang[4] = ((ax[3] >> 12));
+}
+
+void M383convert(uint64_t a[], uint64_t alang[])
+{
+	uint64_t ax[7];
+	for(uint64_t i = 0; i < 7; i++)
+		ax[i] = a[i];
+	ax[6] &= 0x1fffffffffffffff;
+	alang[0] = ax[0] % (1ULL<<55);
+	alang[1] = ((ax[0] >> 55) + (ax[1] << 9)) % (1ULL<<55);
+	alang[2] = ((ax[1] >> 46) + (ax[2] << 18)) % (1ULL<<55);
+	alang[3] = ((ax[2] >> 37) + (ax[3] << 27)) % (1ULL<<55);
+	alang[4] = ((ax[3] >> 28) + (ax[4] << 36)) % (1ULL<<55);
+	alang[5] = ((ax[4] >> 19) + (ax[5] << 45)) % (1ULL<<55);
+	alang[6] = ((ax[5] >> 10));
+}
+
+void C41417convert(uint64_t a[], uint64_t b[])
+{
+	uint64_t ax[7];
+	for(uint64_t i = 0; i < 7; i++)
+		ax[i] = a[i];
+	ax[6] &= 0x3fffffff;
+	b[0] = ax[0] % (1ULL<<60);
+	b[1] = ((ax[0] >> 60) + (ax[1] << 4)) % (1ULL<<59);
+	b[2] = ((ax[1] >> 55) + (ax[2] << 9)) % (1ULL<<59);
+	b[3] = ((ax[2] >> 50) + (ax[3] << 14)) % (1ULL<<59);
+	b[4] = ((ax[3] >> 45) + (ax[4] << 19)) % (1ULL<<59);
+	b[5] = ((ax[4] >> 40) + (ax[5] << 24)) % (1ULL<<59);
+	b[6] = ((ax[5] >> 35) + (ax[6] << 29)) % (1ULL<<59);
+}
+
 int main(void)
 {
 	time_t seed;
@@ -663,7 +710,7 @@ int main(void)
 	uint64_t alang[langlimbcnt], blang[langlimbcnt], clang[langlimbcnt];
 	mp_limb_t ax[MPLIMB],bx[MPLIMB],cx[MPLIMB],chk[MPLIMB], tmp[MPLIMB * 2], blank[MPLIMB*2], carry;
 	uint64_t cpt = 0;
-	for(uint64_t i = 0; i < 1000000000; i++)
+	for(uint64_t i = 0; i < 1000; i++)
 	{
 		randhlimbs(ax, MPLIMB);
 		randhlimbs(bx, MPLIMB);
@@ -745,7 +792,7 @@ int main(void)
 		       ((((chk[3]>>45) | (chk[4]<<19)) & clang[4]) == clang[4]) &&
 		       ((((chk[4]>>40) | (chk[5]<<24)) & clang[5]) == clang[5]) &&
 		       ((((chk[5]>>35) | (chk[6]<<29)) & clang[6]) == clang[6]));
-		printf("\b%ld\r", cpt);
+		//printf("\b%ld\r", cpt);
 	}
 	printf("%ld\n", cpt);
 	
@@ -755,14 +802,14 @@ int main(void)
 	//cycles = do_hbernbench(fmul, nbrepet);
 	//printf("hbern %ld\n", cycles);
 	
-	/*cycles = do_pmersbench(multMod25519, nbrepet);
-	printf("C25519 %ld\n", cycles);*/
+	cycles = do_pmersbench(multMod25519, nbrepet, 5, C25519convert);
+	printf("C25519 %ld\n", cycles);
 	
-	/*cycles = do_pmersbench(multModM383, nbrepet);
-	printf("M-383 %ld\n", cycles);*/
+	cycles = do_pmersbench(multModM383, nbrepet, 7, M383convert);
+	printf("M-383 %ld\n", cycles);
 	
-	/*cycles = do_pmersbench(multModC41417, nbrepet);
-	printf("C41417 %ld\n", cycles);*/
+	cycles = do_pmersbench(multModC41417, nbrepet, 7, C41417convert);
+	printf("C41417 %ld\n", cycles);
 	
 	return 0;
 }
