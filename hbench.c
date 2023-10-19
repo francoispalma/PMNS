@@ -21,7 +21,6 @@
 
 #define MPLIMB 7
 #define KPRIMEC 17
-#define BITPERLIMB 59
 
 int64_t randomint64(void)
 {
@@ -51,20 +50,6 @@ void randhlimbs(mp_limb_t g[], const uint64_t limbs)
 {
 	for(uint64_t i = 0; i < limbs; i++)
 		g[i] = randomint64();
-}
-
-void randbernlimbs(mp_limb_t g[])
-{
-	for(int i = 0; i < MPLIMB + 1; i++)
-		g[i] = randomint64() & ((1ULL<<BITPERLIMB)-1);
-}
-
-void randhbernlimbs(int64_t g[])
-{
-	for(int i = 0; i < 10; i+=2)
-		g[2*i] = randomint64() & 67108863;
-	for(int i = 1; i < 10; i+=2)
-		g[2*i + 1] = randomint64() & 33554431;
 }
 
 void randmersennelimbs(mp_limb_t g[])
@@ -334,128 +319,6 @@ uint64_t do_mersennebench(void (*gmp_mult)(mp_limb_t c[], mp_limb_t a[], mp_limb
 	return medianTimer/NSAMPLES/W; // We divide by W since we measured W calls.
 }
 
-void bernprint(mp_limb_t* P)
-{
-	printf("0x%lx", BERNLO(P[GMPLIMB]));
-	for(int16_t i = GMPLIMB - 1; i > -1; i--)
-		printf("%013lx", BERNLO(P[i]));
-	printf("%013lx\n", BERNLO(P[0]));
-}
-
-uint64_t do_bernbench(void (*gmp_mult)(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[]), const uint64_t W)
-{
-	uint64_t *cycles = (uint64_t *)calloc(NTEST,sizeof(uint64_t)), *statTimer;
-	uint64_t timermin , timermax, meanTimermin =0,	medianTimer = 0,
-	meanTimermax = 0, t1,t2, diff_t;
-	mp_limb_t a[GMPLIMB + 1], b[GMPLIMB + 1], c[GMPLIMB + 1];
-	
-	for(int i=0;i<NTEST;i++)
-	{
-	// Here we "heat" the cache memory.
-		randbernlimbs(a);
-		randbernlimbs(b);
-		gmp_mult(c, a, b);
-	}
-	
-	bernprint(a);
-	bernprint(b);
-	bernprint(c);
-	
-	for(int i=0;i<NSAMPLES;i++)
-	{
-		// Here we generate a random dataset to use for our test each iteration.
-		randbernlimbs(a);
-		randbernlimbs(b);
-		timermin = (uint64_t)0x1<<63;
-		timermax = 0;
-		memset(cycles,0,NTEST*sizeof(uint64_t));
-		for(int j=0;j<NTEST;j++)
-		{
-			t1 = cpucyclesStart();
-			// We call the function W times to get an accurate measurement.
-			for(uint64_t soak=0; soak < W; soak++)
-				gmp_mult(c, a, b);
-			t2 = cpucyclesStop();
-			if (t2 < t1){
-				diff_t = 18446744073709551615ULL-t1;
-				diff_t = t2+diff_t+1;
-			}
-			else
-				diff_t = t2-t1;
-			if(timermin > diff_t) timermin = diff_t;
-			else if(timermax < diff_t) timermax = diff_t;
-			cycles[j]=diff_t;
-		}
-		meanTimermin += timermin;
-		meanTimermax += timermax;
-		statTimer = quartiles(cycles,NTEST);
-		medianTimer += statTimer[1];
-		free(statTimer);
-	}
-	
-	free(cycles);
-	return medianTimer/NSAMPLES/W; // We divide by W since we measured W calls.
-}
-
-uint64_t do_hbernbench(void (*bernmult)(int64_t c[], const int64_t a[], const int64_t b[]), const uint64_t W)
-{
-	uint64_t *cycles = (uint64_t *)calloc(NTEST,sizeof(uint64_t)), *statTimer;
-	uint64_t timermin , timermax, meanTimermin =0,	medianTimer = 0,
-	meanTimermax = 0, t1,t2, diff_t;
-	int64_t a[10], b[10], c[10];
-	
-	for(int i=0;i<NTEST;i++)
-	{
-	// Here we "heat" the cache memory.
-		randhbernlimbs(a);
-		randhbernlimbs(b);
-		bernmult(c, a, b);
-	}
-	
-	/*bernhprint(a);
-	bernhprint(b);
-	bernhprint(c);*/
-	
-	for(int i=0;i<NSAMPLES;i++)
-	{
-		// Here we generate a random dataset to use for our test each iteration.
-		randhbernlimbs(a);
-		randhbernlimbs(b);
-		timermin = (uint64_t)0x1<<63;
-		timermax = 0;
-		memset(cycles,0,NTEST*sizeof(uint64_t));
-		for(int j=0;j<NTEST;j++)
-		{
-			t1 = cpucyclesStart();
-			// We call the function W times to get an accurate measurement.
-			for(uint64_t soak=0; soak < W/3; soak++)
-			{
-				bernmult(c, a, b);
-				bernmult(a, b, c);
-				bernmult(b, c, a);
-			}
-			t2 = cpucyclesStop();
-			if (t2 < t1){
-				diff_t = 18446744073709551615ULL-t1;
-				diff_t = t2+diff_t+1;
-			}
-			else
-				diff_t = t2-t1;
-			if(timermin > diff_t) timermin = diff_t;
-			else if(timermax < diff_t) timermax = diff_t;
-			cycles[j]=diff_t;
-		}
-		meanTimermin += timermin;
-		meanTimermax += timermax;
-		statTimer = quartiles(cycles,NTEST);
-		medianTimer += statTimer[1];
-		free(statTimer);
-	}
-	
-	free(cycles);
-	return medianTimer/NSAMPLES/W; // We divide by W since we measured W calls.
-}
-
 uint64_t do_pmersbench(void (*pmersmult)(uint64_t c[], uint64_t a[], uint64_t b[]), const uint64_t W, const uint64_t NBLIMB, void (*langconvert)(uint64_t a[], uint64_t b[]))
 {
 	uint64_t *cycles = (uint64_t *)calloc(NTEST,sizeof(uint64_t)), *statTimer;
@@ -521,21 +384,8 @@ uint64_t do_pmersbench(void (*pmersmult)(uint64_t c[], uint64_t a[], uint64_t b[
 }
 
 mp_limb_t tmp[MPLIMB * 2], carry;
-mp_limb_t hihi[GMPLIMB], lolo[GMPLIMB], amid[GMPLIMB/2], bmid[GMPLIMB/2], mid[GMPLIMB];
 void gmpmulmod2k(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[])
 {
-	//mpn_mul_n(tmp, a, b, GMPLIMB);
-	/*mpn_mul_n(tmp, a, b, GMPLIMB/2);
-	mpn_mul_n(tmp + GMPLIMB, a + GMPLIMB/2, b + GMPLIMB/2, GMPLIMB/2);
-	mpn_add_n(amid, a, a + GMPLIMB/2, GMPLIMB/2);
-	mpn_add_n(bmid, b, b + GMPLIMB/2, GMPLIMB/2);
-	mpn_mul_n(mid, amid, bmid, GMPLIMB/2);
-	mpn_sub_n(mid, mid, tmp + GMPLIMB, GMPLIMB);
-	mpn_sub_n(mid, mid, tmp, GMPLIMB);
-	mpn_add_n(tmp + GMPLIMB/2, tmp + GMPLIMB/2, mid, GMPLIMB);*/
-	//mpn_add_1(tmp, tmp, 1, mpn_mul_1(c, tmp + GMPLIMB, GMPLIMB, KPRIMEC) * KPRIMEC);
-	//mpn_add_n(c, c, tmp, GMPLIMB);
-	//mpn_add_n(c, tmp, tmp + GMPLIMB, GMPLIMB);
 	mpn_mul_n(tmp, a, b, MPLIMB);
 	carry = mpn_mul_1(c, tmp + MPLIMB, MPLIMB, KPRIMEC*2);
 	carry += mpn_add_n(c, c, tmp, MPLIMB);
@@ -543,87 +393,6 @@ void gmpmulmod2k(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[])
 	/*mpn_add_1(c, c, MPLIMB, carry * KPRIMEC*2);
 	mpn_add_1(c, c, MPLIMB, ((c[MPLIMB-1] & 0x8000000000000000) > 0) * KPRIMEC);*/
 	c[MPLIMB-1] &= 0x7fffffffffffffff;
-}
-
-__int128 tmpp[GMPLIMB + 1];
-void alamano(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[])
-{
-	__int128 aux, extra;
-	tmpp[0] = 0;
-	for(int i = 0; i < GMPLIMB - 1; i++)
-	{
-		aux = (__int128) a[i + 1] * b[GMPLIMB - 1];
-		tmpp[i] += LOW(aux);
-		tmpp[i + 1] = HIGH(aux);
-		for(int j = 2; j < GMPLIMB - i; j++)
-		{
-			aux = (__int128) a[i + j] * b[GMPLIMB - j];
-			tmpp[i] += LOW(aux);
-			tmpp[i + 1] += HIGH(aux);
-		}
-		tmpp[i] *= KPRIMEC;
-	}
-	tmpp[GMPLIMB - 1] *= KPRIMEC;
-	
-	for(int i = 0; i < GMPLIMB - 1; i++)
-	{
-		for(int j = 0; j < i + 1; j++)
-		{
-			aux = (__int128) a[j] * b[i - j];
-			tmpp[i] += LOW(aux);
-			tmpp[i + 1] += HIGH(aux);
-		}
-	}
-	aux = (__int128) a[0] * b[GMPLIMB - 1];
-	extra = HIGH(aux);
-	tmpp[GMPLIMB - 1] += LOW(aux);
-	for(int j = 1; j < GMPLIMB; j++)
-	{
-		aux = (__int128) a[j] * b[GMPLIMB - 1 - j];
-		tmpp[GMPLIMB - 1] += LOW(aux);
-		extra += HIGH(aux);
-	}
-	tmpp[0] += KPRIMEC * (extra + HIGH(tmpp[GMPLIMB - 1]));
-	
-	c[0] = tmpp[0];
-	for(int i = 1; i < GMPLIMB; i++)
-	{
-		tmpp[i] += HIGH(tmpp[i - 1]);
-		c[i] = tmpp[i];
-	}
-}
-
-void alabern(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[])
-{
-	for(int i = 0; i < GMPLIMB; i++)
-	{
-		tmpp[i] = (__int128) a[i + 1] * b[GMPLIMB];
-		for(int j = 2; j < GMPLIMB + 1 - i; j++)
-		{
-			tmpp[i] += (__int128) a[i + j] * b[GMPLIMB + 1 - j];
-		}
-		tmpp[i] *= KPRIMEC;
-	}
-	tmpp[GMPLIMB] = 0;
-	
-	tmpp[0] += (__int128) a[0] * b[0];
-	tmpp[1] += BERNHI(tmpp[0]);
-	for(int i = 1; i < GMPLIMB; i++)
-	{
-		for(int j = 0; j < i + 1; j++)
-		{
-			tmpp[i] += (__int128) a[j] * b[i - j];
-		}
-		tmpp[i + 1] += BERNHI(tmpp[i]);
-		c[i] = BERNLO(tmpp[i]);
-	}
-	for(int j = 0; j < GMPLIMB + 1; j++)
-	{
-		tmpp[GMPLIMB] += (__int128) a[j] * b[GMPLIMB - j];
-	}
-	c[GMPLIMB] = BERNLO(tmpp[GMPLIMB]);
-	c[0] = BERNLO(tmpp[0]) + BERNHI(tmpp[GMPLIMB]) * KPRIMEC;
-	
 }
 
 void mersenne521(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[])
@@ -680,7 +449,7 @@ void C41417convert(uint64_t a[], uint64_t b[])
 int main(void)
 {
 	time_t seed;
-	//srand((unsigned) (time(&seed)));
+	srand((unsigned) (time(&seed)));
 	
 	uint64_t cycles;
 	
@@ -688,12 +457,6 @@ int main(void)
 	
 	/*cycles = do_bench(pmns_montg_mult, nbrepet);
 	printf("pmns %ld\n", cycles);*/
-	
-	/*cycles = do_gmpbench(alamano, 200);
-	printf("alamano %ld\n", cycles);
-	
-	cycles = do_bernbench(alabern, 200);
-	printf("bern %ld\n", cycles);*/
 	
 	/*cycles = do_mersennebench(mersenne521, 200);
 	printf("%ld\n", cycles);*/
@@ -798,9 +561,6 @@ int main(void)
 	
 	/*cycles = do_gmpbench(gmpmulmod2k, nbrepet);
 	printf("gmpmulmod2k %ld\n", cycles);*/
-	
-	//cycles = do_hbernbench(fmul, nbrepet);
-	//printf("hbern %ld\n", cycles);
 	
 	cycles = do_pmersbench(multMod25519, nbrepet, 5, C25519convert);
 	printf("C25519 %ld\n", cycles);
