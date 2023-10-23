@@ -21,6 +21,7 @@
 
 #define MPLIMB 7
 #define KPRIMEC 17
+#define LASTLIMBMASK 0x8000000000000000
 
 int64_t randomint64(void)
 {
@@ -389,10 +390,10 @@ void gmpmulmod2k(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[])
 	mpn_mul_n(tmp, a, b, MPLIMB);
 	carry = mpn_mul_1(c, tmp + MPLIMB, MPLIMB, KPRIMEC*2);
 	carry += mpn_add_n(c, c, tmp, MPLIMB);
-	c[0] += (carry*2 + ((c[MPLIMB-1] & 0x8000000000000000) > 0))*KPRIMEC;
+	c[0] += (carry*2 + ((c[MPLIMB-1] & LASTLIMBMASK) > 0))*KPRIMEC;
 	/*mpn_add_1(c, c, MPLIMB, carry * KPRIMEC*2);
 	mpn_add_1(c, c, MPLIMB, ((c[MPLIMB-1] & 0x8000000000000000) > 0) * KPRIMEC);*/
-	c[MPLIMB-1] &= 0x7fffffffffffffff;
+	c[MPLIMB-1] &= (LASTLIMBMASK - 1);
 }
 
 void mersenne521(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[])
