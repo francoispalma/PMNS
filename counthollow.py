@@ -1,7 +1,7 @@
 import sys, os, cypari2
 
 from math import floor, ceil, log2, sqrt
-from sage.all import matrix, ZZ, previous_prime, next_prime, factor, next_probable_prime, is_prime, pari
+from sage.all import matrix, ZZ, previous_prime, next_prime, factor, next_probable_prime, is_prime, pari, is_square
 from numpy import count_nonzero
 
 
@@ -25,6 +25,11 @@ if "hollow" in ARGS:
 	HOLLOW = True
 	print("hollow only")
 	ARGS.remove("hollow")
+if "maxbeta" in ARGS:
+	MAXBETA = int(ARGS.pop(ARGS.index("maxbeta") + 1))
+	ARGS.remove("maxbeta")
+else:
+	MAXBETA = 2**64
 if len(ARGS) > 2:
 	PSIZE = int(ARGS[1])
 	n = int(ARGS[2])
@@ -34,7 +39,7 @@ if len(ARGS) > 4:
 	alpha = int(ARGS[4])
 
 
-filename = f"generated/{'h'*int(HOLLOW)}pmns{PSIZE}{int(log2(PHI))}n{n}{'' if delta == 0 else 'delta' + str(delta)}.py"
+filename = f"generated/{'h'*int(HOLLOW)}pmns{PSIZE}{int(log2(PHI))}n{n}{'' if delta == 0 else 'delta' + str(delta)}{'' if MAXBETA == 2**64 else 'mb' + str(MAXBETA)}.py"
 if WRITEOUT:
 	print(filename)
 	if not os.path.exists(filename):
@@ -128,16 +133,16 @@ if alpha == 1:
 else:
 	n1B = lambda lam: aleph*gamma + 1 if aleph != 1 else gamma + abs(lam)
 maxlam = 50
-printstr = "\b{gamma - lowgamma}, vgm: {vgm}, count: {count}, valid: {valid}, {Minlab}, {round(float(vgm)/((gamma - lowgamma)/(1+HOLLOW*2**32) + 1), 4)}, {round(float(valid)/(vgm + (vgm == 0)), 4)}, {mindelta}, {maxdelta}, {round(float(avdelta/(vgm + (vgm==0))),4)}"
+printstr = "\b{gamma - lowgamma}, vgm: {vgm}, count: {count}, valid: {valid}, {Minlab}, {round(float(vgm)/((gamma - lowgamma)/(1+HOLLOW*2**32) + 1), 4)}, {round(float(valid)/(vgm + (vgm == 0)), 4)}, {maxdelta}, {round(float(avdelta/(vgm + (vgm==0))),4)}"
 try:
 	while gamma <= highgamma:
 		cdelta = 0
 		fcfg = False
 		#print(eval(f"f'{printstr}'"), end="\r")
 		maxlam = init_lam
-		while 2*w(maxlam)*(n1B(maxlam) - 2) < PHI:
+		while 2*w(maxlam)*(n1B(maxlam>>powert) - 2) < PHI:
 			maxlam += 1
-		while 2*w(maxlam)*(n1B(maxlam) - 2) > PHI:
+		while 2*w(maxlam)*(n1B(maxlam>>powert) - 2) > PHI:
 			maxlam -= 1
 			if maxlam < 0:
 				print()
@@ -153,12 +158,12 @@ try:
 			lam = alpha*gamma**n - s*p
 			if abs(lam) < Minlab:
 				Minlab = abs(lam)
-			if not(lam % (2**powert)) and not(alpha*gamma % (2**powert)):
+			if abs(lam) <= MAXBETA and not(lam % (2**powert)) and not(alpha*gamma % (2**powert)):
 				if not(alpha % (2**powert)):
 					aleph = alpha >> powert
 					beth = lam >> powert
 					psi = 0
-				else: 
+				else:
 					aleph = alpha
 					beth = lam
 					psi = powert
@@ -174,6 +179,10 @@ try:
 						if (True or is_prime(p)):
 							fcfg = True
 							valid += 1
+#							if (not is_square(gamma)) and is_square(lam):
+#								print()
+#								print("gamma =",gamma, "lam=", lam)
+#								print()
 							if WRITEOUT:
 								B = matrix(ZZ, [[-((aleph*gamma)>>psi) if i == j == (n-1) else -gamma if i == j else 1 if j == i + 1 else (lam>>powert) if (i == n-1) and (j == 0) else 0 for j in range(n)] for i in range(n)])
 								with open(filename, "a") as FILE:

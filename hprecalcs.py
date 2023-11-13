@@ -6,10 +6,19 @@ from numpy import count_nonzero
 from ops import horner_modulo, amns_montg_mult_base
 from convert import montgomery_convert_to_mns_base, rho_div_convert_to_mns_base
 from findm import findm
-from generated.hpmns25664n5 import pmnsdict
+from generated.pmns25664n5 import pmnsdict
+#from generated.pmns38364n7 import pmnsdict
+#from generated.hpmns51164n9 import pmnsdict
 #from generated.pmns51264n9 import pmnsdict
 #from generated.pmns52164n9 import pmnsdict
-#from generated.pmns41464n7 import pmnsdict
+#from generated.hpmns41464n8 import pmnsdict
+#from generated.hpmns44864n8 import pmnsdict
+#from generated.pmns102464n18 import pmnsdict
+#from generated.hpmns200264n36 import pmnsdict
+#from generated.hpmns397964n72 import pmnsdict
+#from generated.hpmns781364n144 import pmnsdict
+#from generated.hpmns812964n150 import pmnsdict
+#from generated.hpmns819264n156 import pmnsdict
 primes = list(pmnsdict.keys())
 p, n, gamma, lam, rho, B, B1 = pmnsdict[primes[0]]
 phi = 2**64
@@ -29,16 +38,16 @@ def do_precalcs(p, n, gamma, lam, rho, B, B1):
 	rho = 2**rho
 
 	print(f"#define N {n}")
-	print('#define _PRAGMAGCCUNROLLLOOP_ _Pragma("GCC unroll ', end="")
-	if n > 50:
-		print('16")')
-	else:
-		print(f'{n}")')
 	if type(lam) == int:
 		print(f"#define LAMBDA {lam}")
 		if abs(B[0][0]) != 1:
-			M, M1 = findm(p, n, gamma, lam, rho, B, B1, phi)
+			M = B[0]
+			M1 = B1[0]
+			#M, M1 = findm(p, n, gamma, lam, rho, B, B1, phi)
 			print(f"#define GAMMA {gamma}")
+			if abs(B[-1][-1]) != gamma:
+				print(f"#define GIMEL {abs(B[-1][-1])}")
+				print(f"#define BETH {B[-1][0]}")
 			if count_nonzero(M1) != 2:
 				#lastcol = [(pow(p, -1, phi)*gamma**i) % phi for i in range(n)]
 				print(f"static const uint64_t lastcol[{n}] = {{", end="")
@@ -56,7 +65,7 @@ def do_precalcs(p, n, gamma, lam, rho, B, B1):
 			print(f"#define TWOTLAM {M[1] * lam}")
 	else:
 		print(f"#define BINOMIAL_A {lam['a']}")
-		print(f"#define BINOMIAL_B {-lam['b']}")
+		print(f"#define LAMBDA {-lam['b']}")
 		
 		print(f"\n#define BINOMIAL_TWOT {B[1][1]}")
 		print(f"#define BINOMIAL_TWOTOVERTWO {-B[0][0]}")
@@ -104,7 +113,7 @@ def do_precalcs(p, n, gamma, lam, rho, B, B1):
 #		g = g * gamma % p
 #	print("};")
 
-	print(f"\n#define GMPLIMB {ceil(log2(p) - 1)//64 + 1}")
+#	print(f"\n#define GMPLIMB {ceil(log2(p) - 1)//64 + 1}")
 	print("\n#endif")
 
 if __name__ == "__main__":

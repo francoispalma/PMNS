@@ -26,13 +26,14 @@ def findm(p, n, gamma, lam, rho, B, B1, PHI):
 				validMs += [(list(M), list(M1))]
 	if len(validMs) == 0:
 		return []
-	minMcouple = []
-	minnorm = p
-	for couple in validMs:
-		polynorm = infinite_norm_of_poly(couple[0])
-		if polynorm < minnorm:
-			minnorm = polynorm
-			minMcouple = couple
+	minMcouple = validMs[0]
+#	minnorm = p
+#	for couple in validMs:
+#		polynorm = infinite_norm_of_poly(couple[0])
+#		if polynorm < minnorm:
+#			minnorm = polynorm
+#			minMcouple = couple
+		
 	# We convert out of the polynomial Ring
 	M, M1 = minMcouple
 	M = [int(elem) for elem in M]
