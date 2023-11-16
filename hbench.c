@@ -545,10 +545,10 @@ int main(void)
 	
 	
 	
-	/*cycles = do_bench(pmns_montg_mult, nbrepet);
-	printf("pmns %ld\n", cycles);*/
+	cycles = do_bench(pmns_montg_mult, nbrepet);
+	printf("pmns %ld\n", cycles);
 	
-	cycles = do_gmpbench(gmpmulmod2k, 19, 63, 4, nbrepet);
+	/*cycles = do_gmpbench(gmpmulmod2k, 19, 63, 4, nbrepet);
 	printf("gmpmulmod2k 255-19 %ld\n", cycles);
 	
 	cycles = do_gmpbench(gmpmulmod2k, 187, 63, 6, nbrepet);
@@ -563,7 +563,7 @@ int main(void)
 	cycles = do_gmpbench(gmpmulmod2k, 1, 9, 9, nbrepet);
 	printf("gmpmulmod2k 521-1 %ld\n", cycles);
 	
-	/*cycles = do_gmpbench(gmpmulmod2k, 361, 63, 16, nbrepet);
+	cycles = do_gmpbench(gmpmulmod2k, 361, 63, 16, nbrepet);
 	printf("gmpmulmod2k 1023-361 %ld\n", cycles);
 	
 	cycles = do_gmpbench(gmpmulmod2k, 297, 18, 32, nbrepet);
@@ -751,7 +751,7 @@ int main(void)
 	
 	
 	
-	cycles = do_pmersbench(multMod25519, nbrepet, 5, C25519convert);
+	/*cycles = do_pmersbench(multMod25519, nbrepet, 5, C25519convert);
 	printf("C25519 %ld\n", cycles);
 	
 	cycles = do_pmersbench(multModM383, nbrepet, 7, M383convert);
@@ -767,7 +767,7 @@ int main(void)
 	printf("M-511 %ld\n", cycles);
 	
 	cycles = do_pmersbench(multModE521, nbrepet, 9, E521convert);
-	printf("E-521 %ld\n", cycles);/**/
+	printf("E-521 %ld\n", cycles);*/
 	
 	return 0;
 }

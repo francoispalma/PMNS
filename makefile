@@ -1,4 +1,4 @@
-FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict -funroll-loops -fopenmp -fno-tree-vectorize -DNDEBUG
+FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict -funroll-loops -fopenmp -fno-tree-vectorize
 CC = gcc-12
 PSIZE = 1024
 INDEX = 0
@@ -72,7 +72,7 @@ bench256.exe: pmns256.o
 hbench.exe: hbench.c hpmns.o structs.o utilitymp.o eccoptimizedcode.o
 	$(CC) -o $@ $^ $(FLAGS) -lgmp
 
-csidhbench.exe: csidhbench.c
+csidhbench.exe: csidhbench.c fp.s
 	$(CC) -o $@ $^ $(FLAGS) -lgmp
 
 equalitytest.exe: equalitytest.c pmns.o structs.o utilitymp.o makefile

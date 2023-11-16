@@ -7,13 +7,14 @@ from ops import horner_modulo, amns_montg_mult_base
 from convert import montgomery_convert_to_mns_base, rho_div_convert_to_mns_base
 from findm import findm
 from generated.pmns25664n5 import pmnsdict
-#from generated.pmns38364n7 import pmnsdict
+from generated.hpmns38364n7 import pmnsdict
 #from generated.hpmns51164n9 import pmnsdict
 #from generated.pmns51264n9 import pmnsdict
+#from generated.hpmns51264n12 import pmnsdict
 #from generated.pmns52164n9 import pmnsdict
-#from generated.hpmns41464n8 import pmnsdict
+#from generated.hpmns41464n7 import pmnsdict
 #from generated.hpmns44864n8 import pmnsdict
-#from generated.pmns102464n18 import pmnsdict
+#from generated.hpmns102464n18 import pmnsdict
 #from generated.hpmns200264n36 import pmnsdict
 #from generated.hpmns397964n72 import pmnsdict
 #from generated.hpmns781364n144 import pmnsdict
