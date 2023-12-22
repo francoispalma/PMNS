@@ -7,12 +7,13 @@ from ops import horner_modulo, amns_montg_mult_base
 from convert import montgomery_convert_to_mns_base, rho_div_convert_to_mns_base
 from findm import findm
 from generated.pmns25664n5 import pmnsdict
-from generated.hpmns38364n7 import pmnsdict
+#from generated.hpmns38364n7 import pmnsdict
 #from generated.hpmns51164n9 import pmnsdict
 #from generated.pmns51264n9 import pmnsdict
-#from generated.hpmns51264n12 import pmnsdict
+#from generated.hpmns51264n14 import pmnsdict
 #from generated.pmns52164n9 import pmnsdict
 #from generated.hpmns41464n7 import pmnsdict
+#from generated.hpmns35464n6 import pmnsdict
 #from generated.hpmns44864n8 import pmnsdict
 #from generated.hpmns102464n18 import pmnsdict
 #from generated.hpmns200264n36 import pmnsdict
@@ -20,6 +21,8 @@ from generated.hpmns38364n7 import pmnsdict
 #from generated.hpmns781364n144 import pmnsdict
 #from generated.hpmns812964n150 import pmnsdict
 #from generated.hpmns819264n156 import pmnsdict
+from dosso.hpmns38364n7mb1 import pmnsdict
+#from optim.hpmns25564n5mb2 import pmnsdict
 primes = list(pmnsdict.keys())
 p, n, gamma, lam, rho, B, B1 = pmnsdict[primes[0]]
 phi = 2**64
@@ -58,6 +61,7 @@ def do_precalcs(p, n, gamma, lam, rho, B, B1):
 			else:
 				print("#define HOLLOWM1")
 				print(f"#define GAMMALAMM1 {M1[-2]}")
+				print(f"#define GAMMALAMM2 {B1[1][-1]}")
 				print(f"#define ONELAMM1 {M1[-1]}")
 		else:
 			M, M1 = B[0], B1[0]

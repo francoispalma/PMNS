@@ -171,7 +171,22 @@ static void randpoly(poly P)
 		P->t[i] = __modrho(randomint64()) * (1 + (rand() & 1) * -2);
 }
 
-#if N % 3
+void schoolbook9x9(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
+SCHOOLBOOK(9)
+
+void toeplitz_vm18x18(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
+TOEP22TOP(18, schoolbook9x9)
+
+void toeplitz_vm36x36(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
+TOEP22TOP(36, toeplitz_vm18x18)
+
+void toeplitz_vm72x72(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
+TOEP22TOP(72, toeplitz_vm36x36)
+
+void toeplitz_vm144x144(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
+TOEP22TOP(144, toeplitz_vm72x72)
+
+#if !(N % 2)
 #define NSBSPLIT N/2
 #else
 #define NSBSPLIT N/3
@@ -181,9 +196,13 @@ SCHOOLBOOK(NSBSPLIT)
 #undef NSBSPLIT
 
 void toeplitz_vm(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
-	#if N == 7
-		TOEP77BOT
-	#elif N % 3
+	#if N == 144
+		{toeplitz_vm144x144(rop, vect, matr);}
+	#elif N == 72
+		{toeplitz_vm72x72(rop, vect, matr);}
+	#elif N == 36
+		{toeplitz_vm36x36(rop, vect, matr);}
+	#elif !(N % 2)
 		TOEP22TOP(N, schoolbookX)
 	#else
 		TOEP33TOP(N, schoolbookX)
@@ -195,21 +214,17 @@ void pmns_mod_mult_ext_red(__int128* restrict R,
 	// Function that multiplies A by B and applies external reduction using
 	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R
 	
-	#if !(N % 2) || !(N % 3)
+	#if N > 7 && (!(N % 2) || !(N % 3))
 		int64_t matr[2*N - 1];
 		
 		for(int i = 0; i < N-1; i++)
 		{
-		#ifdef BINOMIAL_A
-			matr[i + N - 1] = BINOMIAL_A * B->t[i];
-		#else
-			matr[i + N - 1] = B->t[i];
-		#endif
-		#if LAMBDA == 1
-			matr[i] = B->t[1 + i];
-		#else
+			#ifdef BINOMIAL_A
+				matr[i + N - 1] = BINOMIAL_A * B->t[i];
+			#else
+				matr[i + N - 1] = B->t[i];
+			#endif
 			matr[i] = B->t[1 + i] * LAMBDA;
-		#endif
 		}
 		#ifdef BINOMIAL_A
 			matr[2*N - 2] = B->t[N - 1] * BINOMIAL_A;
@@ -218,8 +233,6 @@ void pmns_mod_mult_ext_red(__int128* restrict R,
 		#endif
 		toeplitz_vm(R, A->t, matr);
 	#else
-		__int128 somme;
-		
 		#ifdef BINOMIAL_A
 			int64_t atab[N];
 			for(int i = 0; i < N; i++)
@@ -233,17 +246,15 @@ void pmns_mod_mult_ext_red(__int128* restrict R,
 			btab = B->t;
 		#else
 			int64_t btab[N];
-			for(int i = 0; i < N; i++)
+			for(int i = 1; i < N; i++)
 				btab[i] = B->t[i]*LAMBDA;
-		#endif//TOEP77BOT
+		#endif
 		for(int i = 0; i < N; i++)
 		{
-			somme = (__int128) atab[0] * B->t[i];
+			R[i] = (__int128) atab[0] * B->t[i];
 			for(int j = 1; j < i + 1; j++)
-				somme += (__int128) atab[j] * B->t[i - j];
-			R[i] = somme;
+				R[i] += (__int128) atab[j] * B->t[i - j];
 		}
-		
 		for(int i = 0; i < N - 1; i++)
 		{
 			for(int j = 1; j < N - i; j++)
@@ -260,36 +271,36 @@ void m_pmns_mod_mult_ext_red(__int128* restrict R,
 	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R.
 	
 	#ifdef BINOMIAL_TWOTOVERTWO
-	R[0] += (__int128)A[0] * -BINOMIAL_TWOTOVERTWO - A[1];
-	R[1] += (__int128)A[1] * BINOMIAL_TWOT + A[2];
-	for(int i = 2; i < N - 1; i++)
-	{
-		R[i] += (__int128)A[i] * -BINOMIAL_TWOT + A[i + 1];
-	}
-	R[N - 1] += (__int128)A[N - 1] * -BINOMIAL_TWOT + A[0];
+		R[0] += (__int128)A[0] * -BINOMIAL_TWOTOVERTWO - A[1];
+		R[1] += (__int128)A[1] * BINOMIAL_TWOT + A[2];
+		for(int i = 2; i < N - 1; i++)
+		{
+			R[i] += (__int128)A[i] * -BINOMIAL_TWOT + A[i + 1];
+		}
+		R[N - 1] += (__int128)A[N - 1] * -BINOMIAL_TWOT + A[0];
 	#else
-	#ifdef TWOTXMONE
-	R[0] += (__int128)A[N - 1] * TWOTLAM - A[0];
-	for(int i = 1; i < N; i++)
-	{
-		R[i] += (__int128)A[i - 1] * TWOT - A[i];
-	}
-	#else
-	#ifdef BETH
-	R[0] += -(__int128)A[0] * GAMMA + (__int128)A[N - 1] * BETH;
-	#else
-	R[0] += -(__int128)A[0] * GAMMA + (__int128)A[N - 1] * LAMBDA;
-	#endif
-	for(int i = 1; i < N - 1; i++)
-	{
-		R[i] += A[i - 1] - (__int128)A[i] * GAMMA;
-	}
-	#ifdef GIMEL
-	R[N - 1] += -(__int128)A[N - 1] * GIMEL + A[N - 2];
-	#else
-	R[N - 1] += -(__int128)A[N - 1] * GAMMA + A[N - 2];
-	#endif
-	#endif
+		#ifdef TWOTXMONE
+			R[0] += (__int128)A[N - 1] * TWOTLAM - A[0];
+			for(int i = 1; i < N; i++)
+			{
+				R[i] += (__int128)A[i - 1] * TWOT - A[i];
+			}
+		#else
+			#ifdef BETH
+				R[0] += -(__int128)A[0] * GAMMA + (__int128)A[N - 1] * BETH;
+			#else
+				R[0] += -(__int128)A[0] * GAMMA + (__int128)A[N - 1] * LAMBDA;
+			#endif
+			for(int i = 1; i < N - 1; i++)
+			{
+				R[i] += A[i - 1] - (__int128)A[i] * GAMMA;
+			}
+			#ifdef GIMEL
+				R[N - 1] += -(__int128)A[N - 1] * GIMEL + A[N - 2];
+			#else
+			R[N - 1] += -(__int128)A[N - 1] * GAMMA + A[N - 2];
+			#endif
+		#endif
 	#endif
 }
 
@@ -315,18 +326,14 @@ void m1_pmns_mod_mult_ext_red(uint64_t* restrict R,
 			}
 		#else
 			#ifdef HOLLOWM1
-				#ifndef GIMEL
 				for(int i = 0; i < N - 2; i++)
 				{
 					R[i] = -(uint64_t)A[i + 1] - (uint64_t)A[i + 2] * GAMMA;
 				}
+				#if ONELAMM1 != 1
 				R[N - 2] = -(uint64_t)A[0] * GAMMALAMM1 - (uint64_t)A[N - 1];
-				R[N - 1] = -(uint64_t)A[0] * ONELAMM1 - (uint64_t)A[1] * GAMMALAMM1;
+				R[N - 1] = -(uint64_t)A[0] * ONELAMM1 - (uint64_t)A[1] * GAMMALAMM2;
 				#else
-				for(int i = 0; i < N - 2; i++)
-				{
-					R[i] = -(uint64_t)A[i + 1] - (uint64_t)A[i + 2] * GAMMA;
-				}
 				R[N - 2] = -(uint64_t)A[0] * GIMEL - (uint64_t)A[N - 1];
 				R[N - 1] = -(uint64_t)A[0] - (uint64_t)A[1] * GAMMA;
 				#endif
@@ -353,7 +360,6 @@ void pmns_montg_int_red(restrict poly res, __int128* restrict R)
 {
 	// Internal reduction of R via the Montgomery method.
 	uint64_t T[N];
-	register uint16_t i;
 	
 	m1_pmns_mod_mult_ext_red(T, R);
 	
@@ -375,7 +381,7 @@ void pmns_montg_int_red(restrict poly res, __int128* restrict R)
 	}
 	printf("]\n");*/
 	
-	for(i = 0; i < N; i++)
+	for(int i = 0; i < N; i++)
 		res->t[i] = (R[i] >> 64);
 }
 
@@ -409,6 +415,195 @@ void pmns_montg_mult(restrict poly res, const restrict poly A,
 	pmns_montg_int_red(res, R);
 }
 
+
+#define sea512N 9
+#define sea512lam 2
+int64_t sea512L[] = {-39927564169730186, -93588192213955578, 41680870230430638, -66203621217310806, -71639263791855854, 95144008843672458, 41156483580126724, 6405628560783958, -61963267810295945, -19963782084865093, -46794096106977789, 20840435115215319, -33101810608655403, -35819631895927927, 47572004421836229, 20578241790063362, 3202814280391979};
+uint64_t sea512L1[] = {16890454269784590186u, 2154326905232292760u, 1931987248487138416u, 16291326495991140116u, 4806590322675272120u, 15034968164033694700u, 2140623607605503566u, 15999398953510534340u, 8156377922140818909u, 8445227134892295093u, 10300535489470922188u, 10189365661098345016u, 17369035284850345866u, 2403295161337636060u, 7517484082016847350u, 1070311803802751783u, 7999699476755267170u};
+
+void novschoolbook3x3(int64_t* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
+SCHOOLBOOK(3)
+
+void mschoolbook3x3(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
+{
+	for(int i = 0; i < 3; i++)
+	{
+		for(int j = 0; j < 3; j++)
+			rop[i] += (__int128)vect[j] * matr[2 - j + i];
+	}
+}
+
+void ovschoolbook3x3(__int128* restrict rop, const __int128* restrict vect, const int64_t* restrict matr)
+SCHOOLBOOK(3)
+
+void schoolbook3x3(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
+SCHOOLBOOK(3)
+
+void sea512ABtoeplitz_vm(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
+TOEP33TOP(9, schoolbook3x3)
+
+void sea512pmns_mod_mult_ext_red(__int128* restrict R,
+	const restrict poly A, const restrict poly B)
+{
+	// Function that multiplies A by B and applies external reduction using
+	// E(X) = X^n - lambda as a polynomial used for reduction. Result in R
+	
+	int64_t matr[2*sea512N - 1];
+	
+	for(int i = 0; i < sea512N-1; i++)
+	{
+		matr[i + sea512N - 1] = B->t[i];
+		matr[i] = B->t[1 + i] * sea512lam;
+	}
+	matr[2*sea512N - 2] = B->t[sea512N - 1];
+	sea512ABtoeplitz_vm(R, A->t, matr);
+	/*for(int i = 0; i < sea512N; i++)
+	{
+		R[i] = 0;
+		for(int j = 0; j < sea512N; j++)
+			R[i] += (__int128) A->t[j] * matr[sea512N - 1 - j + i];
+	}*/
+}
+
+void sea512m_pmns_mod_mult_ext_red(__int128* restrict rop, const int64_t* restrict vect)
+{
+	for(int i = 0; i < sea512N; i++)
+	{
+		for(int j = 0; j < sea512N; j++)
+			rop[i] += (__int128) vect[j] * sea512L[sea512N - 1 - j + i];
+	}
+	/*__int128 t3[3], t4[3], t5[3], v1m2[3], v0m2[3], v0m1[3];
+	int64_t m03, m034[5], m013[5], m012[5], m0[5], m1[5], m3[5];
+	
+	for(int i = 0; i < 3; i++)
+	{
+		v1m2[i] = (__int128) vect[3 + i] - vect[6 + i];
+		v0m1[i] = (__int128) vect[i] - vect[3 + i];
+		v0m2[i] = (__int128) vect[i] - vect[6 + i];
+	}
+	
+	for(int i = 0; i < 5; i++)
+	{
+		m0[i] = sea512L[i + 6];
+		m1[i] = sea512L[i + 9];
+		m3[i] = sea512L[i + 3];
+		m03 = m0[i] + m3[i];
+		m034[i] = m03 + sea512L[i];
+		m013[i] = m03 + m1[i];
+		m012[i] = m0[i] + m1[i] + sea512L[i + 12];
+	}
+	
+	mschoolbook3x3(rop, vect + 6, m034);
+	mschoolbook3x3(rop + 3, vect + 3, m013);
+	mschoolbook3x3(rop + 6, vect, m012);
+	ovschoolbook3x3(t3, v1m2, m3);
+	ovschoolbook3x3(t4, v0m2, m0);
+	ovschoolbook3x3(t5, v0m1, m1);
+
+	for(int i = 0; i < 3; i++)
+	{
+		rop[i] += + t3[i] + t4[i];
+		rop[i + 3] +=  - t3[i] + t5[i];
+		rop[i + 6] +=  - t4[i] - t5[i];
+	}*/
+}
+
+void sea512m1_pmns_mod_mult_ext_red(int64_t* restrict rop, const __int128* restrict vect)
+{
+	for(int i = 0; i < sea512N; i++)
+	{
+		rop[i] = 0;
+		for(int j = 0; j < sea512N; j++)
+			rop[i] += (int64_t) vect[j] * sea512L1[sea512N - 1 - j + i];
+	}
+	/*int64_t t0[3], t1[3], t2[3], t3[3], t4[3], t5[3], m03, v1m2[3], v0m2[3], v0m1[3], m034[5], m013[5], m012[5], m0[5], m1[5], m3[5], v0[3], v1[3], v2[3];
+	
+	for(int i = 0; i < 3; i++)
+	{
+		v1m2[i] = vect[3 + i] - vect[6 + i];
+		v0m1[i] = vect[i] - vect[3 + i];
+		v0m2[i] = vect[i] - vect[6 + i];
+		v0[i] = vect[i];
+		v1[i] = vect[i + 3];
+		v2[i] = vect[i + 6];
+	}
+	
+	for(int i = 0; i < 5; i++)
+	{
+		m0[i] = sea512L1[i + 6];
+		m1[i] = sea512L1[i + 9];
+		m3[i] = sea512L1[i + 3];
+		m03 = m0[i] + m3[i];
+		m034[i] = m03 + sea512L1[i];
+		m013[i] = m03 + m1[i];
+		m012[i] = m0[i] + m1[i] + sea512L1[i + 12];
+	}
+	
+	novschoolbook3x3(t0, v2, m034);
+	novschoolbook3x3(t1, v1, m013);
+	novschoolbook3x3(t2, v0, m012);
+	novschoolbook3x3(t3, v1m2, m3);
+	novschoolbook3x3(t4, v0m2, m0);
+	novschoolbook3x3(t5, v0m1, m1);
+	
+	for(int i = 0; i < 3; i++)
+	{
+		rop[i] = t0[i] + t3[i] + t4[i];
+		rop[i + 3] = t1[i] - t3[i] + t5[i];
+		rop[i + 6] = t2[i] - t4[i] - t5[i];
+	}*/
+}
+
+void sea512pmns_montg_int_red(restrict poly res, __int128* restrict R)
+{
+	// Internal reduction of R via the Montgomery method.
+	int64_t T[sea512N];
+	
+	sea512m1_pmns_mod_mult_ext_red(T, R);
+	
+	/*_poly dummy;
+	dummy.t = T;
+	dummy.deg = N;
+	
+	printf("dummy\n");
+	poly_print(&dummy);
+	printf("\n");*/
+	
+	sea512m_pmns_mod_mult_ext_red(R, T);
+	
+	/*printf("[");
+	for(int i = 0; i < N; i++)
+	{
+		printf("0x"); __print128(R[i]); printf(",");
+	}
+	printf("]\n");*/
+	
+	for(int i = 0; i < sea512N; i++)
+		res->t[i] = (R[i] >> 64);
+}
+
+void sea512pmns_montg_mult(restrict poly res, const restrict poly A,
+	const restrict poly B)
+{
+	// Function that multiplies A by B using the Montgomery approach in an
+	// amns. Puts the result in res. A and B have to be in the system and res
+	// will be in the pmns also such that if A(gamma) = a * phi mod p and 
+	// B(gamma) = b * phi mod p then res(gamma) = a * b * phi mod p
+	
+	__int128 R[sea512N] = {0};
+	
+	sea512pmns_mod_mult_ext_red(R, A, B);
+	
+	/*printf("[");
+	for(int i = 0; i < N; i++)
+	{
+		printf("0x"); __print128(R[i]); printf(",");
+	}
+	printf("]\n");*/
+	
+	sea512pmns_montg_int_red(res, R);
+}
+
 void __multchecks__(char* nbmults)
 {
 	// Used as a debug tool to see if the PMNS correctly gives us the proper
@@ -431,6 +626,37 @@ void __multchecks__(char* nbmults)
 		poly_print(a);
 		poly_print(b);
 		pmns_montg_mult(c, a, b);
+		poly_print(c);
+	}
+	
+	free_polys(a, b, c, NULL);
+}
+
+void __seamultchecks__(char* nbmults)
+{
+	// Used as a debug tool to see if the PMNS correctly gives us the proper
+	// results with a few random values.
+	poly a, b, c;
+	init_polys(sea512N, &a, &b, &c, NULL);
+	int64_t seed;
+	
+	register uint64_t cap = 100;
+	
+	if(nbmults[0] != '\0')
+		cap = atoll(nbmults);
+	
+	srand((unsigned) (time(&seed)));
+	
+	for(register uint64_t i = 0; i < cap; i++)
+	{
+		for(int j = 0; j < sea512N; j++)
+		{
+			a->t[j] = (randomint64() % 579672168228458092) * (1 + (rand() & 1) * -2);
+			b->t[j] = (randomint64() % 579672168228458092) * (1 + (rand() & 1) * -2);
+		}
+		poly_print(a);
+		poly_print(b);
+		sea512pmns_montg_mult(c, a, b);
 		poly_print(c);
 	}
 	

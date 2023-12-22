@@ -184,6 +184,7 @@ try:
 #								print("gamma =",gamma, "lam=", lam)
 #								print()
 							if WRITEOUT:
+								#B = matrix(ZZ, [[-alpha*gamma if i == j == (n-1) else -gamma if i == j else 1 if j == i + 1 else (lam) if (i == n-1) and (j == 0) else 0 for j in range(n)] for i in range(n)])
 								B = matrix(ZZ, [[-((aleph*gamma)>>psi) if i == j == (n-1) else -gamma if i == j else 1 if j == i + 1 else (lam>>powert) if (i == n-1) and (j == 0) else 0 for j in range(n)] for i in range(n)])
 								with open(filename, "a") as FILE:
 									FILE.write(f"pmnsdict[{p}] = {[p, n, gamma, beth if aleph == 1 else {'a':aleph,'b':beth}, ceil(log2(n1B(beth) - 1)), list(B), list(B.inverse() % PHI)]}\n")

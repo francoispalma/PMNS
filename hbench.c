@@ -388,7 +388,7 @@ uint64_t do_pmersbench(void (*pmersmult)(uint64_t c[], uint64_t a[], uint64_t b[
 	return medianTimer/NSAMPLES/W; // We divide by W since we measured W calls.
 }
 
-mp_limb_t tmp[20], carry, carry2[2];
+mp_limb_t tmp[70], carry, carry2[2];
 void gmpmulmod2k(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[], const mp_limb_t KPRIMEC, const mp_limb_t LASTLIMB, const mp_limb_t MPLIMB)
 {
 	mp_limb_t LASTLIMBMASK = (1ULL<<LASTLIMB)-1;
@@ -399,6 +399,25 @@ void gmpmulmod2k(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[], const mp_limb_t KP
 	mpn_add_1(c, c, MPLIMB, carry2[0]);
 	mpn_add_1(c + 1, c + 1, MPLIMB - 1, carry); 
 	mpn_add_1(c, c, MPLIMB, ((c[MPLIMB-1] & (0xffffffffffffffff ^ LASTLIMBMASK))>>LASTLIMB) * KPRIMEC);
+	c[MPLIMB-1] &= (LASTLIMBMASK);
+}
+
+mp_limb_t tmpbig[270];
+void gmpmulmod2kbig(mp_limb_t c[], mp_limb_t a[], mp_limb_t b[], const mp_limb_t KPRIMEC, const mp_limb_t LASTLIMB, const mp_limb_t MPLIMB)
+{
+	mp_limb_t LASTLIMBMASK = (1ULL<<LASTLIMB)-1;
+	mpn_mul_n(tmpbig, a, b, MPLIMB);
+	carry = mpn_mul_1(c, tmpbig + MPLIMB, MPLIMB, KPRIMEC)<<(64-LASTLIMB);
+	carry += mpn_lshift(c, c,  MPLIMB, 64-LASTLIMB);
+	carry += mpn_add_n(c, c, tmpbig, MPLIMB);
+	carry = mpn_mul_1(carry2, &carry, 1, KPRIMEC)<<(64-LASTLIMB);
+	carry += mpn_lshift(carry2, carry2, 2, 64-LASTLIMB);
+	mpn_add_1(c, c, MPLIMB, carry2[0]);
+	carry += carry2[1];
+	mpn_add_1(c + 1, c + 1, MPLIMB - 1, carry);
+	unsigned __int128 carry3 = (__int128)((c[MPLIMB-1] & (0xffffffffffffffff ^ LASTLIMBMASK))>>LASTLIMB) * KPRIMEC;
+	mpn_add_1(c, c, MPLIMB, (uint64_t) carry3);
+	mpn_add_1(c + 1, c + 1, MPLIMB - 1, (uint64_t) (carry3>>64));
 	c[MPLIMB-1] &= (LASTLIMBMASK);
 }
 
@@ -526,7 +545,7 @@ uint64_t checkmodmul(const mp_limb_t KPRIMEC, const mp_limb_t LASTLIMB, const mp
 		if(KPRIMEC == 1 && LASTLIMB == 9 && MPLIMB == 9)
 			mersenne521(cx, ax, bx);
 		else
-			gmpmulmod2k(cx, ax, bx, KPRIMEC, LASTLIMB, MPLIMB);
+			gmpmulmod2kbig(cx, ax, bx, KPRIMEC, LASTLIMB, MPLIMB);
 		cpt += mpn_cmp(chk, cx, MPLIMB) == 0;
 		//gmp_printf("0x%Nx\n0x%Nx\n", chk, MPLIMB, cx, MPLIMB);
 	}
@@ -536,47 +555,51 @@ uint64_t checkmodmul(const mp_limb_t KPRIMEC, const mp_limb_t LASTLIMB, const mp
 int main(void)
 {
 	time_t seed;
-	srand((unsigned) (time(&seed)));
+	//srand((unsigned) (time(&seed)));
 	
 	uint64_t cycles;
 	
 	const uint64_t nbrepet = 303;
 	
-	
-	
-	
 	cycles = do_bench(pmns_montg_mult, nbrepet);
 	printf("pmns %ld\n", cycles);
 	
+	/*#ifdef N
+	#undef N
+	#define N 9
+	cycles = do_bench(sea512pmns_montg_mult, nbrepet);
+	printf("csidh512 %ld\n", cycles);
+	#endif*/
+	
 	/*cycles = do_gmpbench(gmpmulmod2k, 19, 63, 4, nbrepet);
-	printf("gmpmulmod2k 255-19 %ld\n", cycles);
+	printf("gmpmulmod2k 2^255-19 %ld\n", cycles);
 	
 	cycles = do_gmpbench(gmpmulmod2k, 187, 63, 6, nbrepet);
-	printf("gmpmulmod2k 383-187 %ld\n", cycles);
+	printf("gmpmulmod2k 2^383-187 %ld\n", cycles);
 	
 	cycles = do_gmpbench(gmpmulmod2k, 17, 30, 7, nbrepet);
-	printf("gmpmulmod2k 414-17 %ld\n", cycles);
+	printf("gmpmulmod2k 2^414-17 %ld\n", cycles);
 	
 	cycles = do_gmpbench(gmpmulmod2k, 187, 63, 8, nbrepet);
-	printf("gmpmulmod2k 511-187 %ld\n", cycles);
+	printf("gmpmulmod2k 2^511-187 %ld\n", cycles);
 	
 	cycles = do_gmpbench(gmpmulmod2k, 1, 9, 9, nbrepet);
-	printf("gmpmulmod2k 521-1 %ld\n", cycles);
+	printf("gmpmulmod2k 2^521-1 %ld\n", cycles);
 	
 	cycles = do_gmpbench(gmpmulmod2k, 361, 63, 16, nbrepet);
-	printf("gmpmulmod2k 1023-361 %ld\n", cycles);
+	printf("gmpmulmod2k 2^1023-361 %ld\n", cycles);
 	
 	cycles = do_gmpbench(gmpmulmod2k, 297, 18, 32, nbrepet);
-	printf("gmpmulmod2k 2002-297 %ld\n", cycles);
+	printf("gmpmulmod2k 2^2002-297 %ld\n", cycles);
 	
-	cycles = do_gmpbench(gmpmulmod2k, 3819, 11, 63, nbrepet);
-	printf("gmpmulmod2k 3979-3819 %ld\n", cycles);
+	cycles = do_gmpbench(gmpmulmod2kbig, 3819, 11, 63, nbrepet);
+	printf("gmpmulmod2k 2^3979-3819 %ld\n", cycles);
 	
-	cycles = do_gmpbench(gmpmulmod2k, 241, 5, 123, nbrepet);
-	printf("gmpmulmod2k 7813-241 %ld\n", cycles);
+	cycles = do_gmpbench(gmpmulmod2kbig, 241, 5, 123, nbrepet);
+	printf("gmpmulmod2k 2^7813-241 %ld\n", cycles);*/
 	
-	cycles = do_gmpbench(gmpmulmod2k, 2149, 1, 128, nbrepet);
-	printf("gmpmulmod2k 8129-2149 %ld\n", cycles);*/
+	/*cycles = do_gmpbench(gmpmulmod2kbig, 2149, 1, 128, nbrepet);
+	printf("gmpmulmod2k 2^8129-2149 %ld\n", cycles);*/
 	
 	/*printf("%ld\n", checkmodmul(19, 63, 4));
 	printf("%ld\n", checkmodmul(187, 63, 6));
@@ -585,6 +608,7 @@ int main(void)
 	//printf("%ld\n", checkmodmul(1, 9, 9));
 	//printf("%ld\n", checkmodmul(361, 63, 16));
 	//printf("%ld\n", checkmodmul(297, 18, 32));
+	//printf("%ld\n", checkmodmul(1939, 63, 62));
 	//printf("%ld\n", checkmodmul(3819, 11, 63));
 	//printf("%ld\n", checkmodmul(241, 5, 123));
 	//printf("%ld\n", checkmodmul(2149, 1, 128));

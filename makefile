@@ -1,4 +1,4 @@
-FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict -funroll-loops -fopenmp -fno-tree-vectorize
+FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -Wno-restrict -funroll-loops -fopenmp
 CC = gcc-12
 PSIZE = 1024
 INDEX = 0
@@ -10,6 +10,9 @@ main.exe: main.c pmns.o structs.o utilitymp.o
 	$(CC) -o $@ $^ $(FLAGS)
 
 hmain.exe: main.c hpmns.o structs.o utilitymp.o
+	$(CC) -o $@ $^ $(FLAGS)
+	
+seamain.exe: seamain.c hpmns.o structs.o utilitymp.o
 	$(CC) -o $@ $^ $(FLAGS)
 
 pmns.o: pmns.c pmns.h params.h
@@ -112,6 +115,10 @@ proof: main.exe
 hproof: hmain.exe
 	./hmain.exe 100 > hlog
 	python3 hproof.py
+
+seaproof: seamain.exe
+	./seamain.exe 100 > sealog
+	python3 seaproof.py
 
 proof128: p128.exe
 	./p128.exe 100 > log128
