@@ -2,6 +2,3 @@ __pycache__/
 *.o
 *.exe
 *.tmp
-log
-log128
-output/*
