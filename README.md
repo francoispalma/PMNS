@@ -8,14 +8,5 @@ The "guided tour" folder contains all the code necessary to recreate the tables 
 
 The implementation is in C with utility functions in Python for generation purposes.
 
-## Requirements
-
-Installing sagemath is required to use the code generation.
-> sudo apt install sagemath-common
-
-then
-
-> sudo apt install sagemath
-
 ## Acknowledgements
 Todo
