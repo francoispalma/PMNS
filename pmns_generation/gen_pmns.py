@@ -67,7 +67,7 @@ def checkpoly(p, rts, n, w, lam, nthrootofp, delta, PHI):
 		n1B = max([sum([abs(B[i][j]) for i in range(len(B))]) for j in range(len(B))])
 		two_double_u = round(2*w)
 		if two_double_u*(n1B-1)*((1+delta)**2) <= PHI:
-			B1 = list(matrix(B).inverse() % PHI)
+			B1 = list((-matrix(B).inverse()) % PHI)
 			rho = n1B - 1
 			return [p, n, gamma, lam, rho, B, B1]
 	return []
