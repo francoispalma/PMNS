@@ -36,6 +36,7 @@ Once a PMNS is generated, generating the code is done as such:
 You can redirect the output from the generation into a file and then generate with that file as an input as follows:
 
 > ./gen_pmns.py [OPTIONS] > tmp
+
 > ./codegen.py tmp
 
 After the codegen is run a params.h file is created with all the necessary parameters to compile pmns.c
