@@ -39,13 +39,13 @@ def findeasynthroot(prime, N):
 		return None
 
 def get_phi_bound(n, w, nthrootofp, delta):
-	return 2 * w * (1.02)**n * nthrootofp * ((1 + delta)**2)
+	return 2 * w * (1.02)**n * nthrootofp * ((1 + delta)**2) * (n**0.5)
 
 def get_init_n(p, PHI, delta=0):
 	init_n = p.bit_length()//int(log2(PHI)) + 1
-	while PHI < get_phi_bound(init_n, init_n, nthroot(p, init_n), delta):
+	while PHI < get_phi_bound(init_n, 3*init_n/2, nthroot(p, init_n), delta):
 		init_n += 1
-	if PHI < get_phi_bound(init_n, 3*init_n/2, nthroot(p, init_n), delta):
+	if PHI < get_phi_bound(init_n, 2*init_n - 1, nthroot(p, init_n), delta):
 		init_n += 1
 	return init_n
 
@@ -78,7 +78,6 @@ def check_eval_strE(eval_strE, polK, p, n, w, lam, nthrootofp, delta, PHI):
 	highest_degree = n - len(factor(E))
 	if PHI < get_phi_bound(n, w, nthroot(p, highest_degree), delta):
 		return []
-	E = polK(eval_strE)
 	try:
 		rts = E.roots(ring=polK)
 	except cypari2.handle_error.PariError:
@@ -96,6 +95,7 @@ def genpmns(p, PHI, init_n=None, amns_only=False, max_lambda=1<<64, delta=0):
 	polK = None
 	check = []
 	n = max(init_n, 2)
+	eprint("Initial n:", n)
 	if amns_only:
 		polydict = {}
 	else:
@@ -145,9 +145,7 @@ def genpmns(p, PHI, init_n=None, amns_only=False, max_lambda=1<<64, delta=0):
 			break
 		if K is None:
 			eprint("Generating GF(p)", datetime.datetime.now().time())
-			K = GF(p)
-			eprint("Generating polK", datetime.datetime.now().time())
-			polK = PolynomialRing(K, "X")
+			polK = GF(p, proof=False)
 			eprint("factors", datetime.datetime.now().time())
 		lam = 1
 		while lam < max_lambda and PHI >= get_phi_bound(n, w(n), nthrootofp, delta):
@@ -247,6 +245,15 @@ if __name__ == "__main__":
 			exit()
 	else:
 		phi = 64
+	max_lambda = handle_opts(args, opts, "max_lambda", "-l", "--lambda")
+	if max_lambda is not None:
+		try:
+			assert max_lambda >= 0, f"Invalid value for lambda: {max_lambda}"
+		except Exception as e:
+			print(e)
+			exit()
+	else:
+		max_lambda = 1<<64
 	arguments = [arg for arg in args if not arg.startswith("-")]
 	if p is None and len(arguments) >= 2:
 		try:
@@ -278,7 +285,7 @@ if __name__ == "__main__":
 		else:
 			eprint(" with E as either an integer for AMNS or a list for non-AMNS")
 		eprint("\n")
-		soak, n, gamma, E, rho, B, B1 = genpmns(p, 2**phi, amns_only=amns_only, delta=delta)
+		soak, n, gamma, E, rho, B, B1 = genpmns(p, 2**phi, amns_only=amns_only, delta=delta, max_lambda=max_lambda)
 		if type(E) == int:
 			assert (gamma**n - E) % p == 0
 		else:
@@ -290,4 +297,5 @@ if __name__ == "__main__":
 		print("\t--phi, -F: sets the parameter PHI = 2^phi. Default value is phi=64.")
 		print("\t--delta, -d: use specified delta for number of free additions.")
 		print("\t--AMNS: turns generation into AMNS-only mode which is faster but will ignore other good PMNS shapes.")
+		print("\t--lambda, -l: use specified value for maximum lambda allowed in AMNS.")
 		print("\t--verbose, -v: verbose mode.")
