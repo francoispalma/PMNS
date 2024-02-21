@@ -63,7 +63,10 @@ def checkpoly(p, rts, n, w, lam, nthrootofp, delta, PHI):
 			continue
 
 		B = [[p if (k, j) == (0, 0) else -pow(gamma, k, p) if k != 0 and j == 0 else 1 if k == j else 0 for j in range(n)] for k in range(n)]
-		B = list(matrix(ZZ, B).LLL())
+		try:
+			B = list(matrix(ZZ, B).LLL())
+		except:
+			return []
 		n1B = max([sum([abs(B[i][j]) for i in range(len(B))]) for j in range(len(B))])
 		two_double_u = round(2*w)
 		if two_double_u*(n1B-1)*((1+delta)**2) <= PHI:
@@ -88,15 +91,15 @@ def check_eval_strE(eval_strE, polK, p, n, w, lam, nthrootofp, delta, PHI):
 		eprint(eval_strE)
 	return check
 
-def genpmns(p, PHI, init_n=None, amns_only=False, max_lambda=1<<64, delta=0):
+def genpmns(p, PHI, init_n=None, amns_only=False, max_lambda=1<<64, delta=0, fast=False):
 	if init_n is None or init_n == 0:
 		init_n = get_init_n(p, PHI, delta)
 	K = None
 	polK = None
 	check = []
-	n = max(init_n, 2)
+	n = max(init_n - 1, 2)
 	eprint("Initial n:", n)
-	if amns_only:
+	if amns_only or fast:
 		polydict = {}
 	else:
 		polydict = Polydict
@@ -143,26 +146,27 @@ def genpmns(p, PHI, init_n=None, amns_only=False, max_lambda=1<<64, delta=0):
 				break
 		if check:
 			break
-		if K is None:
-			eprint("Generating GF(p)", datetime.datetime.now().time())
-			polK = GF(p, proof=False)
-			eprint("factors", datetime.datetime.now().time())
-		lam = 1
-		while lam < max_lambda and PHI >= get_phi_bound(n, w(n), nthrootofp, delta):
-			eprint("Checking lambda", lam, datetime.datetime.now().time())
-			eval_strE = f"X^{n} - {lam}"
-			check = check_eval_strE(eval_strE, polK, p, n, w(n), lam, nthrootofp, delta, PHI)
+		if not fast:
+			if K is None:
+				eprint("Generating GF(p)", datetime.datetime.now().time())
+				polK = GF(p, proof=False)
+				eprint("factors", datetime.datetime.now().time())
+			lam = 1
+			while lam < max_lambda and PHI >= get_phi_bound(n, w(n), nthrootofp, delta):
+				eprint("Checking lambda", lam, datetime.datetime.now().time())
+				eval_strE = f"X^{n} - {lam}"
+				check = check_eval_strE(eval_strE, polK, p, n, w(n), lam, nthrootofp, delta, PHI)
+				if check:
+					break
+				eval_strE = f"X^{n} + {lam}"
+				check = check_eval_strE(eval_strE, polK, p, n, w(n), -lam, nthrootofp, delta, PHI)
+				if check:
+					break
+				lam += 1
 			if check:
 				break
-			eval_strE = f"X^{n} + {lam}"
-			check = check_eval_strE(eval_strE, polK, p, n, w(n), -lam, nthrootofp, delta, PHI)
-			if check:
-				break
-			lam += 1
-		if check:
-			break
 
-		eprint("No amns")
+			eprint("No amns")
 		#PMNS
 		for strE in polydict:
 			if "//" in strE and n & 1:
@@ -218,6 +222,10 @@ if __name__ == "__main__":
 	if "--AMNS" in args:
 		amns_only = True
 		args.pop(args.index("--AMNS"))
+	fast = False
+	if "--fast" in args:
+		fast = True
+		args.pop(args.index("--fast"))
 	opts = [arg for arg in args if arg.startswith("-")]
 	p = handle_opts(args, opts, "p", "-p", "--prime")
 	if p is not None:
@@ -279,13 +287,13 @@ if __name__ == "__main__":
 		if delta:
 			eprint("With delta =", delta)
 		eprint()
-		eprint("Output format [p, n, gamma, E, rho, B, B1]", end="")
+		eprint("Output format [p, n, gamma, E, rho, G, G1]", end="")
 		if amns_only:
 			eprint()
 		else:
 			eprint(" with E as either an integer for AMNS or a list for non-AMNS")
 		eprint("\n")
-		soak, n, gamma, E, rho, B, B1 = genpmns(p, 2**phi, amns_only=amns_only, delta=delta, max_lambda=max_lambda)
+		soak, n, gamma, E, rho, B, B1 = genpmns(p, 2**phi, amns_only=amns_only, delta=delta, max_lambda=max_lambda, fast=fast)
 		if type(E) == int:
 			assert (gamma**n - E) % p == 0
 		else:
@@ -297,5 +305,6 @@ if __name__ == "__main__":
 		print("\t--phi, -F: sets the parameter PHI = 2^phi. Default value is phi=64.")
 		print("\t--delta, -d: use specified delta for number of free additions.")
 		print("\t--AMNS: turns generation into AMNS-only mode which is faster but will ignore other good PMNS shapes.")
+		print("\t--fast: turns generation into fast mode which is much faster but will only output AMNS and will miss some valid ones with lower n sometimes.")
 		print("\t--lambda, -l: use specified value for maximum lambda allowed in AMNS.")
 		print("\t--verbose, -v: verbose mode.")

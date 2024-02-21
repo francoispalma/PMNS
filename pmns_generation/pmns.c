@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <time.h>
+#include <stdint.h>
 
-#include "pmns.h"
-#include "params.h"
+#include "structs.h"
 #include "utilitymp.h"
+#include "params.h"
 
 #define SCHOOLBOOK(X) {\
 	for(int i = 0; i < X; i++)\
@@ -316,38 +317,19 @@ void pmns_montg_ladder(poly res, const poly base, const mpnum exponent)
 	free_poly(tmp);
 }
 
-void pmns_sqandmult(poly res, const char* base, const char* exponent)
-{
-	// Function for fast exponentiation using the square and multiply algorithm.
-	// Returns base^exponent % p. Uses Left to Right square and multiply.
-	
-	poly pbase;
-	mpnum mpexponent;
-	init_poly(N, &pbase);
-	init_mpnum(1, &mpexponent);
-	
-	convert_string_to_pmns(pbase, base);
-	convert_string_to_binary(&mpexponent, exponent);
-	
-	pmns_ltr_sqandmult(res, pbase, mpexponent);
-	
-	free_poly(pbase);
-	free_mpnum(mpexponent);
-}
-
-void convert_string_to_pmns(poly res, const char* string)
+void convert_binary_to_pmns(poly res, const mpnum op)
 {
 	// Function that converts a hexadecimal number given as a string into a
 	// polynomial in our representation system (in the Montgomery domain).
 	
 	uint8_t counter;
-	register uint16_t i, j;
+	register uint16_t i;
 	const uint64_t theta = (1ULL<<THETA);
 	__int128 R[N] = {0};
 	mpnum stok, tmp;
 	init_mpnums(N, &stok, &tmp, 0);
 	
-	convert_string_to_binary(&tmp, string);
+	mp_copy(&tmp, op);
 	
 	mp_mod(&stok, tmp, (const mpnum) &__P__);
 	
@@ -368,7 +350,7 @@ void convert_string_to_pmns(poly res, const char* string)
 	res->t[i] = (stok->t[i-1] >> counter);
 	
 	for(i = 0; i < N; i++)
-		for(j = 0; j < N; j++)
+		for(uint16_t j = 0; j < N; j++)
 			R[j] += (__int128) res->t[i] * __Pi__[i][j];
 	
 	pmns_montg_int_red(res, R);
@@ -376,11 +358,25 @@ void convert_string_to_pmns(poly res, const char* string)
 	free_mpnums(stok, tmp, 0);
 }
 
+void convert_string_to_pmns(poly res, const char* string)
+{
+	// Function that converts a hexadecimal number given as a string into a
+	// polynomial in our representation system (in the Montgomery domain).
+	
+	mpnum tmp;
+	init_mpnum(N, &tmp);
+	
+	convert_string_to_binary(&tmp, string);
+	
+	convert_binary_to_pmns(res, tmp);
+	
+	free_mpnum(tmp);
+}
+
 void convert_pmns_to_binary(mpnum* res, const poly P)
 {
 	// Function that converts out of the PMNS and into a multiprecision number.
 	
-	register uint16_t i;
 	poly a;
 	mpnum aux, ag, tmp, tmp2;
 	__int128 Quite[N];
@@ -394,7 +390,7 @@ void convert_pmns_to_binary(mpnum* res, const poly P)
 		init_mpnum(N, res);
 	}
 	(*res)->deg = N;
-	for(i = 1; i < N; i++)
+	for(uint16_t i = 1; i < N; i++)
 	{
 		(*res)->t[i] = 0;
 		Quite[i] = (__int128) P->t[i];
@@ -405,7 +401,7 @@ void convert_pmns_to_binary(mpnum* res, const poly P)
 	
 	(*res)->sign = 1 - 2 * (a->t[N - 1] < 0);
 	(*res)->t[0] = a->t[N - 1] * (*res)->sign;
-	for(i = 0; i < N - 1; i++)
+	for(uint16_t i = 0; i < N - 1; i++)
 	{
 		mp_mult(&tmp, *res, (const mpnum) &Gi[0]);
 		aux->sign = 1 - 2 * (a->t[N - 2 - i] < 0);
@@ -416,4 +412,23 @@ void convert_pmns_to_binary(mpnum* res, const poly P)
 	
 	free_mpnums(aux, ag, tmp, tmp2, 0);
 	free_poly(a);
+}
+
+void pmns_sqandmult(poly res, const char* base, const char* exponent)
+{
+	// Function for fast exponentiation using the square and multiply algorithm.
+	// Returns base^exponent % p. Uses Left to Right square and multiply.
+	
+	poly pbase;
+	mpnum mpexponent;
+	init_poly(N, &pbase);
+	init_mpnum(1, &mpexponent);
+	
+	convert_string_to_pmns(pbase, base);
+	convert_string_to_binary(&mpexponent, exponent);
+	
+	pmns_ltr_sqandmult(res, pbase, mpexponent);
+	
+	free_poly(pbase);
+	free_mpnum(mpexponent);
 }

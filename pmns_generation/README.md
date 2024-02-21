@@ -40,3 +40,9 @@ You can redirect the output from the generation into a file and then generate wi
 > ./codegen.py tmp
 
 After the codegen is run a params.h file is created with all the necessary parameters to compile pmns.c
+
+### Demo code
+
+Once a params.h file exists run the following command for a demo:
+
+> make demo
