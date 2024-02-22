@@ -417,3 +417,14 @@ void mp_mod(mpnum* res, const mpnum op1, const mpnum op2)
 	free_mpnums(X, R, NULL);
 }
 
+static inline int64_t randomint64(void)
+{
+	return (((int64_t)rand() ^ rand()) << 32) | ((int64_t)rand() ^ rand());
+}
+
+void random_mp(mpnum ret)
+{
+	for(int i = 0; i < ret->deg; i++)
+		ret->t[i] = randomint64();
+}
+

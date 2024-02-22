@@ -15,6 +15,7 @@ void mp_usub(mpnum*, const mpnum, const mpnum);
 void mp_mult(mpnum*, const mpnum, const mpnum);
 void mp_mod(mpnum*, const mpnum, const mpnum);
 void mp_utmod(mpnum*, const mpnum, const mpnum);
+void random_mp(mpnum ret);
 
 #endif
 

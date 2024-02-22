@@ -77,7 +77,7 @@ static inline int64_t randomint64(void)
 
 void randpoly(poly P)
 {
-	// Function that generates a random polynomial with all coefficients < 2^RHO.
+	// Function that generates a random polynomial with all coefficients < RHO.
 	
 	for(register uint16_t i = 0; i < P->deg; i++)
 		P->t[i] = (randomint64() % RHO) * (1 + (rand() & 1) * -2);

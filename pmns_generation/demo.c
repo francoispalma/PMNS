@@ -10,11 +10,6 @@
 
 #define UNUSED(X) ((void)X)
 
-static inline int64_t randomint64(void)
-{
-	return (((int64_t)rand() ^ rand()) << 32) | ((int64_t)rand() ^ rand());
-}
-
 int main(void)
 {
 	int64_t seed;
@@ -24,8 +19,7 @@ int main(void)
 	mpnum A; poly AA; mpnum AAA; mpnum tmp;
 	init_mpnums(N, &A, &AAA, &tmp, 0);
 	init_poly(N, &AA);
-	for(int i = 0; i < N; i++)
-		tmp->t[i] = randomint64();
+	random_mp(tmp);
 	mp_mod(&A, tmp, (const mpnum) &__P__);
 	printf("Random element from Z/pZ:\n");
 	mp_print(A);
