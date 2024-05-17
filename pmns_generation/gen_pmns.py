@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 from sage.all import next_prime, next_probable_prime, previous_prime, GF, PolynomialRing, factor, matrix, ZZ, xgcd, random_prime, is_prime, vector, gcd, factor, pari, randrange
 from math import log2
