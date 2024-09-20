@@ -16,6 +16,7 @@ The code generator expects either a PMNS as parameter or a filename and line num
 
 For example:
 > ./codegen.py 57896044618658097711785492504343953926634992332820282019728792003956564819949, 5, 2251799813685248, 2251799813685266, 'X^5 - 19', 0
+
 will generate the appropriate code into the file "params.h" which is used by the "hpmns.c" file. An example of main file using hpmns.c can be seen in the file "hmain.c" and an example compilation like can be seen by performing:
 > make hmain.exe
 
