@@ -5,6 +5,7 @@ The subdirectory 'curves' contains example of Elliptic curves generated from som
 
 To generate a table from the paper simply enter:
 > make tableX
+
 where X is the table number.
 
 The PMNS generator will display the expected syntax when executed like so:
