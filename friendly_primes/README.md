@@ -21,7 +21,7 @@ For example:
 or alternatively:
 > ./codegen.py [filename] [linenumber]
 
-will generate the appropriate code into the file "params.h" which is used by the "hpmns.c" file. An example of main file using hpmns.c can be seen in the file "hmain.c" and an example compilation like can be seen by performing:
+will generate the appropriate code into the file "params.h" which is used by the "hpmns.c" file, which is intended to be imported in other projects as opposed to "pmns.c" which has been specifically written for the benchmarks of the paper. An example of main file using hpmns.c can be seen in the file "hmain.c" and an example compilation can be seen by performing:
 > make hmain.exe
 
 which can then be executed with the line
