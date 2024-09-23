@@ -1,6 +1,8 @@
 FLAGS= -Wall -Wextra -g -O3 -funswitch-loops -funroll-loops -fno-tree-vectorize
 CC = gcc
 
+all: hmain.exe
+
 Npmns.o: pmns.c
 	$(CC) -c $< $(FLAGS) -D VARIOUSNVALUES -o $@
 
