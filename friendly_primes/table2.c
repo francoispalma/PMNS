@@ -19,13 +19,13 @@ int main(void)
 	
 	const uint64_t nbrepet = 303; // Must be multiple of 3.
 	
-	mp_limb_t hp256n5[] = {0xffffffffffffffe1, 0xffffffffffffffff, 0xffffffffffffffff, 0x7fffffffffffffff, 0};
-	setpmnsparams(5, 2251799813685248, 31);
-	setpmnssparseinv(16066591670644244480u, 16066591670644244480u, 17256631552825064415u);
-	cycles = do_bench(pmns_doublesparse_mult, 5, 2251799813685278, nbrepet);
-	printf("DoubleSparse 256: %ld cycles\n", cycles);
+	mp_limb_t hp255n5[] = {0xffffffffffffffed, 0xffffffffffffffff, 0xffffffffffffffff, 0x7fffffffffffffff, 0};
+	setpmnsparams(5, 2251799813685248, 19);
+	setpmnssparseinv(5825406118003736576u, 5825406118003736576u, 9708812670373448219u);
+	cycles = do_bench(pmns_doublesparse_mult, 5, 2251799813685266, nbrepet);
+	printf("DoubleSparse 255: %ld cycles\n", cycles);
 	spacycles[0] = cycles;
-	printf("Correct: %ld/%d\n", checkPmns(5, 2251799813685278, 2251799813685248, hp256n5, pmns_doublesparse_mult), LOOPCHKNMB);
+	printf("Correct: %ld/%d\n", checkPmns(5, 2251799813685266, 2251799813685248, hp255n5, pmns_doublesparse_mult), LOOPCHKNMB);
 	
 	mp_limb_t hp383n7[] = {0xfffffffffffffffd, 0xffffffffffffffff, 0xffffffffffffffff, 0xaef6865effffffff, 0x201cb4d65c63dd8c, 0x40006d54c7279d58, 0};
 	setpmnsparams(7, 26769392989634560, 3);
@@ -44,13 +44,13 @@ int main(void)
 	spacycles[2] = cycles;
 	printf("Correct: %ld/%d\n", checkPmns(7, 636464340236500993, 636464340236500992, hp414n7, pmns_doublesparse_mult), LOOPCHKNMB);
 	
-	mp_limb_t hp448n8[] = {0xfffffffffffffffd, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xb9a1e9386a15f060, 0x630c235bfe9221fe, 0x800154a7dd9cb573, 0};
+	/*mp_limb_t hp448n8[] = {0xfffffffffffffffd, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0xb9a1e9386a15f060, 0x630c235bfe9221fe, 0x800154a7dd9cb573, 0};
 	setpmnsparams(8, 66077440488767488, 3);
 	setpmnssparseinv(12319855195969290240u, 12319855195969290240u, 12297829382473034411u);
 	cycles = do_bench(pmns_doublesparse_mult, 8, 66077440488767490, nbrepet);
 	printf("DoubleSparse 448: %ld cycles\n", cycles);
 	spacycles[3] = cycles;
-	printf("Correct: %ld/%d\n", checkPmns(8, 66077440488767490, 66077440488767488, hp448n8, pmns_doublesparse_mult), LOOPCHKNMB);
+	printf("Correct: %ld/%d\n", checkPmns(8, 66077440488767490, 66077440488767488, hp448n8, pmns_doublesparse_mult), LOOPCHKNMB);*/
 	
 	mp_limb_t hp512n9[] = {0xfffffffffffffffd, 0xffffffffffffffff, 0xffffffffffffffff, 0xffffffffffffffff, 0x98fac9ffffffffff,0xee846d77242cfe8f, 0xa545f31d9bad3565, 0x40002ce4a6f2f8a8, 0};
 	setpmnsparams(9, 114384436610465792, 3);
@@ -68,13 +68,13 @@ int main(void)
 	spacycles[5] = cycles;
 	printf("Correct: %ld/%d\n", checkPmns(9, 247085628838117378, 247085628838117376, hp521n9, pmns_doublesparse_mult9), LOOPCHKNMB);
 	
-	mp_limb_t p256n5[] = {0xa80000000003cbfd, 0x0010e0000000000c, 0x0000000b40000000, 0x800000000003c000, 0};
+	mp_limb_t p255n5[] = {0xa80000000003cbfd, 0x0010e0000000000c, 0x0000000b40000000, 0x800000000003c000, 0};
 	setpmnsparams(5, 2251799813685260, 3);
 	setpmnslastcol((uint64_t[]) {10589719013596916053u, 3328969402090188796u, 12268509515263197136u, 17986819276134612416u,11630609810127578368u,});
 	cycles = do_bench(pmns_linearred_mult, 5, 2251799813685262, nbrepet);
 	printf("LinearRed 256: %ld cycles\n", cycles);
 	lincycles[0] = cycles;
-	printf("Correct: %ld/%d\n", checkPmns(5, 2251799813685262, 2251799813685260, p256n5, pmns_linearred_mult), LOOPCHKNMB);
+	printf("Correct: %ld/%d\n", checkPmns(5, 2251799813685262, 2251799813685260, p255n5, pmns_linearred_mult), LOOPCHKNMB);
 	
 	mp_limb_t p383n7[] = {0x827c835db704d27d, 0xfa496d78dfdbb88e, 0xcb892df02209b1d9, 0x5be7c452cf7ab6d1, 0x0d03f447f9a6c8b0, 0x4000000000000915, 0};
 	setpmnsparams(7, 26769293307327386, 3);
@@ -92,13 +92,13 @@ int main(void)
 	lincycles[2] = cycles;
 	printf("Correct: %ld/%d\n", checkPmns(7, 576460752303423622, 576460752303423621, p414n7, pmns_linearred_mult), LOOPCHKNMB);
 	
-	mp_limb_t p448n8[] = {0x624bc8e9c067a0fd, 0xcbf4b2c63b00e317, 0xa0cd9555210a63e0, 0x105354ed7cfe644b, 0xe18007f8a9ad382b, 0x0d9bd8f75e3b4bc5, 0x800000000005776a, 0};
+	/*mp_limb_t p448n8[] = {0x624bc8e9c067a0fd, 0xcbf4b2c63b00e317, 0xa0cd9555210a63e0, 0x105354ed7cfe644b, 0xe18007f8a9ad382b, 0x0d9bd8f75e3b4bc5, 0x800000000005776a, 0};
 	setpmnsparams(8, 66077105076381050, 3);
 	setpmnslastcol((uint64_t[]) {3546674433909423189u, 17272956169590049154u, 4401242359300837876u, 11803910513052176968u, 9760500218265968208u, 13990977856189956640u, 9301119457689969472u, 11609398705935355008u,});
 	cycles = do_bench(pmns_linearred_mult, 8, 66077105076381052, nbrepet);
 	printf("LinearRed 448: %ld cycles\n", cycles);
 	lincycles[3] = cycles;
-	printf("Correct: %ld/%d\n", checkPmns(8, 66077105076381052, 66077105076381050, p448n8, pmns_linearred_mult), LOOPCHKNMB);
+	printf("Correct: %ld/%d\n", checkPmns(8, 66077105076381052, 66077105076381050, p448n8, pmns_linearred_mult), LOOPCHKNMB);*/
 	
 	mp_limb_t p512n9[] = {0x21cb2f3997fffffd, 0x8dc76bf1f3d1c3ee, 0xb41bfd602771fafd, 0x69772bbf38af18b3, 0x651fe55cbafdeb16, 0x7c8ce4e9c47f9cf8, 0x80d079a56c657e96, 0x8000000000034f27, 0};
 	setpmnsparams(9, 123541877815766680, 3);
@@ -131,10 +131,10 @@ int main(void)
 	optcycles[2] = cycles;
 	printf("Correct: %ld/%d\n", checkOpti(7, 0x40000000, 17, 7, C41417convert, multModC41417), LOOPCHKNMB);
 	
-	cycles = do_pmersbench(multModEd448, nbrepet, 8, Ed448convert);
+	/*cycles = do_pmersbench(multModEd448, nbrepet, 8, Ed448convert);
 	printf("Ed448-Goldilocks: %ld cycles\n", cycles);
 	optcycles[3] = cycles;
-	printf("Correct: %ld/%d\n", checkOpti(0, 0, 0, 0, 0, multModEd448), LOOPCHKNMB);
+	printf("Correct: %ld/%d\n", checkOpti(0, 0, 0, 0, 0, multModEd448), LOOPCHKNMB);*/
 	
 	cycles = do_pmersbench(multModM511, nbrepet, 9, M511convert);
 	printf("M-511: %ld cycles\n", cycles);
@@ -171,7 +171,7 @@ int main(void)
 	gmpcycles[5] = cycles;
 	printf("Correct: %ld/%d\n", checkmodmul(1, 9, 9), LOOPCHKNMB);
 	
-	printf("\n==============================================================================\n");
+	/*printf("\n==============================================================================\n");
 	printf("|   Method \\ Prime size    |  255   |  383  |  414   |  448  |  511  |  521  |\n");
 	printf("==============================================================================\n");
 	printf("|   Corresponding Curve    | C25519 | M-383 | C41417 | Ed448 | M-511 | E-521 |\n");
@@ -183,7 +183,21 @@ int main(void)
 	printf("|      LinearRed PMNS      |   %lu   |  %lu  |  %lu   |  %lu  |  %lu  |  %lu  |\n", lincycles[0], lincycles[1], lincycles[2], lincycles[3], lincycles[4], lincycles[5]);
 	printf("==============================================================================\n");
 	printf("|  Adapted GMP low level   |   %lu   |  %lu  |  %lu   |  N/A  |  %lu  |  %lu  |\n", gmpcycles[0], gmpcycles[1], gmpcycles[2], gmpcycles[4], gmpcycles[5]);
-	printf("==============================================================================\n\n");
+	printf("==============================================================================\n\n");*/
+	
+	printf("\n======================================================================\n");
+	printf("|   Method \\ Prime size    |  255   |  383  |  414   |  511  |  521  |\n");
+	printf("======================================================================\n");
+	printf("|   Corresponding Curve    | C25519 | M-383 | C41417 | M-511 | E-521 |\n");
+	printf("======================================================================\n");
+	printf("| Optimized Multiprecision |   %lu   |  %lu  |  %lu   |  %lu  |  %lu  |\n", optcycles[0], optcycles[1], optcycles[2], optcycles[4], optcycles[5]);
+	printf("======================================================================\n");
+	printf("|    DoubleSparse PMNS     |   %lu   |  %lu  |  %lu   |  %lu  |  %lu  |\n", spacycles[0], spacycles[1], spacycles[2], spacycles[4], spacycles[5]);
+	printf("======================================================================\n");
+	printf("|      LinearRed PMNS      |   %lu   |  %lu  |  %lu   |  %lu  |  %lu  |\n", lincycles[0], lincycles[1], lincycles[2], lincycles[4], lincycles[5]);
+	printf("======================================================================\n");
+	printf("|  Adapted GMP low level   |   %lu   |  %lu  |  %lu   |  %lu  |  %lu  |\n", gmpcycles[0], gmpcycles[1], gmpcycles[2], gmpcycles[4], gmpcycles[5]);
+	printf("======================================================================\n\n");
 	
 	return 0;
 }
