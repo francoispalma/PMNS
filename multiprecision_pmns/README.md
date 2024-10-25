@@ -1,7 +1,7 @@
 # Under Construction
 Edit the values at the top of the "genmppmns.py" file before launching it for generation. Later it will be done with parameters and options.
 
-Once a PMNS is found, the values in "mpprecalcs.py" and launch it to generate the corresponding "mpparams.h" file needed.
+Once a PMNS is found, edit the values in "mpprecalcs.py" and launch it to generate the corresponding "mpparams.h" file needed.
 
 Then, simply run "make" to launch a benchmark and validation code.
 
