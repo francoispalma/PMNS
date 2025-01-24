@@ -1,5 +1,5 @@
 # PMNS using friendly primes
-This repository contains codes to generate Polynomial Modular Number Systems (PMNS) for a friendly class of primes and code to generate parameters for use in the accompanying C code for it. It also contains benchmarking code to compare the performances with other modular arithmetic of a given size in bits.
+This repository contains codes to generate Polynomial Modular Number Systems (PMNS) for a friendly class of primes (preprint available at https://eprint.iacr.org/2025/90) and code to generate parameters for use in the accompanying C code for it. It also contains benchmarking code to compare the performances with other modular arithmetic of a given size in bits.
 
 The subdirectory 'curves' contains example of Elliptic curves generated from some randomly generated primes belonging to the PMNS-friendly class.
 
