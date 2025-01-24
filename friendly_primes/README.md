@@ -29,5 +29,5 @@ which can then be executed with the line
 
 to benchmark the resulting PMNS and check the result of a million multiplications.
 
-Note : To use the PMNS generator, you will need SageMath library which can be found here: http://www.sagemath.org/
+Note : To use the PMNS generator, you will need the SageMath library which can be found here: http://www.sagemath.org/
 
