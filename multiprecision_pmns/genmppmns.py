@@ -6,10 +6,10 @@ from sage.all import ZZ, random_prime, GF, factor, matrix, round,xgcd,vector, ce
 VERBOSE = True
 FAST = True
 
-NBCHUNKS = 3
+NBCHUNKS = 4
 PHI = NBCHUNKS*64
-size = 1024
-n = 6
+size = 8192
+n = 144//4
 maxlambda = 2
 
 def eprint(*args, **kwargs):
@@ -22,8 +22,9 @@ if size//(64-ceil(log((size//64)/exp(1),2))) > n * NBCHUNKS:
 def findminrow(mat, lam):
 	"""Function that finds the row with the smallest 1-norm.
 	"""
+	norm1 = lambda V: sum([abs(elem) for elem in V])
 	# The 1-norm of the companion matrix is computed with compnorm.
-	compnorm = lambda X : vector(list(X)[1:]).norm(1)*lam + abs(X[0])
+	compnorm = lambda X : norm1(vector(list(X)[1:]))*lam + abs(X[0])
 	minnorm = mat.det()
 	mindex = -1
 	i = 0
