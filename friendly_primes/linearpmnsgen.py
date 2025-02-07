@@ -44,7 +44,7 @@ def gen_pmns(psize, n, alpha=1, k=1, PHI=64, max_lambda=2**64, mindelta=0, seque
 	if alpha == 1:
 		lambda_max = lambda gamma : (floor(sqrt((((n-1)*(gamma-2))**2 - 2*(n-1)*(gamma - PHI//((1+mindelta)**2) - 1) + 1)) - ((n-1)*(gamma-2)+1)))//(2*(n-1))
 	else:
-		lambda_max = lambda gamma : (PHI//((1+mindelta)**2) - 1 - 2*aleph*(aleph*gamma - 1))//(2*(aleph*gamma - 1)*(n-1))
+		lambda_max = lambda gamma : max(alpha,floor( (PHI/(2*(aleph*gamma - 1)*(1+mindelta)**2) - alpha)/(n-1)))
 	if lambda_max(lowgamma) < 1:
 		eprint("lambda_max for low gamma < 1")
 		return 0
