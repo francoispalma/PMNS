@@ -3,20 +3,24 @@ import sys
 
 from sage.all import ZZ, random_prime, GF, factor, matrix, round,xgcd,vector, ceil, gcd, exp, log
 
-VERBOSE = True
-FAST = True
+VERBOSE = True  # enables verbose mode
+FAST = True  # if true skips finding polynomial roots through sage
 
-NBCHUNKS = 4
-PHI = NBCHUNKS*64
-size = 8192
-n = 144//4
-maxlambda = 2
+s = 3  # parameter s
+size = 8192  # prime size
+n = 48  # parameter n
+maxlambda = 2  # max value of lambda allowed in the generation
+SIGMA = 64  # size of a memory register
+PHI = s*SIGMA  # temporary phi for generation purposes
+SANITY = 2**SIGMA  # sanity check at the end
 
 def eprint(*args, **kwargs):
 	if VERBOSE:
 		print(*args, file=sys.stderr, **kwargs)
 
-if size//(64-ceil(log((size//64)/exp(1),2))) > n * NBCHUNKS:
+NBCHUNKS = s
+
+if size//(SIGMA-ceil(log(size/(SIGMA*exp(1)),2))) > n * NBCHUNKS:
 	eprint("Warning: n seems too small for this size")
 
 def findminrow(mat, lam):
@@ -25,20 +29,31 @@ def findminrow(mat, lam):
 	norm1 = lambda V: sum([abs(elem) for elem in V])
 	# The 1-norm of the companion matrix is computed with compnorm.
 	compnorm = lambda X : norm1(vector(list(X)[1:]))*lam + abs(X[0])
-	minnorm = mat.det()
+	minM = []
+	minnorm = abs(mat.det())
 	mindex = -1
 	i = 0
+	E = ZZ["X"](f"X^{n} - {lam}")
 	for lig in mat:
 		tmp = list(lig)
-		# We can reduce the norm slightly by dividing by X mod E.
-		while not(tmp[0]%lam):
+		while True:
+			M = ZZ["X"](tmp)
+			val, M1, soak = xgcd(M, E)
+			try:
+				val = ZZ(val)
+				if val & 1:  # if val is even it won't have a gcd of 1 with phi
+					norm = compnorm(tmp)
+					if norm < minnorm:
+						minnorm = norm
+						mindex = i
+						minM = tmp
+			except TypeError:
+				pass
+			if tmp[0]%lam:
+				break
 			tmp = tmp[1:] + [tmp[0]//lam]
-		norm = compnorm(tmp)
-		if norm < minnorm:
-			minnorm = norm
-			mindex = i
 		i += 1
-	return mindex, minnorm
+	return mindex, minnorm, minM
 
 if __name__ == "__main__":
 	ZZX = ZZ["X"]
@@ -50,7 +65,6 @@ if __name__ == "__main__":
 		p = random_prime(2**size,lbound=2**(size-1),proof=False)
 		K = GF(p,proof=False)
 		lam = 2
-		
 		# We try to find the nth root fast
 		hdrb = gcd(p-1,n)
 		if hdrb == 1:  # case GCD = 1
@@ -104,14 +118,15 @@ if __name__ == "__main__":
 		# We have found the gamma which gives the smallest 1-norm matrix
 		w = (n-1) * abs(lam) + 1
 		if 2*w*(normin - 1) < 2**PHI:
-			phi = 2*w*(normin - 1)
+			rho = normin - 1
+			phi = 2*w*rho
 			philog2 = int(phi).bit_length()
 			rhover2 = ceil(philog2/chunks)
 			eprint("\nfound\n")
-			if 2*lam*2**rhover2 < 2**64:  # Last sanity check
+			if n*lam*rho**(ZZ(1)/NBCHUNKS) < SANITY:  # Last sanity check
 				break
 			else:
-				eprint("bit big", (2*lam*2**rhover2)>>64, rhover2)
+				eprint("bit big", round(n*lam*rho**(ZZ(1)/NBCHUNKS)/SANITY), rhover2, hdrb)
 		else:
 			eprint("\ntoo big:", int(2*w*(normin - 1)) >> PHI)
 		cpt += 1

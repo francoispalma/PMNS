@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-
 from ast import literal_eval
-from mpprecalcs import p, n, gamma, lam, rho, philog2
+from codegen import p, n, gamma, lam, rho, philog2
 
 def horner_modulo(Poly: list, X: int, modulo: int) -> int:
 	"""Polynomial evaluation function using Horner's algorithm, applying a
@@ -17,7 +15,7 @@ def horner_modulo(Poly: list, X: int, modulo: int) -> int:
 	"""
 	sum_ = 0
 	for i in range(len(Poly) - 1, -1, -1):
-		sum_ = int(sum_ * X % modulo)
+		sum_ = sum_ * X
 		sum_ = sum_ + Poly[i]
 	return int(sum_ % modulo)
 
@@ -28,8 +26,7 @@ if __name__ == "__main__":
 	lastmorethanrho = 0
 	lastinp = 0
 	phi = 2**philog2
-	print("Starting")
-	with open("tmp", "r") as f:
+	with open("log", "r") as f:
 		lines = f.readlines()
 	while lines:
 		print("\btested:" + str(visual) + "\terrors: " + str(counter), end="\r")
@@ -40,10 +37,6 @@ if __name__ == "__main__":
 		c_check = (horner_modulo(a, gamma, p) * horner_modulo(b, gamma, p) * pow(phi, -1, p)) % p
 		if horner_modulo(c, gamma, p) != c_check:
 			counter += 1
-			if counter == 1:
-				print(a)
-				print(b)
-				print(c)
 		toaddto = 0
 		for elem in c:
 			if abs(elem) >= rho:
@@ -53,5 +46,3 @@ if __name__ == "__main__":
 		morethanrho += toaddto
 	print("")
 	print("more than rho: ", morethanrho)
-	if morethanrho:
-		print(lastmorethanrho, rho, lastinp)

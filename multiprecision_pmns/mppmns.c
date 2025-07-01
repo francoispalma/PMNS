@@ -8,9 +8,7 @@
 #define NSAMPLES 1001
 
 #define LOW(X) ((uint64_t)X)
-#define LO(X) ((int64_t)X)
 #define HIGH(X) ((int64_t)(X>>64))
-#define HI(X) ((uint64_t)(X>>64))
 
 #include "toeplitzmacros.h"
 
@@ -45,41 +43,14 @@ void randpoly(mppoly P)
 	}
 }
 
-static inline void mtoep2(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
-	SCHOOLBOOK(N/3)
-
-// Toeplitz standard vector matrix multiplication
-static inline void toeplitz_vm(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
-	TOEP33TOP(N, mtoep2)
-
-// Toeplitz version where the result is added to rop instead of erasing
-static inline void ptoeplitz_vm(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
-	pTOEP33TOP(N, mtoep2)
-
-static inline void m1toep2(int64_t* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
-	M1SCHOOLBOOK(N/3)
-
-// Toeplitz version where only the low part of the result matters
-static inline void m1toep6(int64_t* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
-	M1TOEP33TOP(N, m1toep2)
-
-// Utility function to extract the lower 64 bits of each vector coefficient
-static inline void m1toeplitz_vm(int64_t* restrict rop, const __int128* restrict vect)
-{
-	int64_t v[N];
-	for(int i = 0; i < N; i++)
-		v[i] = vect[i];
-	m1toep6(rop, v, M1);
-}
-
 void pmns_montg_mult(restrict mppoly res, const restrict mppoly A, const restrict mppoly B)
 {
-	// Function that multiplies A by B using the Montgomery approach in a
+	// Function that multiplies A by B using the Montgomery CIOS approach in a
 	// PMNS. Puts the result in res. A and B have to be in the system and res
-	// will be in the pmns also such that if A(gamma) = a * phi mod p and 
+	// will be in the PMNS also such that if A(gamma) = a * phi mod p and 
 	// B(gamma) = b * phi mod p then res(gamma) = a * b * phi mod p
 	
-	uint64_t T[N];
+	int64_t T[N];
 	__int128 Res[2*NBCHUNKS-1][N];
 	__int128 aux[NBCHUNKS][N];
 	int64_t m1aux[N];
@@ -87,18 +58,12 @@ void pmns_montg_mult(restrict mppoly res, const restrict mppoly A, const restric
 	int64_t matr[NBCHUNKS][2*N-1];
 	
 	// We construct the Toeplitz Matrices
-	for(int i = 0; i < N-1; i++)
-	{
+	for(int i = 0; i < N; i++)
 		for(int j = 0; j < NBCHUNKS; j++)
-		{
 			matr[j][i + N - 1] = B->t[j][i];
+	for(int i = 0; i < N-1; i++)
+		for(int j = 0; j < NBCHUNKS; j++)
 			matr[j][i] = B->t[j][1 + i] * LAMBDA;
-		}
-	}
-	for(int j = 0; j < NBCHUNKS; j++)
-	{
-		matr[j][2*N - 2] = B->t[j][N - 1];
-	}
 	
 	// Res <- A * B[0] mod E
 	for(int j = 0; j < NBCHUNKS; j++)
@@ -113,7 +78,8 @@ void pmns_montg_mult(restrict mppoly res, const restrict mppoly A, const restric
 		
 		// Res <- Res + T * M
 		for(int j = 0; j < NBCHUNKS; j++)
-			toeplitz_vm(aux[j], (int64_t*)T, M[j]);
+			multbym[j](aux[j], (int64_t*)T);
+		
 		for(int j = 0; j < N; j++)
 		{
 			for(int k = 0; k < NBCHUNKS; k++)
@@ -129,7 +95,7 @@ void pmns_montg_mult(restrict mppoly res, const restrict mppoly A, const restric
 		toeplitz_vm(Res[i+NBCHUNKS], A->t[NBCHUNKS - 1], matr[i+1]);
 	}
 	
-	// Last iteration is done outside the loop for small optimizations
+	// The last iteration is done outside the loop for small optimizations
 	// T <- Res[0] * M1 mod E mod PHI
 	m1toeplitz_vm(m1aux, Res[NBCHUNKS - 1]);
 	for(int j = 0; j < N; j++)
@@ -137,7 +103,8 @@ void pmns_montg_mult(restrict mppoly res, const restrict mppoly A, const restric
 	
 	// Res <- Res + T*M
 	for(int j = 0; j < NBCHUNKS; j++)
-		toeplitz_vm(aux[j], (int64_t*)T, M[j]);
+		multbym[j](aux[j], (int64_t*)T);
+	
 	for(int j = 0; j < N; j++)
 	{
 		Res[NBCHUNKS - 1][j] += aux[0][j];
@@ -157,6 +124,7 @@ void pmns_montg_mult(restrict mppoly res, const restrict mppoly A, const restric
 
 static void p192_print(const restrict mppoly P)
 {
+	// Printing function for multiprecision coefficient polynomials.
 	uint64_t tmp[NBCHUNKS];
 	uint8_t counter;
 	printf("[");
@@ -178,10 +146,15 @@ static void p192_print(const restrict mppoly P)
 		}
 		else
 		{
+			if(NBCHUNKS>1)
+			{
 			printf("-0x%lx", -tmp[NBCHUNKS-1]-1);
 			for(int16_t j = NBCHUNKS - 2; j > 0; j--)
 				printf("%016lx", -tmp[j] - 1);
 			printf("%016lx", -tmp[0]);
+			}
+			else
+				printf("-0x%lx", -tmp[0]);
 		}
 		if(i == P->deg - 1)
 			printf("]\n");
@@ -189,6 +162,12 @@ static void p192_print(const restrict mppoly P)
 			printf(", ");
 	}
 }
+
+/**** Measurements procedures according to INTEL white paper
+
+	"How to benchmark code execution times on INTEL IA-32 and IA-64"
+
+*****/
 
 void quicksort(uint64_t* t, int n)
 {
@@ -336,8 +315,26 @@ uint64_t do_bench(void (*pmns_mult)(restrict mppoly, const restrict mppoly, cons
 	return medianTimer/NSAMPLES/W; // We divide by W since we measured W calls.
 }
 
+/****
+
+	End of section.
+
+*****/
+
 int main(void)
 {
+	time_t seed;
+	srand((unsigned) (time(&seed)));
+	
+	
+	#ifndef NOBENCH
+	printf("This work s = %d: %ld\n", NBCHUNKS, do_bench(pmns_montg_mult,N>40 ? 3 : 33));
+	#endif
+	
+	FILE *fpointer = fopen("log", "w+");
+	fclose(fpointer);
+	fpointer = freopen("log", "a+", stdout);
+	
 	_mppoly A, B, C;
 	int64_t atab[NBCHUNKS][N], btab[NBCHUNKS][N], ctab[NBCHUNKS][N];
 	A.deg = N; B.deg = N; C.deg = N;
@@ -347,16 +344,6 @@ int main(void)
 		B.t[j] = btab[j];
 		C.t[j] = ctab[j];
 	}
-	
-	time_t seed;
-	srand((unsigned) (time(&seed)));
-	
-	printf("cycles: %ld\n", do_bench(pmns_montg_mult, (210/(N*NBCHUNKS))*3 + 3));
-	
-	FILE *fpointer = fopen("tmp", "w+");
-	fclose(fpointer);
-	fpointer = freopen("tmp", "a+", stdout);
-	
 	for(int i = 0; i < 1000/(1 + 9*(NBCHUNKS*N>100)); i++)
 	{
 		randpoly(&A);
