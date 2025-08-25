@@ -3,3 +3,8 @@ __pycache__/
 *.exe
 *.tmp
 tmp*
+multiprecision_pmns/log
+multiprecision_pmns/avx512log
+internal_reduction_comparison/mlog
+internal_reduction_comparison/blog
+internal_reduction_comparison/plog
