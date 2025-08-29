@@ -1284,19 +1284,38 @@ int main(void)
 	time_t seed;
 	srand((unsigned) (time(&seed)));
 	
-	//printf("cycles %ld\n", do_bench(gmp_mult_wrapper,3));
-	//printf("cycles %ld\n", do_bench(gmp_montg_wrapper,3));
-	//printf("cycles %ld\n", do_bench(pmns_montg_mult,33));
-	//printf("cycles %ld\n", do_bench(pmns_montg_mult_multithread,3));
-	printf("cycles %ld\n", do_bench(pmns_barrett_mult,33));
-	//printf("cycles %ld\n", do_bench(pmns_plant_mult, 3));
-	//printf("cycles128 %ld\n", do_bench128(amns128_montg_mult,3));
+#if N > 48
+	int W = 3;
+#else
+	int W = 33;
+#endif
+	
+	uint64_t pcycles, mcycles = 0, bcycles = 0;
+#ifndef NOBENCH
+	//printf("cycles %ld\n", do_bench(gmp_mult_wrapper,W));
+	//printf("cycles %ld\n", do_bench(gmp_montg_wrapper,W));
+	//printf("Plantard-like cycles %ld\n", do_bench(pmns_plant_mult, W));
+	pcycles = do_bench(pmns_plant_mult, W);
+#ifndef NOMONTG
+	//printf("Montgomery-like cycles %ld\n", do_bench(pmns_montg_mult,W));
+	//printf("cycles %ld\n", do_bench(pmns_montg_mult_multithread,W));
+	mcycles = do_bench(pmns_montg_mult, W);
+#ifndef NOBARRETT
+	//printf("Barrett-like cycles %ld\n", do_bench(pmns_barrett_mult,W));
+	bcycles = do_bench(pmns_barrett_mult, W);
+#endif
+#endif
+	//printf("cycles128 %ld\n", do_bench128(amns128_montg_mult,W));
 	
 	//printf("gnump cycles %ld\n", do_expbench(gmp_ltr_wrapper,3));
 	//printf("plantard cycles %ld\n", do_expbench(pmns_ltr_plant,3));
 	//printf("montgom cycles %ld\n", do_expbench(pmns_ltr_montg,3));
 	//printf("barrett cycles %ld\n", do_expbench(pmns_ltr_barrett,3));
-	
+	char mstr[10], bstr[10];
+	sprintf(mstr, mcycles ? "%ld" : "-", mcycles);
+	sprintf(bstr, bcycles ? "%ld" : "-", bcycles);
+	printf("||\t%d\t||\t%ld\t||\t%s\t||\t%s\t||\n", N, pcycles, mstr, bstr); 
+#endif
 	/*_poly A, B, C;
 	int64_t atab[N], btab[N], ctab[N];
 	A.deg = N; B.deg = N; C.deg = N;
