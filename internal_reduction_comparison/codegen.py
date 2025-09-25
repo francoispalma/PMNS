@@ -6,7 +6,7 @@ from dictofredcomppmns import pmnsdict, pmnsdict128
 import os
 
 (p,n,gamma,lam,rho,M) = \
-pmnsdict[21]
+pmnsdict[232]
 pmnsdict128[18]
 
 #rho = 2*(rho+1)
@@ -15,6 +15,10 @@ pmnsdict128[18]
 #exit()
 
 s = 1
+
+if "NSIZE" in os.environ:
+	NSIZE = int(os.environ["NSIZE"])
+	(p,n,gamma,lam,rho,M) = pmnsdict[NSIZE]
 
 splitdico = {189:[3,3,3],80:[2,5],60:[2,2,3],48:[2,3],40:[2,2,2],36:[2,3],32:[2,2,2],27:[3,3],24:[2,3],20:[2,2],18:[3],16:[2,2],12:[3],9:[3],6:[2]}
 

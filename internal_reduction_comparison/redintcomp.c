@@ -1392,7 +1392,7 @@ int main(void)
 	fclose(fpointer);
 	fpointer = freopen("plog", "a+", stdout);
 	
-	for(int i = 0; i < 10; i++)
+	for(int i = 0; i < 1000; i++)
 	{
 		randpoly(&A);
 		randpoly(&B);
