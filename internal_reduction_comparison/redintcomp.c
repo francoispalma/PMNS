@@ -1295,7 +1295,9 @@ int main(void)
 	//printf("cycles %ld\n", do_bench(gmp_mult_wrapper,W));
 	//printf("cycles %ld\n", do_bench(gmp_montg_wrapper,W));
 	//printf("Plantard-like cycles %ld\n", do_bench(pmns_plant_mult, W));
+#ifndef EXPBENCH
 	pcycles = do_bench(pmns_plant_mult, W);
+#endif
 #ifndef NOMONTG
 	//printf("Montgomery-like cycles %ld\n", do_bench(pmns_montg_mult,W));
 	//printf("cycles %ld\n", do_bench(pmns_montg_mult_multithread,W));
@@ -1308,9 +1310,14 @@ int main(void)
 	//printf("cycles128 %ld\n", do_bench128(amns128_montg_mult,W));
 	
 	//printf("gnump cycles %ld\n", do_expbench(gmp_ltr_wrapper,3));
+#ifdef EXPBENCH
 	//printf("plantard cycles %ld\n", do_expbench(pmns_ltr_plant,3));
 	//printf("montgom cycles %ld\n", do_expbench(pmns_ltr_montg,3));
 	//printf("barrett cycles %ld\n", do_expbench(pmns_ltr_barrett,3));
+	pcycles = do_expbench(pmns_ltr_plant,3)/1000;
+	mcycles = do_expbench(pmns_ltr_montg,3)/1000;
+	bcycles = do_expbench(pmns_ltr_barrett,3)/1000;
+#endif
 	char mstr[10], bstr[10];
 	sprintf(mstr, mcycles ? "%ld" : "-", mcycles);
 	sprintf(bstr, bcycles ? "%ld" : "-", bcycles);

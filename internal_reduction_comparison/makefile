@@ -75,6 +75,47 @@ redintcomp:
 	@rm redparams.h
 	@mv tmpparams__.h redparams.h 2>/dev/null || true
 
+modexpcomp:
+	@mv redparams.h tmpparams__.h 2>/dev/null || true
+	@echo 256 bit primes
+	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@cp tableparams/redparams_5.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@./redintcomp.exe
+	@echo 512 bit primes
+	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@cp tableparams/redparams_9.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@./redintcomp.exe
+	@echo 1024 bit primes
+	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@cp tableparams/redparams_18.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@./redintcomp.exe
+	@echo 2048 bit primes
+	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@cp tableparams/redparams_38.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@./redintcomp.exe
+	@echo 4096 bit primes
+	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@cp tableparams/redparams_80.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@./redintcomp.exe
+	@echo 6144 bit primes
+	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@cp tableparams/redparams_128.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@./redintcomp.exe
+	@echo 8192 bit primes
+	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@cp tableparams/redparams_168.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@./redintcomp.exe
+	@rm redparams.h
+	@mv tmpparams__.h redparams.h 2>/dev/null || true
+
+
 redintcomp.exe: redintcomp.c
 	@$(CC) -o redintcomp.exe redintcomp.c -D $(execf) -g -Wall -Wextra -Wno-comment -O3 -funswitch-loops -funroll-loops -fno-tree-vectorize -fwhole-program -lgmp -fopenmp
 
