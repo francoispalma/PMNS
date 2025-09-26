@@ -1,4 +1,6 @@
 CC = gcc-12
+FASTFLAGS = -O3 -funswitch-loops -funroll-loops -fno-tree-vectorize
+WARNINGS = -g -Wall -Wextra -Wno-comment
 MAKEFLAGS += --no-print-directory
 execf="BENCH"
 
@@ -211,7 +213,10 @@ modexpcomp:
 
 
 redintcomp.exe: redintcomp.c
-	@$(CC) -o redintcomp.exe redintcomp.c -D $(execf) -g -Wall -Wextra -Wno-comment -O3 -funswitch-loops -funroll-loops -fno-tree-vectorize -fwhole-program -lgmp -fopenmp
+	@$(CC) -o $@ $< $(WARNINGS) -D $(execf) $(FASTFLAGS) -fwhole-program -lgmp -fopenmp
+
+int64vsint128.exe: int64vsint128.c
+	@$(CC) -o $@ $< $(WARNINGS) $(FASTFLAGS)
 
 check:
 	python3 redcheck.py
