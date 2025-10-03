@@ -300,7 +300,7 @@ void pmns_montg_mult(restrict poly res, const restrict poly A, const restrict po
 		res->t[i] = ((__int128)Res[i] + aux[i]) >> 64;
 }
 
-void toeplitz_vm3x3_leveldown(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
+/*void toeplitz_vm3x3_leveldown(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
 	SCHOOLBOOK(N/3)
 
 void toeplitz_vm3x3_multithread(__int128* restrict rop, const int64_t* restrict vect, const int64_t* restrict matr)
@@ -358,7 +358,7 @@ void toeplitz_vm3x3_multithread(__int128* restrict rop, const int64_t* restrict 
 		mtoep10(t4, v0m2, m0);
 		#pragma omp section
 		mtoep10(t5, v0m1, m1);
-	}*/
+	}*//*
 	
 	for(int i = 0; i < N/3; i++)
 	{
@@ -440,7 +440,7 @@ void pmns_montg_mult_multithread(restrict poly res, const restrict poly A, const
 			for(int j = 0; j < N; j++)
 				somme += (__int128) A->t[j] * matrix[N - 1 - j + i];
 			Res[i] = somme;
-		}*/
+		}*//*
 		toeplitz_vm3x3_multithread(Res, A->t, matrix);
 	}
 	
@@ -468,7 +468,7 @@ void pmns_montg_mult_multithread(restrict poly res, const restrict poly A, const
 				somme += (__int128)M[N-1-j+i]*T[j];
 			
 			Res[i] += somme;
-		}*/
+		}*//*
 		
 		mtoeplitz_vm3x3_multithread(aux, T, M);
 	}
@@ -476,7 +476,7 @@ void pmns_montg_mult_multithread(restrict poly res, const restrict poly A, const
 	// res <- (Res + aux)/PHI
 	for(int i = 0; i < N; i++)
 		res->t[i] = ((__int128)Res[i]+aux[i]) >> 64;
-}
+}*/
 
 void pmns_montg_mult128(restrict poly128 res, const restrict poly128 A, const restrict poly128 B)
 {
