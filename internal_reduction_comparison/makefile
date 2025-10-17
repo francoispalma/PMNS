@@ -1,4 +1,4 @@
-CC = gcc-12
+CC = gcc
 FASTFLAGS = -O3 -funswitch-loops -funroll-loops -fno-tree-vectorize
 WARNINGS = -g -Wall -Wextra -Wno-comment
 MAKEFLAGS += --no-print-directory
