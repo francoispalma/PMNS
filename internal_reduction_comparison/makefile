@@ -3,6 +3,7 @@ FASTFLAGS = -O3 -funswitch-loops -funroll-loops -fno-tree-vectorize
 WARNINGS = -g -Wall -Wextra -Wno-comment
 MAKEFLAGS += --no-print-directory
 execf="BENCH"
+exponf="PLANT"
 
 redintcomp:
 	@mv redparams.h tmpparams__.h 2>/dev/null || true
@@ -174,46 +175,113 @@ checkredintcomp:
 modexpcomp:
 	@mv redparams.h tmpparams__.h 2>/dev/null || true
 	@echo 256 bit primes
-	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@echo -e '||\tPlant\t||\tMont\t||\tBarr\t||'
 	@cp tableparams/redparams_5.h redparams.h
 	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@echo -ne '||\t'
 	@./redintcomp.exe
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="MONTG" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="BARRETT" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@echo -e '\t||'
 	@echo 512 bit primes
-	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@echo -e '||\tPlant\t||\tMont\t||\tBarr\t||'
 	@cp tableparams/redparams_9.h redparams.h
 	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@echo -ne '||\t'
 	@./redintcomp.exe
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="MONTG" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@cp tableparams/redparams_10.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="BARRETT" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@echo -e '\t||'
 	@echo 1024 bit primes
-	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@echo -e '||\tPlant\t||\tMont\t||\tBarr\t||'
 	@cp tableparams/redparams_18.h redparams.h
 	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@echo -ne '||\t'
 	@./redintcomp.exe
+	@cp tableparams/redparams_20.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="MONTG" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@cp tableparams/redparams_21.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="BARRETT" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@echo -e '\t||'
 	@echo 2048 bit primes
-	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@echo -e '||\tPlant\t||\tMont\t||\tBarr\t||'
 	@cp tableparams/redparams_38.h redparams.h
 	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@echo -ne '||\t'
 	@./redintcomp.exe
+	@cp tableparams/redparams_42.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="MONTG" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@cp tableparams/redparams_44.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="BARRETT" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@echo -e '\t||'
 	@echo 4096 bit primes
-	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@echo -e '||\tPlant\t||\tMont\t||\tBarr\t||'
 	@cp tableparams/redparams_80.h redparams.h
 	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@echo -ne '||\t'
 	@./redintcomp.exe
+	@cp tableparams/redparams_84.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="MONTG" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@cp tableparams/redparams_100.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="BARRETT" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@echo -e '\t||'
 	@echo 6144 bit primes
-	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@echo -e '||\tPlant\t||\tMont\t||\tBarr\t||'
 	@cp tableparams/redparams_128.h redparams.h
 	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@echo -ne '||\t'
 	@./redintcomp.exe
+	@cp tableparams/redparams_132.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="MONTG" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@cp tableparams/redparams_152.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="BARRETT" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@echo -e '\t||'
 	@echo 8192 bit primes
-	@echo -e '||\tn\t||\tPlant\t||\tMont\t||\tBarr\t||'
+	@echo -e '||\tPlant\t||\tMont\t||\tBarr\t||'
 	@cp tableparams/redparams_168.h redparams.h
 	@make -B redintcomp.exe execf="EXPBENCH" 2>/dev/null
+	@echo -ne '||\t'
 	@./redintcomp.exe
+	@cp tableparams/redparams_184.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="MONTG" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@cp tableparams/redparams_232.h redparams.h
+	@make -B redintcomp.exe execf="EXPBENCH" exponf="BARRETT" 2>/dev/null
+	@echo -ne '\t||\t'
+	@./redintcomp.exe
+	@echo -e '\t||'
 	@rm redparams.h
 	@mv tmpparams__.h redparams.h 2>/dev/null || true
 
 
 redintcomp.exe: redintcomp.c
-	@$(CC) -o $@ $< $(WARNINGS) -D $(execf) $(FASTFLAGS) -fwhole-program -lgmp -fopenmp
+	@$(CC) -o $@ $< $(WARNINGS) -D $(execf) -D $(exponf) $(FASTFLAGS) -fwhole-program -lgmp -fopenmp
 
 int64vsint128.exe: int64vsint128.c
 	@$(CC) -o $@ $< $(WARNINGS) $(FASTFLAGS)

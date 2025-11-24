@@ -1131,7 +1131,7 @@ uint64_t do_expbench(void (*pmns_exp)(restrict poly, const restrict poly, const 
 		memset(cycles,0,(NTEST/10 + 1)*sizeof(uint64_t));
 		for(int j=0;j<(NTEST/10 + 1);j++)
 		{
-			printf("\b%d\t%d\r", i, j);
+/*			printf("\b%d\t%d\r", i, j);*/
 			t1 = cpucyclesStart();
 			// We call the function W times to get an accurate measurement.
 			for(uint64_t soak=0; soak < W/3; soak++)
@@ -1158,7 +1158,7 @@ uint64_t do_expbench(void (*pmns_exp)(restrict poly, const restrict poly, const 
 		free(statTimer);
 	}
 	
-	printf("                                          \r");
+/*	printf("                                          \r");*/
 	
 	free(cycles);
 	return meanTimermin/(NSAMPLES/10)/W; // We divide by W since we measured W calls.
@@ -1290,38 +1290,46 @@ int main(void)
 	int W = 33;
 #endif
 	
-	uint64_t pcycles, mcycles = 0, bcycles = 0;
 #ifndef NOBENCH
-	//printf("cycles %ld\n", do_bench(gmp_mult_wrapper,W));
-	//printf("cycles %ld\n", do_bench(gmp_montg_wrapper,W));
-	//printf("Plantard-like cycles %ld\n", do_bench(pmns_plant_mult, W));
-#ifndef EXPBENCH
-	pcycles = do_bench(pmns_plant_mult, W);
-#endif
-#ifndef NOMONTG
-	//printf("Montgomery-like cycles %ld\n", do_bench(pmns_montg_mult,W));
-	//printf("cycles %ld\n", do_bench(pmns_montg_mult_multithread,W));
-	mcycles = do_bench(pmns_montg_mult, W);
-#ifndef NOBARRETT
-	//printf("Barrett-like cycles %ld\n", do_bench(pmns_barrett_mult,W));
-	bcycles = do_bench(pmns_barrett_mult, W);
-#endif
-#endif
+	uint64_t pcycles, mcycles = 0, bcycles = 0;
+		//printf("cycles %ld\n", do_bench(gmp_mult_wrapper,W));
+		//printf("cycles %ld\n", do_bench(gmp_montg_wrapper,W));
+		//printf("Plantard-like cycles %ld\n", do_bench(pmns_plant_mult, W));
+	#ifndef EXPBENCH
+		pcycles = do_bench(pmns_plant_mult, W);
+		#ifndef NOMONTG
+		//printf("Montgomery-like cycles %ld\n", do_bench(pmns_montg_mult,W));
+		//printf("cycles %ld\n", do_bench(pmns_montg_mult_multithread,W));
+		mcycles = do_bench(pmns_montg_mult, W);
+			#ifndef NOBARRETT
+			//printf("Barrett-like cycles %ld\n", do_bench(pmns_barrett_mult,W));
+			bcycles = do_bench(pmns_barrett_mult, W);
+			#endif
+		char mstr[10], bstr[10];
+		sprintf(mstr, mcycles ? "%ld" : "-", mcycles);
+		sprintf(bstr, bcycles ? "%ld" : "-", bcycles);
+		printf("||\t%d\t||\t%ld\t||\t%s\t||\t%s\t||\n", N, pcycles, mstr, bstr); 
+		#endif
 	//printf("cycles128 %ld\n", do_bench128(amns128_montg_mult,W));
 	
 	//printf("gnump cycles %ld\n", do_expbench(gmp_ltr_wrapper,3));
-#ifdef EXPBENCH
+	#endif
+	#ifdef EXPBENCH
+		uint64_t cycles;
 	//printf("plantard cycles %ld\n", do_expbench(pmns_ltr_plant,3));
 	//printf("montgom cycles %ld\n", do_expbench(pmns_ltr_montg,3));
 	//printf("barrett cycles %ld\n", do_expbench(pmns_ltr_barrett,3));
-	pcycles = do_expbench(pmns_ltr_plant,3)/1000;
-	mcycles = do_expbench(pmns_ltr_montg,3)/1000;
-	bcycles = do_expbench(pmns_ltr_barrett,3)/1000;
-#endif
-	char mstr[10], bstr[10];
-	sprintf(mstr, mcycles ? "%ld" : "-", mcycles);
-	sprintf(bstr, bcycles ? "%ld" : "-", bcycles);
-	printf("||\t%d\t||\t%ld\t||\t%s\t||\t%s\t||\n", N, pcycles, mstr, bstr); 
+		#ifdef PLANT
+		cycles = do_expbench(pmns_ltr_plant,3)/1000;
+		#else
+		#ifdef MONTG
+		cycles = do_expbench(pmns_ltr_montg,3)/1000;
+		#else
+		cycles = do_expbench(pmns_ltr_barrett,3)/1000;
+		#endif
+		#endif
+		printf("%d", cycles);
+	#endif
 #endif
 	/*_poly A, B, C;
 	int64_t atab[N], btab[N], ctab[N];
