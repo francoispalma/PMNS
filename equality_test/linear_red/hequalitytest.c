@@ -12,8 +12,8 @@
 #define HIGH(X) ((int64_t)(X>>64))
 #define HI(X) ((uint64_t)(X>>64))
 
-#include "toeplitzmacros.h"
-#include "equparams.h"
+#include "../toeplitzmacros.h"
+#include "hequparams.h"
 
 
 __int128 M2[2*N-1];
@@ -64,45 +64,69 @@ static inline void pmns_mod_mult_ext_red(__int128* restrict res, const restrict 
 		res[i] = Res[i];
 }
 
-
-void pmns_montg_mult(restrict poly res, const restrict poly A, const restrict poly B)
+static inline void pmns_mult_by_g(__int128* restrict R, const int64_t* restrict A)
 {
-	int64_t T[N];
-	__int128 Res[N];
-	__int128 aux[N];
+	// Function that multiplies A by (sparse) G. Result in R.
 	
-	pmns_mod_mult_ext_red(Res, A, B);
-	
-	// T <- Res * M1 mod E mod PHI
-	m1toeplitz_vm(T, Res);
-	
-	// aux <- T * M
-	mtoeplitz_vm(aux, T);
-	
-	// res <- (Res + aux)/PHI
-	for(int i = 0; i < N; i++)
-		res->t[i] = ((__int128)Res[i] + aux[i]) >> 64;
+	R[0] += -(__int128)A[0] * GAMMA + (__int128)A[N - 1] * LAMED;
+	for(int i = 1; i < N - 1; i++)
+	{
+		R[i] += A[i - 1] - (__int128)A[i] * GAMMA;
+	}
+	R[N - 1] += -(__int128)A[N - 1] * (GIMEL * ALEPH) + A[N - 2];
 }
 
-void pmns_plant_mult(restrict poly res, const restrict poly A, const restrict poly B)
+static inline void pmns_mult_by_g1(int64_t* restrict R, const __int128* restrict A)
 {
-	__int128 Res[N];
-	__int128 aux[N];
-	int64_t hi[N];
+	// Function that multiplies A by G1. Result in R.
 	
-	pmns_mod_mult_ext_red(Res, A, B);
+	uint64_t Z = 0;
+	for(int j = 0; j < N; j++)
+		Z += (uint64_t)A[j] * (uint64_t)lastcol[j];
+	R[N - 1] = Z;
 	
-	__int128 tmp[N];
-	toep128(tmp, Res, M2);
+	Z *= ALEPH*GIMEL;
+	Z -= (uint64_t)A[N - 1];
+	R[N - 2] = Z;
+	for(int i = 1; i < N - 1; i++)
+	{
+		Z *= GAMMA;
+		Z -= (uint64_t)A[N - 1 - i];
+		R[N - 2 - i] = Z;
+	}
+}
+
+static inline void pmns_montg_int_red(restrict poly res, __int128* restrict R)
+{
+	// Internal reduction of R via the Montgomery method.
+	int64_t T[N];
+	
+	// T <- R times G
+	pmns_mult_by_g1(T, R);
+	
+	// R <- R + T times G1
+	pmns_mult_by_g(R, T);
+	
+	// res <- R divided by phi.
 	for(int i = 0; i < N; i++)
-		hi[i] = (int64_t)((tmp[i])>>64) + 1;
+		res->t[i] = (R[i] >> 64) + (R[i] < 0);
+}
+
+void pmns_montg_mult(restrict poly res, const restrict poly A,
+	const restrict poly B)
+{
+	// Function that multiplies A by B using the Montgomery approach in an
+	// pmns. Puts the result in res. A and B have to be in the system and res
+	// will be in the pmns also such that if A(gamma) = a * phi mod p and 
+	// B(gamma) = b * phi mod p then res(gamma) = a * b * phi mod p
 	
+	__int128 R[N] = {0};
 	
-	mtoeplitz_vm(aux, hi);
+	// R <- A times B mod E
+	pmns_mod_mult_ext_red(R, A, B);
 	
-	// res <- (aux)/PHI
-	for(int i = 0; i < N; i++)
-		res->t[i] = ((__int128)aux[i]+(1ULL<<63)) >> 64;
+	// res <- Gmont-like(R)
+	pmns_montg_int_red(res, R);
 }
 
 static inline void poly_print(const restrict poly P)
@@ -476,9 +500,9 @@ void print64tab(int64_t tab[], uint16_t size, char* name)
 			printf("-%ld, ", -(tab[i]));
 	}
 	if(tab[size-1] >= 0)
-		printf("%ld]\n", (tab[N-1]));
+		printf("%ld]\n", (tab[size-1]));
 	else
-		printf("-%ld]\n", -(tab[N-1]));
+		printf("-%ld]\n", -(tab[size-1]));
 }
 
 void print128tab(__int128 tab[], uint16_t size, char* name)
@@ -515,7 +539,7 @@ _Bool naive_equality_test(const restrict poly A, const restrict poly B)
 		cneg[0] = -C.t[0];
 	for(int i = 1; i < N; i++)
 	{
-		tmp[LENGTH_OF_P] = mpn_mul_1(tmp, __Gi__[i-1], LENGTH_OF_P, C.t[i]*(C.t[i]>0) - C.t[i]*(C.t[i]<0));
+		tmp[i > LENGTH_OF_P ? LENGTH_OF_P : i] = mpn_mul_1(tmp, __Gi__[i-1], i > LENGTH_OF_P ? LENGTH_OF_P : i, C.t[i]*(C.t[i]>0) - C.t[i]*(C.t[i]<0));
 		if(C.t[i] > 0)
 		{
 			mpn_add_n(cpos, cpos, tmp, LENGTH_OF_P + 1);
@@ -545,21 +569,16 @@ _Bool naive_equality_test(const restrict poly A, const restrict poly B)
 _Bool naive_equality_doubletest(const __int128 * restrict A, const __int128 * restrict B)
 {
 	int64_t ctab[N]; _poly C; C.deg = N; C.t = ctab;
-	int64_t T[N];
 	__int128 Res[N];
-	__int128 aux[N];
 	
 	for(int i = 0; i < N; i++)
 		Res[i] = A[i] - B[i];
-	// T <- Res * M1 mod E mod PHI
-	m1toeplitz_vm(T, Res);
 	
-	// aux <- T * M
-	mtoeplitz_vm(aux, T);
+	//print128tab(Res, N, "\nRes");
 	
-	// C <- (Res + aux)/PHI
-	for(int i = 0; i < N; i++)
-		C.t[i] = ((__int128)Res[i] + aux[i]) >> 64;
+	pmns_montg_int_red(&C, Res);
+	
+	//print64tab(C.t, N, "C");
 	
 	uint64_t c_check[LENGTH_OF_P + 1] = {0};
 	uint64_t cpos[LENGTH_OF_P + 1] = {0};
@@ -572,7 +591,7 @@ _Bool naive_equality_doubletest(const __int128 * restrict A, const __int128 * re
 		cneg[0] = -C.t[0];
 	for(int i = 1; i < N; i++)
 	{
-		tmp[LENGTH_OF_P] = mpn_mul_1(tmp, __Gi__[i-1], LENGTH_OF_P, C.t[i]*(C.t[i]>0) - C.t[i]*(C.t[i]<0));
+		tmp[i > LENGTH_OF_P ? LENGTH_OF_P : i] = mpn_mul_1(tmp, __Gi__[i-1], i > LENGTH_OF_P ? LENGTH_OF_P : i, C.t[i]*(C.t[i]>0) - C.t[i]*(C.t[i]<0));
 		if(C.t[i] > 0)
 		{
 			mpn_add_n(cpos, cpos, tmp, LENGTH_OF_P + 1);
@@ -599,99 +618,6 @@ _Bool naive_equality_doubletest(const __int128 * restrict A, const __int128 * re
 	return flag;
 }
 
-/*void schoolbookn(__int128* rop, const int64_t* vect, const int64_t* matr)
-SCHOOLBOOK(N)*/
-
-_Bool barrett_equality_test(const restrict poly A, const restrict poly B)
-{
-	int64_t T[N];
-	__int128 tmp[N];
-	int64_t C[N];
-	// C  = A - B
-	for(int i = 0; i < N; i++)
-		C[i] = A->t[i] - B->t[i];
-	
-	// T <- round((C * G')/PHI)
-	for(int i = 0; i < N; i++)
-	{
-		tmp[i] = 0;
-		for(int j = 0; j < N; j++)
-			tmp[i] += (__int128)C[j] * Gprime[j][i];
-	}
-	
-	for(int i = 0; i < N; i++)
-		T[i] = (tmp[i] + (1ULL<<63))>>64;
-	// S <- T * G
-	
-	int64_t S;
-	_Bool flag = 1;
-	int i = 0;
-	while(i < N && flag)
-	{
-		S = 0;
-		for(int j = 0; j < N; j++)
-			S += T[j] * G[j][i];
-		flag = S == C[i];
-		i++;
-	}
-	return flag;
-}
-
-_Bool barrett_equality_doubletest(const __int128 * restrict A, const __int128 * restrict B)
-{
-	int64_t T[N];
-	__int128 tmp[N];
-	int64_t C[N];
-	__int128 Res[N];
-	__int128 aux[N];
-	
-	for(int i = 0; i < N; i++)
-		Res[i] = A[i] - B[i];
-	// T <- Res * M1 mod E mod PHI
-	m1toeplitz_vm(T, Res);
-	
-	// aux <- T * M
-	mtoeplitz_vm(aux, T);
-	
-	// C <- (Res + aux)/PHI
-	for(int i = 0; i < N; i++)
-		C[i] = ((__int128)Res[i] + aux[i]) >> 64;
-	
-	// T <- round((C * G')/PHI)	
-	for(int i = 0; i < N; i++)
-	{
-		tmp[i] = 0;
-		for(int j = 0; j < N; j++)
-			tmp[i] += (__int128)C[j] * Gprime[j][i];
-	}
-	for(int i = 0; i < N; i++)
-		T[i] = (tmp[i] + (1ULL<<63))>>64;
-	
-	// S <- T * G
-	int64_t S;
-	_Bool flag = 1;
-	int i = 0;
-	while(i < N && flag)
-	{
-		S = 0;
-		for(int j = 0; j < N; j++)
-			S += T[j] * G[j][i];
-		flag = S == C[i];
-		i++;
-	}
-	return flag;
-}
-
-
-void m1schoolbookn(int64_t* rop, const __int128* v, const int64_t* matr)
-{
-	int64_t vect[N];
-	for(int i = 0; i < N; i++)
-		vect[i] = v[i];
-	M1SCHOOLBOOK(N)
-}
-
-#ifdef TRANSLATIONPOSSIBLE
 _Bool translation_equality_halftest(const restrict poly A, const restrict poly B)
 {
 	__int128 C[N];
@@ -726,14 +652,12 @@ _Bool translation_equality_test(const __int128 * restrict A, const __int128 * re
 	for(int i = 0; i < N; i++)
 		Q[i] = A[i] - B[i];
 	
-	int64_t V[N];
-	__int128 aux[N];
-	m1toeplitz_vm(V, Q);
-	mtoeplitz_vm(aux, V);
+	_poly V = {.deg = N, .t = (int64_t[N]) {0}};
+	pmns_montg_int_red(&V, Q);
 	
 	__int128 C[N];
 	for(int i = 0; i < N; i++)
-		C[i] = trans_T[i] + ((Q[i] + aux[i])>>64);
+		C[i] = trans_T[i] + V.t[i];
 	
 	int64_t T[N];
 	
@@ -757,96 +681,86 @@ _Bool translation_equality_test(const __int128 * restrict A, const __int128 * re
 	}
 	return flag;
 }
-#endif
 
-_Bool extended_equality_halftest(const restrict poly A, const restrict poly B)
+_Bool carry_equality_test(const restrict poly A, const restrict poly B)
 {
-	int64_t C[N];
+	int64_t C[N+1];
+	int8_t sign = (LAMBDA < 0 ? 1 : -1) * (A->t[N-1] - B->t[N-1] < 0 ? -1 : 1);
+	
 	for(int i = 0; i < N; i++)
-		C[i] = A->t[i] - B->t[i];
-	
-	// hi <- (C*G1 mod E mod PHI^2)/PHI + 1
-	__int128 tmp;
-	int64_t S[N];
-	_Bool flag = 1; // we assume equality
-	_Bool earlyexit = 1;
-	int i = 0;
-	
-	while(flag && i < N)
+		C[i] = -sign*PARAM_K*(A->t[i] - B->t[i]);
+	C[N] = 0;
+	for(int i = 0; i < N; i++)
 	{
-		tmp = 0;
-		for(int j = 0; j < N; j++)
-			tmp += (__int128)C[j] * G2[j][i];
-		S[i] = ((tmp >> 64) + 1);
-		earlyexit = earlyexit && (S[i] < PHIOVER2G1) && (S[i] > -PHIOVER2G1);
-		flag = flag && (tmp < STEECONST) && (tmp > -STEECONST);
-		i++;
+		for(int j = 0; j <= 2*PARAM_K*ALPHA && (C[i] < 0 || C[i] >= GAMMA); j++)
+		{
+			if(C[i] < 0)
+			{
+				C[i] += GAMMA;
+				C[i+1] -= 1;
+			}
+			if(C[i] >= GAMMA)
+			{
+				C[i] -= GAMMA;
+				C[i+1] += 1;
+			}
+		}
 	}
-	
-	i = 0;
-	while(!earlyexit && flag && (i < N))
-	{
-		tmp = 0;
-		for(int j = 0; j < N; j++)
-			tmp += S[j]*G[j][i];
-		flag = flag && (tmp < (1ULL<<63)) && (tmp > -(1ULL<<63));
-		i++;
-	}
-	return earlyexit && flag;
+	_Bool flag = (C[0] % LAMBDA == 0) && (C[N] % ALPHA == 0) && (ALPHA*C[0] == C[N] * LAMBDA);
+	for(int i = 1; flag && i < N; i++)
+		flag = flag && C[i] == 0;
+	return flag;
 }
 
-_Bool extended_equality_test(const __int128 * restrict A, const __int128 * restrict B)
+_Bool carry_equality_doubletest(const __int128 * restrict A, const __int128 * restrict B)
 {
-	__int128 C[N];
+	__int128 AmB[N];
 	for(int i = 0; i < N; i++)
-		C[i] = A[i] - B[i];
+		AmB[i] = A[i] - B[i];
+	_poly redAmB = {.deg = N, .t = (int64_t[N]) {0}};
+	pmns_montg_int_red(&redAmB, AmB);
+	int64_t C[N+1];
+	int8_t sign = (LAMBDA < 0 ? 1 : -1) * (redAmB.t[N-1] < 0 ? -1 : 1);
+	for(int i = 0; i < N; i++)
+		C[i] = sign*PARAM_K*(redAmB.t[i]);
+	C[N] = 0;
 	
-	// hi <- (C*G1 mod E mod PHI^2)/PHI + 1
-	__int128 tmp;
-	int64_t S[N];
-	_Bool flag = 1; // we assume equality
-	_Bool earlyexit = 1;
-	int i = 0;
-	
-	while(flag && i < N)
+	for(int i = 0; i < N; i++)
 	{
-		tmp = 0;
-		for(int j = 0; j < N; j++)
-			tmp += (__int128)C[j] * G2[j][i];
-		S[i] = ((tmp >> 64) + 1);
-		earlyexit = earlyexit && (S[i] < PHIOVER2G1) && (S[i] > -PHIOVER2G1);
-		flag = flag && (tmp < DTEECONST) && (tmp > -DTEECONST);
-		i++;
+		for(int j = 0; j < 2*PARAM_K*ALPHA && (C[i] < 0 || C[i] >= GAMMA); j++)
+		{
+			if(C[i] < 0)
+			{
+				C[i] += GAMMA;
+				C[i+1] -= 1;
+			}
+			if(C[i] >= GAMMA)
+			{
+				C[i] -= GAMMA;
+				C[i+1] += 1;
+			}
+		}
 	}
-	
-	i = 0;
-	while(!earlyexit && flag && (i < N))
-	{
-		tmp = 0;
-		for(int j = 0; j < N; j++)
-			tmp += S[j]*G[j][i];
-		flag = flag && (tmp < (1ULL<<63)) && (tmp > -(1ULL<<63));
-		i++;
-	}
-	return earlyexit && flag;
+	_Bool flag = (C[0] % LAMBDA == 0) && (C[N] % ALPHA == 0) && (ALPHA*C[0] == C[N] * LAMBDA);
+	for(int i = 1; flag && i < N; i++)
+		flag = flag && C[i] == 0;
+	return flag;
 }
-
 
 int main(void)
 {
-	/*for(int i = 0; i < 2*N - 1; i++)
-		M2[i] = (((__int128)M2hi[i]<<64) | (M2lo[i]));*/
-	for(int i = 0; i < N; i++)
-		for(int j = 0; j < N; j++)
-			G2[i][j] = (((__int128)G2hi[i][j]<<64) | (G2lo[i][j]));
-	#ifdef TRANSLATIONPOSSIBLE
 	for(int i = 0; i < N; i++)
 		trans_T[i] = (((__int128)trans_Thi[i]<<64) | (trans_Tlo[i]));
-	//print128tab(trans_T, N, "trans_T");
-	#endif
 	
 	//time_t seed;
 	//srand((unsigned) (time(&seed)));
+	
+#if N > 41
+	int W = 6;
+#else
+	int W = 66;
+#endif
+	
 	
 	_poly A, B;
 	int64_t atab[N], btab[N];
@@ -875,36 +789,17 @@ int main(void)
 		for(int j = 0; j < N; j++)
 			B2.t[j] += dummy*G[i][j];
 	}
+	
 	/*printf("naive\t%s", naive_equality_test(&A, &B) ? "True" : "False");
 	printf("\t%s", naive_equality_test(&A, &A2) ? "True" : "False");
 	printf("\t%s\n", naive_equality_test(&B, &B2) ? "True" : "False");
-	printf("barrett\t%s", barrett_equality_test(&A, &B) ? "True" : "False");
-	printf("\t%s", barrett_equality_test(&A, &A2) ? "True" : "False");
-	printf("\t%s\n", barrett_equality_test(&B, &B2) ? "True" : "False");
-	#ifdef TRANSLATIONPOSSIBLE
-	printf("transla\t%s", translation_equality_halftest(&A, &B) ? "True" : "False");
+	printf("trans\t%s", translation_equality_halftest(&A, &B) ? "True" : "False");
 	printf("\t%s", translation_equality_halftest(&A, &A2) ? "True" : "False");
 	printf("\t%s\n", translation_equality_halftest(&B, &B2) ? "True" : "False");
-	#endif
-	printf("plantar\t%s", extended_equality_halftest(&A, &B) ? "True" : "False");
-	printf("\t%s", extended_equality_halftest(&A, &A2) ? "True" : "False");
-	printf("\t%s\n", extended_equality_halftest(&B, &B2) ? "True" : "False");/**/
+	printf("carry\t%s", carry_equality_test(&A, &B) ? "True" : "False");
+	printf("\t%s", carry_equality_test(&A, &A2) ? "True" : "False");
+	printf("\t%s\n", carry_equality_test(&B, &B2) ? "True" : "False");*/
 	
-#if N > 41
-	int W = 6;
-#else
-	int W = 66;
-#endif
-	
-	//printf("Montgomery-like cycles %ld\n", do_bench(pmns_montg_mult,W/2));
-	/*printf("naive test cycles %ld\n", do_equalitybench(naive_equality_test,W/3));
-	#ifdef TRANSLATIONPOSSIBLE
-	printf("translat test cycles %ld\n", do_equalitybench(translation_equality_halftest,W/3));
-	#else
-	printf("translat test cycles -\n");
-	#endif
-	printf("reduced test cycles %ld\n", do_equalitybench(barrett_equality_test,W/3));
-	printf("extended test cycles %ld\n", do_equalitybench(extended_equality_halftest,W/3));/**/
 	
 	__int128 dA[N], dB[N], dA2[N], dB2[N];
 	for(int i = 0; i < N; i++)
@@ -927,59 +822,39 @@ int main(void)
 			dB2[j] += (__int128)dummy*G[i][j];
 	}
 	
-	
 	/*printf("double naive\t%s", naive_equality_doubletest(dA, dB) ? "True" : "False");
 	printf("\t%s", naive_equality_doubletest(dA, dA2) ? "True" : "False");
 	printf("\t%s\n", naive_equality_doubletest(dB, dB2) ? "True" : "False");
-	printf("double barrett\t%s", barrett_equality_doubletest(dA, dB) ? "True" : "False");
-	printf("\t%s", barrett_equality_doubletest(dA, dA2) ? "True" : "False");
-	printf("\t%s\n", barrett_equality_doubletest(dB, dB2) ? "True" : "False");
-	#ifdef TRANSLATIONPOSSIBLE
-	printf("double transla\t%s", translation_equality_test(dA, dB) ? "True" : "False");
+	printf("double trans\t%s", translation_equality_test(dA, dB) ? "True" : "False");
 	printf("\t%s", translation_equality_test(dA, dA2) ? "True" : "False");
 	printf("\t%s\n", translation_equality_test(dB, dB2) ? "True" : "False");
-	#endif
-	printf("double plantar\t%s", extended_equality_test(dA, dB) ? "True" : "False");
-	printf("\t%s", extended_equality_test(dA, dA2) ? "True" : "False");
-	printf("\t%s\n", extended_equality_test(dB, dB2) ? "True" : "False");/**/
+	printf("double carry\t%s", carry_equality_doubletest(dA, dB) ? "True" : "False");
+	printf("\t%s", carry_equality_doubletest(dA, dA2) ? "True" : "False");
+	printf("\t%s\n", carry_equality_doubletest(dB, dB2) ? "True" : "False");*/
 	
-	/*printf("naive doubletest cycles %ld\n", do_doubleequalitybench(naive_equality_doubletest,W/3));
-	#ifdef TRANSLATIONPOSSIBLE
-	printf("translat doubletest cycles %ld\n", do_doubleequalitybench(translation_equality_test,W/3));
-	#else
-	printf("translat test cycles -\n");
-	#endif
-	printf("reduced doubletest cycles %ld\n", do_doubleequalitybench(barrett_equality_doubletest,W/3));
-	printf("extended doubletest cycles %ld\n", do_doubleequalitybench(extended_equality_test,W/3));/**/
+	/*printf("naive: %ld\n", do_equalitybench(naive_equality_test, W/3));
+	printf("trans: %ld\n", do_equalitybench(translation_equality_halftest, W/3));
+	printf("carry: %ld\n", do_equalitybench(carry_equality_test, W/3));
+	/*printf("\n");
+	printf("naive: %ld\n", do_doubleequalitybench(naive_equality_doubletest, W/3));
+	printf("trans: %ld\n", do_doubleequalitybench(translation_equality_test, W/3));
+	printf("carry: %ld\n", do_doubleequalitybench(carry_equality_doubletest, W/3));/**/
 	
-	uint64_t ncycles, rcycles, ecycles, tcycles = 0;
-	char tstr[10];
+	int64_t ncycles, tcycles, ccycles;
+	printf("=================================================================\n");
 	
-	printf("================================================================================\n");
-	
-	//ncycles = 404;
 	ncycles = do_equalitybench(naive_equality_test,W/3);
-	#ifdef TRANSLATIONPOSSIBLE
-	//tcycles = 404;
 	tcycles = do_equalitybench(translation_equality_halftest,W/3);
-	#endif
-	//rcycles = 404;
-	rcycles = do_equalitybench(barrett_equality_test,W/3);
-	ecycles = do_equalitybench(extended_equality_halftest,W/3);
-	sprintf(tstr, tcycles ? "%ld" : "-", tcycles);
-	printf("|\t%d\t|\t%ld\t|\t%s\t|\t%ld\t|\t%ld\t|\n", N, ncycles, tstr, rcycles, ecycles); 
+	ccycles = do_equalitybench(carry_equality_test,W/3);
+	printf("|\t%d\t|\t%ld\t|\t%ld\t|\t%ld\t|\n", N, ncycles, tcycles, ccycles); 
 	
-	printf("================================================================================\n");
+	printf("=================================================================\n");
 	
 	ncycles = do_doubleequalitybench(naive_equality_doubletest,W/3);
-	#ifdef TRANSLATIONPOSSIBLE
 	tcycles = do_doubleequalitybench(translation_equality_test,W/3);
-	#endif
-	rcycles = do_doubleequalitybench(barrett_equality_doubletest,W/3);
-	ecycles = do_doubleequalitybench(extended_equality_test,W/3);
-	sprintf(tstr, tcycles ? "%ld" : "-", tcycles);
-	printf("|\t%d\t|\t%ld\t|\t%s\t|\t%ld\t|\t%ld\t|\n", N, ncycles, tstr, rcycles, ecycles); 
-	printf("================================================================================\n");
+	ccycles = do_doubleequalitybench(carry_equality_doubletest,W/3);
+	printf("|\t%d\t|\t%ld\t|\t%ld\t|\t%ld\t|\n", N, ncycles, tcycles, ccycles);
+	printf("=================================================================\n");
 
 	return 0;
 }

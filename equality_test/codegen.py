@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from sage.all import matrix,ZZ,xgcd,vector,prod,ceil,log,floor
 
-from dictofequtestpmns import pmnsdict
+from dictofequtestpmns import pmnsdict, kdict
 from dictofbasismatrices import basisdict
 
 import os
@@ -43,13 +43,13 @@ val, M1, soak = xgcd(ZZX(M), E)
 M1 = (M1 * int(pow(int(val), -1, PHI) % PHI))
 w = abs(lam)*(n-1) + 1
 
-
 X = ZZX("X")
 tmpG = [list(ZZX(M) * X**i % E) for i in range(n)]
 for lig in tmpG:
 	while len(lig) < n:
 		lig += [0]
 G = matrix(ZZ, tmpG)
+#invMG = G.inverse()
 beta = 1
 while beta**n < p:
 	beta <<= 1
@@ -160,8 +160,9 @@ if __name__ == "__main__":
 #		M2hi = [elem//PHI for elem in M2]
 #		write(f"\nstatic const int64_t M2hi[{2*n-1}] = {{ {str(M2hi)[1:-1]} }};")
 #		write(f"\nstatic const uint64_t M2lo[{2*n-1}] = {{ {(str(M2lo)[1:-1]).replace(',','u,')}u }};")
-		#M1 = [Gprime[i][0] for i in range(n-1,0,-1)] + Gprime[0]
-		#write(f"\nstatic const int64_t Gprime[{2*n-1}] = {{ {str(M1)[1:-1]} }};")
+#		TGprime = [[round(elem) for elem in lig] for lig in invMG * PHI]
+#		M1 = [TGprime[i][0] for i in range(n-1,0,-1)] + TGprime[0]
+#		write(f"\nstatic const int64_t TGprime[{2*n-1}] = {{ {str(M1)[1:-1]} }};")
 		write("\nstatic const int64_t G[N][N] = {\n")
 		G = [[elem for elem in lig] for lig in G]
 		for i in range(len(G) - 1):
